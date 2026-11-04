@@ -448,6 +448,49 @@ public class LearningStore implements AutoCloseable {
         }
     }
 
+    /**
+     * 按 id 就地修改一条题库条目。
+     *
+     * <p>题库不是 path 聚合的一部分（独立表），因此不走 CAS；标签修改这类单行更新直接覆盖即可。
+     *
+     * @return 修改后的条目；不存在返回 {@code null}
+     */
+    public QuestionBankEntry mutateBankEntry(String entryId,
+                                             java.util.function.UnaryOperator<QuestionBankEntry> fn) {
+        synchronized (lock) {
+            try {
+                beginImmediate();
+                QuestionBankEntry entry;
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "SELECT data FROM question_bank WHERE entry_id=?")) {
+                    ps.setString(1, entryId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            endTransaction(false);
+                            return null;
+                        }
+                        entry = mapper.readValue(rs.getString("data"), QuestionBankEntry.class);
+                    }
+                }
+                QuestionBankEntry updated = fn.apply(entry);
+                updated.setUpdatedAt(TimeSupport.nowSeconds());
+                try (PreparedStatement ps = connection.prepareStatement(Schema.UPSERT_BANK)) {
+                    ps.setString(1, updated.getEntryId());
+                    ps.setString(2, updated.getPathId());
+                    ps.setString(3, mapper.writeValueAsString(updated));
+                    ps.setDouble(4, updated.getCreatedAt());
+                    ps.setDouble(5, updated.getUpdatedAt());
+                    ps.executeUpdate();
+                }
+                endTransaction(true);
+                return updated;
+            } catch (RuntimeException | SQLException | IOException e) {
+                rollbackQuietly();
+                throw wrap(e);
+            }
+        }
+    }
+
     // -- 会话与消息 -------------------------------------------------------------
 
     public Map<String, Object> upsertSession(Map<String, Object> session) {

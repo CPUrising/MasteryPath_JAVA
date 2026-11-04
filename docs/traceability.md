@@ -100,20 +100,20 @@
 | TC-J4 | revise 保进度 | `specs/learning-tools` → `TC-J4` | `OutlineReviseTest#addKpPreservesProgress` | 通过（`0007`） |
 | TC-J5 | revise 禁改类型 | `specs/learning-tools` → `TC-J4` | `OutlineReviseTest#typeChangeRefused` | 通过（`0007`） |
 | TC-J6 | 缺口上报 | `specs/learning-tools` → `TC-J6` | `OutlineBuildTest#buildReportsGaps` | 通过（`0007`） |
-| TC-K1 | 注册校验 | `specs/learning-tools` → `TC-K1` | `QuizGradeTest#registrationValidation` | 未实现 |
-| TC-K2 | 单槽位重放 | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现（`0008`） |
-| TC-E1 | 单槽位（存储层） | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现（`0008`） |
-| TC-E2 | 判分后可注册新题 | `specs/learning-tools` → `TC-E2` | `QuizGradeTest#registerAfterGraded` | 未实现（`0008`） |
-| TC-K3 | 判分幂等 | `specs/learning-tools` → `TC-K3` | `QuizGradeTest#gradingIdempotent` | 未实现 |
-| TC-K4 | 未判定零变更 | `specs/learning-tools` → `TC-K4` | `QuizGradeTest#ungradedNoStateChange` | 未实现 |
-| TC-K5 | 提示降级 | `specs/learning-tools` → `TC-K5` | `QuizGradeTest#hintsDowngrade` | 未实现 |
-| TC-K6 | review 拒未掌握出题 | `specs/learning-tools` → `TC-K6` | `QuizGradeTest#reviewRejectsUnmastered` | 未实现 |
-| TC-H1 | 正文唯一匹配 | `specs/learning-tools` → `TC-H1` | `GradingTest#bodyUniqueMatch` | 未实现 |
-| TC-H2 | 歧义不判分 | `specs/learning-tools` → `TC-H2` | `GradingTest#ambiguousUngraded` | 未实现 |
-| TC-H3 | 数字等价 | `specs/learning-tools` → `TC-H3` | `GradingTest#numericEquivalence` | 未实现 |
-| TC-H4 | 模糊阈值 | `specs/learning-tools` → `TC-H4` | `GradingTest#fuzzyThreshold` | 未实现 |
-| TC-H5 | open 最弱 | `specs/learning-tools` → `TC-H5` | `GradingTest#openPartialOnly` | 未实现 |
-| TC-H6 | 提示降级判分 | `specs/learning-tools` → `TC-H6` | `GradingTest#hintDowngrade` | 未实现 |
+| TC-K1 | 注册校验 | `specs/learning-tools` → `TC-K1` | `QuizSpecTest#rejectsOptionsOnShort` | 通过（`0008`） |
+| TC-K2 | 单槽位重放 | `specs/learning-tools` → `TC-K2` | `QuizRegistrationTest#secondRegistrationReturnsNull` | 通过（`0008`） |
+| TC-E1 | 单槽位（存储层） | `specs/learning-tools` → `TC-K2` | `QuizRegistrationTest#secondRegistrationReturnsNull` | 通过（`0008`） |
+| TC-E2 | 判分后可注册新题 | `specs/learning-tools` → `TC-E2` | `QuizRegistrationTest#canRegisterAfterGraded` | 通过（`0008`） |
+| TC-K3 | 判分幂等 | `specs/learning-tools` → `TC-K3` | `GradeFlowTest#gradeIsIdempotent` | 通过（`0008`） |
+| TC-K4 | 未判定零变更 | `specs/learning-tools` → `TC-K4` | `GradeFlowTest#ungradedLeavesNoTrace` | 通过（`0008`） |
+| TC-K5 | 提示降级 | `specs/learning-tools` → `TC-K5` | `GradeFlowTest#hintsDowngradeToPartial` | 通过（`0008`） |
+| TC-K6 | review 拒未掌握出题 | `specs/learning-tools` → `TC-K6` | `QuizGradeTest#reviewRejectsUnmastered` | 未实现（`0013`，工具层） |
+| TC-H1 | 正文唯一匹配 | `specs/learning-tools` → `TC-H1` | `GradingTest#choiceBodyUniqueMatch` | 通过（`0008`） |
+| TC-H2 | 歧义不判分 | `specs/learning-tools` → `TC-H2` | `GradingTest#choiceUnparseableIsUngraded` | 通过（`0008`） |
+| TC-H3 | 数字等价 | `specs/learning-tools` → `TC-H3` | `GradingTest#shortNumeric` | 通过（`0008`） |
+| TC-H4 | 模糊阈值 | `specs/learning-tools` → `TC-H4` | `GradingTest#shortFuzzyThreshold` | 通过（`0008`） |
+| TC-H5 | open 最弱 | `specs/learning-tools` → `TC-H5` | `GradingTest#openOptionalInsufficient` | 通过（`0008`） |
+| TC-H6 | 提示降级判分 | `specs/learning-tools` → `TC-H6` | `GradeFlowTest#hintsDowngradeToPartial` | 通过（`0008`） |
 | TC-M1 | 捕获不改地图 | `specs/learning-tools` → `TC-M1` | `CaptureTest#proposalDoesNotChangeMap` | 未实现 |
 | TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `CaptureTest#acceptCreatesKp` | 未实现 |
 | TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `GapClassificationTest#getCoverageReturnsReport` | 通过（`0007`） |
@@ -152,7 +152,7 @@
 | TC-I5 | 失败不产事件 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#failureNoEvent` | 未实现 |
 | TC-I6 | 字段级重建 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#fieldLevelReplay` | 未实现 |
 | TC-I7 | 声明有事件无证据 | `specs/agent-turn` → `TC-I7` | `MasteryOverrideServiceTest#overrideEmitsEvent` | 部分通过（`0006`，服务层已覆盖，REST 待 `0014`） |
-| TC-E3 | 判分幂等（API） | `specs/learning-tools` → `TC-K3` | `LearningApiTest#gradeIdempotent` | 未实现 |
+| TC-E3 | 判分幂等（API） | `specs/learning-tools` → `TC-K3` | `GradeFlowTest#gradeIsIdempotent` | 通过（`0008`，服务层；REST 待 `0014`） |
 | TC-E4 | 公共投影 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#projectionHasExactlySevenKeys` | 通过（`0006`） |
 | — | WS 事件顺序 | `specs/agent-turn` → `WS event order` | `WebSocketTurnTest#eventOrder` | 未实现 |
 | — | 流失败保留文本 | `specs/agent-turn` → `Partial text survives stream failure` | `WebSocketTurnTest#partialTextOnError` | 未实现 |

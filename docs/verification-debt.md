@@ -23,7 +23,13 @@
 | 缺口分类 | TC-F2/F3/F4 + 服务层事件 | `GapClassificationTest` | 通过 | 15 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
 | 大纲评测 | TC-N5/N6（覆盖比/接地比/无环阈值 + CLI 确定性） | 待建 `OutlineEvalTest` | 未执行 | 属 `0018` |
 | 候选目标 | `propose_objective` / `note_gap`（捕获-延后） | 待建 `CaptureTest` | 未执行 | 属 `0009`；本仓库已实现 `applyProposal`/`rejectProposal` 纯函数 |
-| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0008-quiz-grade` 起；见 `docs/migration-plan.md` §5 |
+| 确定性判分 | TC-H1…H5 + normalize/similarity/resolveChoice | `GradingTest` | 通过 | 27 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
+| 出题校验 | TC-K1 全部校验分支 + 旧式选项解析 | `QuizSpecTest` | 通过 | 20 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
+| 判分流程 | TC-K3/K4/K5 + 幂等 + 掌握推进 + INV-05 | `GradeFlowTest` | 通过 | 23 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
+| 出题注册 | TC-K2 单槽位 + 连续追问预算 | `QuizRegistrationTest` | 通过 | 12 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
+| 题库 | 判分入库 + 标签 + 筛选 | `QuestionBankTest` | 通过 | 9 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
+| 定性评估 | `assess`（concept/design 的 Feynman 通道） | 待建 `AssessServiceTest` | 未执行 | 属 `0009` |
+| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0009-qualitative-assess` 起；见 `docs/migration-plan.md` §5 |
 | 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭 |
 | 参考实现行为瑕疵 | Q1–Q4（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；详见 `docs/migration-plan.md` §11，统一需另开 change |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |
