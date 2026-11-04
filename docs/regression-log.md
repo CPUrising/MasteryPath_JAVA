@@ -10,3 +10,4 @@
 | 2026-11-04 | `0004-mastery-policy` | 88 | 0 | 0 | [verify/0004](verify/0004-mastery-policy.md) |
 | 2026-11-04 | `0005-mode-gating` | 130 | 0 | 0 | [verify/0005](verify/0005-mode-gating.md) |
 | 2026-11-04 | `0006-service-core` | 193 | 0 | 0 | [verify/0006](verify/0006-service-core.md) |
+| 2026-11-04 | `0007-outline-build-revise` | 262 | 0 | 0 | [verify/0007](verify/0007-outline-build-revise.md) |

@@ -1,10 +1,16 @@
 package com.masterypath.service;
 
+import com.masterypath.domain.model.CoverageReport;
 import com.masterypath.domain.model.DeferredObjective;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.LearnerMasteryOverride;
 import com.masterypath.domain.model.LearningProgress;
+import com.masterypath.domain.model.SourceGap;
 import com.masterypath.domain.model.TopicSource;
+import com.masterypath.domain.outline.BuildResult;
+import com.masterypath.domain.outline.OutlineBuilder;
+import com.masterypath.domain.outline.ReviseResult;
+import com.masterypath.domain.outline.SourceResolver;
 import com.masterypath.domain.policy.MasteryPolicy;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
@@ -183,6 +189,60 @@ public final class LearningService {
                     "summary", safeSummary));
             return payload("knowledge_point_id", kpId, "mastery_credit", false);
         });
+    }
+
+    // -- 大纲 ----------------------------------------------------------------
+
+    /**
+     * 构建大纲；非空路径需 {@code confirm}，否则返回 {@code refused_rebuild} 且零状态变更。
+     *
+     * <p>成功时发 {@code outline.built}（首次）或 {@code path.rebuilt}（替换）。
+     */
+    public BuildResult build(String pathId, Map<String, Object> payload, boolean confirm) {
+        return store.mutate(pathId, tx -> {
+            SourceResolver resolver = SourceResolver.fromSources(tx.progress().getSources());
+            BuildResult result = OutlineBuilder.build(
+                    tx.progress(), payload, confirm, resolver, resolver.selectedIds());
+            if (result.isBuilt()) {
+                String eventType = result.rebuilt() ? "path.rebuilt" : "outline.built";
+                Map<String, Object> eventPayload = payload(
+                        "module_count", result.modules().size(),
+                        "gap_ids", result.gaps().stream().map(SourceGap::getId).toList());
+                tx.emit(eventType, eventPayload);
+            }
+            return result;
+        }, null, true);
+    }
+
+    /**
+     * 按差分操作修订大纲；未触动的知识点进度保留。
+     *
+     * <p>无论是否有实际变更都发 {@code outline.revised}（与参考实现一致）。
+     */
+    public ReviseResult revise(String pathId, List<Map<String, Object>> ops) {
+        return store.mutate(pathId, tx -> {
+            SourceResolver resolver = SourceResolver.fromSources(tx.progress().getSources());
+            ReviseResult result = OutlineBuilder.revise(tx.progress(), ops, resolver.selectedIds());
+            tx.emit("outline.revised", payload(
+                    "applied", result.applied(),
+                    "dropped_kp_ids", result.droppedKpIds()));
+            return result;
+        });
+    }
+
+    /** 接受缺口或记录一次重新生成尝试。 */
+    public SourceGap resolveGap(String pathId, String gapId, String action) {
+        return store.mutate(pathId, tx -> {
+            SourceGap gap = OutlineBuilder.resolveGap(tx.progress(), gapId, action);
+            tx.emit("gap.resolved", payload("gap_id", gapId, "action", action));
+            return gap;
+        });
+    }
+
+    /** 读取覆盖报告；路径不存在或无报告时返回 {@code null}。 */
+    public CoverageReport getCoverage(String pathId) {
+        LearningProgress progress = store.load(pathId);
+        return progress == null ? null : progress.getCoverage();
     }
 
     // -- 内部 ----------------------------------------------------------------

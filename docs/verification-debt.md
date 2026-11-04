@@ -18,7 +18,12 @@
 | 服务核心 | 路径生命周期 + 来源附加 + 声明掌握 + defer/已讲解 + 公共投影 | `PathLifecycleTest`、`SourceAttachmentTest`、`MasteryOverrideServiceTest`、`ObjectiveStateTest`、`QuestionCardProjectorTest` | 通过 | 55 用例，见 [verify/0006](verify/0006-service-core.md) |
 | 路径删除级联 | messages/sessions/question_bank/interactions 级联，events 保留 | `PathDeletionTest` | 通过 | 8 用例，见 [verify/0006](verify/0006-service-core.md) |
 | 学习者首间隔播种 | `review.scheduled` 事件 + provenance=learner 的 0.5 倍首间隔 | 待建 `SchedulerTest` | 未执行 | `overrideMastery` 的 `gate_cleared` 分支已返回布尔值，调度属 `0010` |
-| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0007-outline-build-revise` 起；见 `docs/migration-plan.md` §5 |
+| 大纲构建与修订 | TC-J1…J6 + 8 个 revise op + dropKpState 全字段 | `OutlineBuildTest`、`OutlineReviseTest` | 通过 | 42 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
+| 覆盖报告 | TC-N1…N4 + 接地比 + 无环检测 | `CoverageReportTest` | 通过 | 12 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
+| 缺口分类 | TC-F2/F3/F4 + 服务层事件 | `GapClassificationTest` | 通过 | 15 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
+| 大纲评测 | TC-N5/N6（覆盖比/接地比/无环阈值 + CLI 确定性） | 待建 `OutlineEvalTest` | 未执行 | 属 `0018` |
+| 候选目标 | `propose_objective` / `note_gap`（捕获-延后） | 待建 `CaptureTest` | 未执行 | 属 `0009`；本仓库已实现 `applyProposal`/`rejectProposal` 纯函数 |
+| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0008-quiz-grade` 起；见 `docs/migration-plan.md` §5 |
 | 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭 |
 | 参考实现行为瑕疵 | Q1–Q4（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；详见 `docs/migration-plan.md` §11，统一需另开 change |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |

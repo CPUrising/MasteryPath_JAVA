@@ -94,12 +94,12 @@
 
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
-| TC-J1 | 空路径 build | `specs/learning-tools` → `TC-J1` | `BuildReviseTest#buildOnEmptyPath` | 未实现 |
-| TC-J2 | 非空重建需确认 | `specs/learning-tools` → `TC-J2` | `BuildReviseTest#rebuildRequiresConfirm` | 未实现 |
-| TC-J3 | 重名拒绝 | `specs/learning-tools` → `TC-J1` | `BuildReviseTest#duplicateNamesRejected` | 未实现 |
-| TC-J4 | revise 保进度 | `specs/learning-tools` → `TC-J4` | `BuildReviseTest#reviseKeepsProgress` | 未实现 |
-| TC-J5 | revise 禁改类型 | `specs/learning-tools` → `TC-J4` | `BuildReviseTest#reviseRejectsTypeChange` | 未实现 |
-| TC-J6 | 缺口上报 | `specs/learning-tools` → `TC-J6` | `BuildReviseTest#gapsReported` | 未实现 |
+| TC-J1 | 空路径 build | `specs/learning-tools` → `TC-J1` | `OutlineBuildTest#buildOnEmptyPath` | 通过（`0007`） |
+| TC-J2 | 非空重建需确认 | `specs/learning-tools` → `TC-J2` | `OutlineBuildTest#rebuildWithoutConfirmRefused` | 通过（`0007`） |
+| TC-J3 | 重名拒绝 | `specs/learning-tools` → `TC-J1` | `OutlineBuildTest#duplicateNameRejected` | 通过（`0007`） |
+| TC-J4 | revise 保进度 | `specs/learning-tools` → `TC-J4` | `OutlineReviseTest#addKpPreservesProgress` | 通过（`0007`） |
+| TC-J5 | revise 禁改类型 | `specs/learning-tools` → `TC-J4` | `OutlineReviseTest#typeChangeRefused` | 通过（`0007`） |
+| TC-J6 | 缺口上报 | `specs/learning-tools` → `TC-J6` | `OutlineBuildTest#buildReportsGaps` | 通过（`0007`） |
 | TC-K1 | 注册校验 | `specs/learning-tools` → `TC-K1` | `QuizGradeTest#registrationValidation` | 未实现 |
 | TC-K2 | 单槽位重放 | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现（`0008`） |
 | TC-E1 | 单槽位（存储层） | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现（`0008`） |
@@ -116,18 +116,18 @@
 | TC-H6 | 提示降级判分 | `specs/learning-tools` → `TC-H6` | `GradingTest#hintDowngrade` | 未实现 |
 | TC-M1 | 捕获不改地图 | `specs/learning-tools` → `TC-M1` | `CaptureTest#proposalDoesNotChangeMap` | 未实现 |
 | TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `CaptureTest#acceptCreatesKp` | 未实现 |
-| TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `CoverageTest#reportPersisted` | 未实现 |
-| TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `OutlineEvalTest#coverageBelowThreshold` | 未实现 |
-| TC-F2 | 目标缺口重生成无效 | `specs/learning-tools` → `TC-F2` | `GapTest#goalGapRegenIneffective` | 未实现 |
-| TC-F3 | 来源遗漏重生成闭合 | `specs/learning-tools` → `TC-F2` | `GapTest#omissionRegenCloses` | 未实现 |
-| TC-F4 | 接受缺口与消解 | `specs/learning-tools` → `TC-F4` | `GapTest#acceptThenResolve` | 未实现 |
-| TC-F5 | 重建需确认 | `specs/learning-tools` → `TC-F2` | `GapTest#regenerateNeedsConfirm` | 未实现 |
-| TC-N1 | 覆盖报告字段齐全 | `specs/learning-tools` → `TC-N1` | `CoverageTest#fieldsComplete` | 未实现 |
-| TC-N2 | 未用来源进缺失 | `specs/learning-tools` → `TC-N2` | `CoverageTest#unusedSourceMissing` | 未实现 |
-| TC-N3 | 未声明不展开 | `specs/learning-tools` → `TC-N1` | `CoverageTest#unreportedNoMissing` | 未实现 |
-| TC-N4 | 含环检测 | `specs/learning-tools` → `TC-N2` | `CoverageTest#cycleDetected` | 未实现 |
-| TC-N5 | 评测不达标非零退出 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#belowMinF1Fails` | 未实现 |
-| TC-N6 | 评测可复现 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#deterministicRepeatable` | 未实现 |
+| TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `GapClassificationTest#getCoverageReturnsReport` | 通过（`0007`） |
+| TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `OutlineEvalTest#coverageBelowThreshold` | 未实现（`0018`） |
+| TC-F2 | 目标缺口重生成无效 | `specs/learning-tools` → `TC-F2` | `GapClassificationTest#regenerateDoesNotCloseGap` | 通过（`0007`） |
+| TC-F3 | 来源遗漏重生成闭合 | `specs/learning-tools` → `TC-F2` | `GapClassificationTest#sourceOmissionClosesWhenUsed` | 通过（`0007`） |
+| TC-F4 | 接受缺口与消解 | `specs/learning-tools` → `TC-F4` | `GapClassificationTest#acceptGapThenResolved` | 通过（`0007`） |
+| TC-F5 | 重建需确认 | `specs/learning-tools` → `TC-F2` | `OutlineBuildTest#rebuildWithoutConfirmRefused` | 通过（`0007`） |
+| TC-N1 | 覆盖报告字段齐全 | `specs/learning-tools` → `TC-N1` | `CoverageReportTest#unreportedCoverage` | 通过（`0007`） |
+| TC-N2 | 未用来源进缺失 | `specs/learning-tools` → `TC-N2` | `CoverageReportTest#unusedSourceIsMissing` | 通过（`0007`） |
+| TC-N3 | 未声明不展开 | `specs/learning-tools` → `TC-N1` | `CoverageReportTest#unreportedDoesNotExpandMissing` | 通过（`0007`） |
+| TC-N4 | 含环检测 | `specs/learning-tools` → `TC-N2` | `CoverageReportTest#cycleDetected` | 通过（`0007`） |
+| TC-N5 | 评测不达标非零退出 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#belowMinF1Fails` | 未实现（`0018`） |
+| TC-N6 | 评测可复现 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#deterministicRepeatable` | 未实现（`0018`） |
 
 ## 5. 复习调度（review-scheduling）
 
