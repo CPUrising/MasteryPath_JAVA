@@ -147,6 +147,11 @@
 | TC-S3 | 会话绑定 | `service.py:132-136` | `PathBindingTest#bindMovesSession`、`#bindEmptySessionIsNoop` | 通过（`0013`，工具层拒绝属 `0015`） |
 | TC-S4 | 删除会话与空 scratch 级联 | `service.py:1014-1029` | `PathBindingTest#deleteSessionRemovesOwnedEmptyScratch`、`#deleteSessionKeepsPathWithKnowledgePoints`、`#deleteSessionKeepsForeignPath`、`#deleteSessionKeepsPathWithOtherSessions` | 通过（`0013`） |
 | TC-S5 | 回合内切换路径持久化 | `../MasteryPath/tests/test_turn_path_switch.py` | `WebSocketTurnTest#switchPersistsBinding` | 未实现（`0017`） |
+| TC-NAV1 | 课程卡片（筛选 / 截断 / 条件键） | `learning/navigation.py:41-83` | `NavigationTest#listsBuiltTopics`、`#queryFiltersByHaystack`、`#haystackExcludesPathId`、`#queryKeyOnlyWhenTruthy`、`#modulesTruncated`、`#topicsTruncated` | 通过（`0014`） |
+| TC-NAV2 | 单条课程（空 map 视为不存在） | `navigation.py:86-104` | `NavigationTest#findTopicReturnsCard`、`#findTopicEmptyMapIsNull`、`#findTopicMissingIsNull`、`#findTopicStripsPathId` | 通过（`0014`） |
+| TC-NAV3 | 模块解析（id / 名称 / 1 基序号） | `navigation.py:107-122` | `NavigationTest#resolveModuleById`、`#resolveModuleByName`、`#resolveModuleByOrder`、`#resolveModuleNoMatch` | 通过（`0014`） |
+| TC-NAV4 | 会话列表（archived 过滤 / awaiting 复合 / 截断） | `navigation.py:125-159` | `NavigationTest#listsSessions`、`#skipsArchivedSessions`、`#awaitingAnswerIsComposite`、`#sessionsTruncated` | 通过（`0014`） |
+| TC-NAV5 | hand-off 卡片 17 键 | `nav_tools.py:43-70` | `NavigationTest#handoffHasSeventeenKeys`、`#handoffDefaults`、`#navigationIsReadOnly` | 通过（`0014`，工具层属 `0015`） |
 
 ## 5. 复习调度（review-scheduling）
 
