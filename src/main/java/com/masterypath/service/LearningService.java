@@ -16,7 +16,9 @@ import com.masterypath.domain.model.MasteryInteraction;
 import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.domain.model.QuizAttempt;
+import com.masterypath.domain.model.RepetitionState;
 import com.masterypath.domain.model.SourceGap;
+import com.masterypath.domain.model.TimeSupport;
 import com.masterypath.domain.model.TopicSource;
 import com.masterypath.domain.outline.BuildResult;
 import com.masterypath.domain.outline.OutlineBuilder;
@@ -24,12 +26,14 @@ import com.masterypath.domain.outline.ReviseResult;
 import com.masterypath.domain.outline.SourceResolver;
 import com.masterypath.domain.policy.MasteryPolicy;
 import com.masterypath.domain.policy.MasteryScore;
+import com.masterypath.domain.schedule.Sm2Scheduler;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
 import com.masterypath.storage.Transaction;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -140,8 +144,8 @@ public final class LearningService {
      * <p>{@code gateCleared} 必须在写入 override <b>之后</b>计算——{@code isMastered} 读的就是
      * override，先算后写会让它恒为 {@code false}。
      *
-     * <p>已知缺口：参考实现在 {@code gateCleared} 时还会播种复习计划并发 {@code review.scheduled}。
-     * 该能力属 {@code 0010}（SM-2 调度），本 change 不实现。
+     * <p>首次掌握会播种复习计划并发 {@code review.scheduled}，provenance 为 {@code learner}，
+     * 首间隔约为系统轨的一半（{@code INV-19}）。
      *
      * @return {@code knowledge_point_id} / {@code source="learner"} / {@code gate_cleared}
      */
@@ -157,6 +161,8 @@ public final class LearningService {
             progress.getLearnerMasteryOverrides()
                     .put(kpId, new LearnerMasteryOverride(kpId, safeNote));
             boolean gateCleared = MasteryPolicy.isMastered(progress, kp) && !wasMastered;
+
+            scheduleAfter(tx, kp, "correct", 0, false, gateCleared, "learner", "");
 
             tx.emit("mastery.override", payload(
                     "knowledge_point_id", kpId,
@@ -308,8 +314,8 @@ public final class LearningService {
      * <p>降级规则：{@code open} 的 {@code correct} → {@code partial}（{@code INV-35}）；
      * 有提示的 {@code correct} → {@code partial}（{@code INV-36}）。
      *
-     * <p>已知缺口：参考实现在 {@code gateCleared} 时还会播种复习计划并发 {@code review.scheduled}。
-     * 该能力属 {@code 0010}（SM-2 调度），本 change 不实现。
+     * <p>首次掌握会播种复习计划；{@code review=true} 且已有状态时按结果重排。
+     * 调度必须在清空待答题<b>之前</b>，否则事件顺序与参考实现不一致。
      */
     public Map<String, Object> grade(String pathId, String questionId, String answer,
                                      int hintsUsed, boolean review,
@@ -396,6 +402,8 @@ public final class LearningService {
             boolean gateCleared = MasteryPolicy.isMastered(progress, kp) && !wasMastered;
             String source = MasteryPolicy.masterySource(progress, kp);
 
+            scheduleAfter(tx, kp, result, hintsUsed, review, gateCleared, source, evidenceId);
+
             progress.setPendingQuestion(null);
             progress.setConsecutiveQuestions(0);
 
@@ -454,10 +462,16 @@ public final class LearningService {
         });
     }
 
-    /** 题库列表；{@code tag} 非空时只返回含该标签的条目。 */
+    /**
+     * 题库列表；{@code tag} 非空时只返回含该标签的条目。
+     *
+     * <p><b>真值语义</b>：参考实现用 {@code if tag:}，Python 中 {@code '  '} 是<b>真值</b>、
+     * {@code ''} 与 {@code None} 是假值。因此这里用 {@code isEmpty()} 而非 {@code isBlank()}——
+     * 后者会让空白标签静默失效。
+     */
     public List<QuestionBankEntry> listQuestions(String pathId, String tag) {
         List<QuestionBankEntry> entries = store.listBankEntries(pathId);
-        if (tag == null || tag.isBlank()) {
+        if (tag == null || tag.isEmpty()) {
             return entries;
         }
         List<QuestionBankEntry> filtered = new ArrayList<>();
@@ -469,16 +483,36 @@ public final class LearningService {
         return filtered;
     }
 
-    /** 给题库条目追加标签（去重，保持顺序）。 */
+    /**
+     * 用给定列表<b>整体替换</b>题库条目的标签（参考实现 {@code entry.tags = list(dict.fromkeys(...))}）。
+     *
+     * <p>不是追加：调用方提交的是该条目的完整标签集。每个标签经 {@code str()} 转换
+     * （{@code null} → {@code "None"}），去重且保持首次出现顺序。
+     *
+     * <p><b>不校验空值</b>：参考实现对空串与空白照收，此处不得「顺手加固」。
+     *
+     * @throws PreconditionFailedException 条目不存在
+     */
     public QuestionBankEntry tagQuestion(String entryId, List<String> tags) {
-        return store.mutateBankEntry(entryId, entry -> {
-            for (String tag : tags == null ? List.<String>of() : tags) {
-                if (tag != null && !tag.isBlank() && !entry.getTags().contains(tag)) {
-                    entry.getTags().add(tag);
-                }
-            }
+        List<String> normalised = new ArrayList<>(new LinkedHashSet<>(
+                pythonStrings(tags == null ? List.of() : tags)));
+        QuestionBankEntry updated = store.mutateBankEntry(entryId, entry -> {
+            entry.setTags(normalised);
             return entry;
         });
+        if (updated == null) {
+            throw new PreconditionFailedException("unknown question bank entry: " + entryId);
+        }
+        return updated;
+    }
+
+    /** 逐字复刻 Python 的 {@code str(tag)}：{@code None} → {@code "None"}，其余 {@code String.valueOf}。 */
+    private static List<String> pythonStrings(List<String> tags) {
+        List<String> out = new ArrayList<>(tags.size());
+        for (String tag : tags) {
+            out.add(tag == null ? "None" : tag);
+        }
+        return out;
     }
 
     /**
@@ -491,8 +525,8 @@ public final class LearningService {
      * <p>{@code quality} 默认值：通过固定 {@code 1.0}（忽略传入值）；未通过时显式值优先，
      * 缺省 {@code 0.2}。
      *
-     * <p>已知缺口：参考实现在 {@code gateCleared} 时还会播种复习计划并发 {@code review.scheduled}。
-     * 该能力属 {@code 0010}（SM-2 调度），本 change 不实现。
+     * <p>调度用的 {@code result} 是 {@code "correct" if passed else "incorrect"}，
+     * <b>与证据结果不同</b>（证据未通过记 {@code partial}）——这是参考实现的不一致，照抄。
      *
      * @throws PreconditionFailedException 知识点不存在，或类型不是 {@code concept} / {@code design}
      */
@@ -535,6 +569,9 @@ public final class LearningService {
             boolean gateCleared = MasteryPolicy.isMastered(progress, kp) && !wasMastered;
             String source = MasteryPolicy.masterySource(progress, kp);
 
+            scheduleAfter(tx, kp, passed ? "correct" : "incorrect", 0, review,
+                    gateCleared, source, evidenceId);
+
             // 只清同一知识点的待答题，避免误清别的目标上的当前题。
             PendingQuestion pending = progress.getPendingQuestion();
             if (pending != null && kpId.equals(pending.getKnowledgePointId())) {
@@ -564,6 +601,51 @@ public final class LearningService {
     }
 
     // -- 内部 ----------------------------------------------------------------
+
+    /**
+     * 掌握之后的三分支调度（参考实现 {@code _schedule_after}）。
+     *
+     * <ol>
+     *   <li>{@code gateCleared} → 播种新计划并 upsert 复习任务，事件含 {@code provenance}</li>
+     *   <li>{@code review} 且已有状态 → 按结果重排，事件含 {@code scheduled_after_failure}</li>
+     *   <li>已有状态但非正式复习 → 只 touch {@code lastReviewAt}，不动锚点（{@code INV-29}）</li>
+     * </ol>
+     *
+     * <p>分支 1 优先于分支 2：首次掌握即使标了 {@code review} 也只播种，不会对不存在的状态调
+     * {@code applyReview}。两条事件 payload <b>不对称</b>（前者无 {@code scheduled_after_failure}、
+     * 后者无 {@code provenance}），属参考实现原样行为。
+     *
+     * <p>{@code now} 只取一次：两次各取会让「首间隔恰为 0.5 天」的严格断言因亚毫秒漂移而失败。
+     */
+    private static void scheduleAfter(Transaction tx, KnowledgePoint kp, String result,
+                                      int hintsUsed, boolean review, boolean gateCleared,
+                                      String source, String evidenceId) {
+        double now = TimeSupport.nowSeconds();
+        LearningProgress progress = tx.progress();
+        if (gateCleared) {
+            RepetitionState state = Sm2Scheduler.initialState(
+                    source == null || source.isEmpty() ? "system" : source, now);
+            progress.getRepetitionStates().put(kp.getId(), state);
+            Sm2Scheduler.upsertReviewTask(progress, kp, state, "mastery_path", evidenceId);
+            tx.emit("review.scheduled", payload(
+                    "knowledge_point_id", kp.getId(),
+                    "next_review_at", state.getNextReviewAt(),
+                    "interval_index", state.getIntervalIndex(),
+                    "provenance", state.getProvenance()));
+        } else if (review && progress.getRepetitionStates().containsKey(kp.getId())) {
+            RepetitionState state = progress.getRepetitionStates().get(kp.getId());
+            Sm2Scheduler.applyReview(state, result, hintsUsed, now);
+            Sm2Scheduler.upsertReviewTask(progress, kp, state, "mastery_path", evidenceId);
+            tx.emit("review.scheduled", payload(
+                    "knowledge_point_id", kp.getId(),
+                    "next_review_at", state.getNextReviewAt(),
+                    "interval_index", state.getIntervalIndex(),
+                    "scheduled_after_failure", state.isScheduledAfterFailure()));
+        } else if (progress.getRepetitionStates().containsKey(kp.getId())) {
+            // 已掌握目标上的会话内练习：只改时间，锚点保持不变。
+            Sm2Scheduler.touchLastReview(progress.getRepetitionStates().get(kp.getId()), now);
+        }
+    }
 
     /** 构造保持插入顺序的 payload；键值交替传入。 */
     private static Map<String, Object> payload(Object... keyValues) {

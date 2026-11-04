@@ -13,3 +13,5 @@
 | 2026-11-04 | `0007-outline-build-revise` | 262 | 0 | 0 | [verify/0007](verify/0007-outline-build-revise.md) |
 | 2026-11-04 | `0008-quiz-grade` | 353 | 0 | 0 | [verify/0008](verify/0008-quiz-grade.md) |
 | 2026-11-04 | `0009-qualitative-assess` | 378 | 0 | 0 | [verify/0009](verify/0009-qualitative-assess.md) |
+| 2026-11-04 | `0010-scheduler-sm2` | 409 | 0 | 0 | [verify/0010](verify/0010-scheduler-sm2.md) |
+| 2026-11-04 | `0011-question-bank` | 414 | 0 | 0 | [verify/0011](verify/0011-question-bank.md) |

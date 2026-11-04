@@ -17,7 +17,7 @@
 | 回合预算 | TC-M6（单回合工具调用超限触发 `turn_end`） | 待建 `AgentLoopTest` | 未执行 | 需回合循环，属 `0013`；本仓库已提供 `BehaviorBudget` 常量 |
 | 服务核心 | 路径生命周期 + 来源附加 + 声明掌握 + defer/已讲解 + 公共投影 | `PathLifecycleTest`、`SourceAttachmentTest`、`MasteryOverrideServiceTest`、`ObjectiveStateTest`、`QuestionCardProjectorTest` | 通过 | 55 用例，见 [verify/0006](verify/0006-service-core.md) |
 | 路径删除级联 | messages/sessions/question_bank/interactions 级联，events 保留 | `PathDeletionTest` | 通过 | 8 用例，见 [verify/0006](verify/0006-service-core.md) |
-| 学习者首间隔播种 | `review.scheduled` 事件 + provenance=learner 的 0.5 倍首间隔 | 待建 `SchedulerTest` | 未执行 | `overrideMastery` 的 `gate_cleared` 分支已返回布尔值，调度属 `0010` |
+| 学习者首间隔播种 | `review.scheduled` 事件 + provenance=learner 的 0.5 倍首间隔 | `ReviewSchedulingTest#overrideSeedsLearnerTrack` | 通过 | 见 [verify/0010](verify/0010-scheduler-sm2.md) |
 | 大纲构建与修订 | TC-J1…J6 + 8 个 revise op + dropKpState 全字段 | `OutlineBuildTest`、`OutlineReviseTest` | 通过 | 42 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
 | 覆盖报告 | TC-N1…N4 + 接地比 + 无环检测 | `CoverageReportTest` | 通过 | 12 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
 | 缺口分类 | TC-F2/F3/F4 + 服务层事件 | `GapClassificationTest` | 通过 | 15 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
@@ -27,11 +27,13 @@
 | 出题校验 | TC-K1 全部校验分支 + 旧式选项解析 | `QuizSpecTest` | 通过 | 20 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
 | 判分流程 | TC-K3/K4/K5 + 幂等 + 掌握推进 + INV-05 | `GradeFlowTest` | 通过 | 23 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
 | 出题注册 | TC-K2 单槽位 + 连续追问预算 | `QuizRegistrationTest` | 通过 | 12 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
-| 题库 | 判分入库 + 标签 + 筛选 | `QuestionBankTest` | 通过 | 9 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
+| 题库 | 判分入库 + 知识点自动关联 + 标签（整体替换/去重/空白保留/清空）+ 筛选真值语义 | `QuestionBankTest` | 通过 | 14 用例，见 [verify/0011](verify/0011-question-bank.md)；修正 `0008` 的 3 处语义错误 |
+| 题库 REST | `GET /questions`、`POST /questions/{id}/tags` | 待建 `QuestionBankApiTest` | 未执行 | 属 `0014` |
 | 定性评估 | `assess`（concept/design 的 Feynman 通道） | `QualitativeAssessTest` | 通过 | 25 用例，见 [verify/0009](verify/0009-qualitative-assess.md) |
-| 复习调度 | TC-G1…G7（SM-2、播种、失败重学步、复习队列） | 待建 `SchedulerTest` | 未执行 | 属 `0010`；`assess`/`grade`/`override` 的 `gateCleared` 已算出，调度待接 |
-| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0010-scheduler-sm2` 起；见 `docs/migration-plan.md` §5 |
-| 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭 |
-| 参考实现行为瑕疵 | Q1–Q4（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；详见 `docs/migration-plan.md` §11，统一需另开 change |
+| 复习调度 | TC-G1…G7（SM-2、播种、失败重学步、复习队列） | `SchedulerTest`、`ReviewSchedulingTest` | 通过（G6 部分） | 31 用例，见 [verify/0010](verify/0010-scheduler-sm2.md)；TC-G6 只断言公开签名，准入拒绝属 `0013`/`0014` |
+| 复习设置 | `set_review_settings` 限幅 + 批量回写 state（TC-G7 端到端） | 待建 `ReviewSettingsTest` | 未执行 | 属 `0017` |
+| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0012-repair-profile-nav` 起；见 `docs/migration-plan.md` §5 |
+| 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭（已完成 `test_policy`/`test_mode`/`test_outline`/`test_eval`/`test_grading`/`test_study`/`test_interactions`/`test_assess`/`test_scheduler`/`test_review`/`test_question_bank`） |
+| 参考实现行为瑕疵 | Q1–Q5（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握 / **`tag_question` 保留空白标签**） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；Q5 由 `0011` 实测确认并锁定，详见 `docs/migration-plan.md` §11 |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |
 | 前端联调 | Next.js 对 Java 后端的端到端 | — | 阻塞 | 依赖 `0014`/`0015` 完成后进行 |

@@ -266,8 +266,9 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 | Q2 | `learning/service.py:885` vs `:873`/`:382` | `objective.deferred` 的 payload **不含** `note`，而 `objective.explained` 含 `summary`、`mastery.override` 含 `note` | 无功能影响；`note` 仅落在聚合的 `DeferredObjective.note`，事件回放拿不到 | 照抄。Java 侧由 `ObjectiveStateTest#deferEventOmitsNote` 与 `#noteExplainedEventIncludesSummary` 锁定 |
 | Q3 | `learning/policy.py:137` | `require_type_unchanged` 在生产代码中**无调用者**（真正生效的是 `learning/outline.py:444`） | 无功能影响；纯函数被保留但未接入 | `0004` 已实现该函数并有单测；`0007` 在 revise 中按 `outline.py` 的行为实现拒绝 |
 | Q4 | `capabilities/mastery/tools.py:626` | 文档 R4 要求 `mastery_grade` 在 review 下拒绝未掌握 KP，但代码只对 `quiz` 与 `assess` 做了该检查 | review 下可对未掌握 KP 判分（只要题已存在） | 照抄代码行为；`0008` 落地时登记 |
+| Q5 | `learning/service.py:1000` | `tag_question` 不校验标签：空串、纯空白、甚至 `None`（转成字符串 `"None"`）都会写入 | 题库可积累看似脏的标签；`list_questions(tag='  ')` 会真的过滤 | 照抄。`0011` 用真实 Python 探针确认后锁定（`QuestionBankTest#blankTagsPreserved` / `#nullTagBecomesPythonNone` / `#blankTagStillFilters`） |
 
-**统一建议**：以上四条均建议在 `0019-acceptance` 完成后评估。届时全链路稳定，
+**统一建议**：以上五条均建议在 `0019-acceptance` 完成后评估。届时全链路稳定，
 可新建 `0020-behavior-cleanup` 同时修改 Java 与 Python 两侧，并按增量规范走完整五阶段。
 
 ---

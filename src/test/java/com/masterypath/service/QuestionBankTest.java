@@ -4,6 +4,7 @@ import com.masterypath.domain.model.KnowledgeType;
 import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.storage.LearningStore;
+import com.masterypath.storage.PreconditionFailedException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,9 +15,14 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * 题库读写（判分入库、标签、筛选）。
+ *
+ * <p>标签语义以参考实现 {@code service.py:996-1001} 为准：<b>整体替换</b>、
+ * <b>不过滤空值</b>、条目不存在<b>抛错</b>。`0008` 曾把这三条实现成相反行为，
+ * 本 change 修正并改写对应断言。
  */
 class QuestionBankTest {
 
@@ -97,32 +103,92 @@ class QuestionBankTest {
     }
 
     @Test
-    @DisplayName("打标签去重且保持顺序")
-    void taggingDeduplicates() {
+    @DisplayName("打标签是整体替换，不是追加（参考实现 entry.tags = list(dict.fromkeys(...))）")
+    void taggingReplacesInsteadOfAppending() {
         askAndGrade("q1", "4");
         String entryId = store.listBankEntries("p").get(0).getEntryId();
 
         service.tagQuestion(entryId, List.of("a", "b"));
         QuestionBankEntry updated = service.tagQuestion(entryId, List.of("b", "c"));
 
-        assertThat(updated.getTags()).containsExactly("a", "b", "c");
+        // 整体替换：第一次的 "a" 不再保留。
+        assertThat(updated.getTags()).containsExactly("b", "c");
     }
 
     @Test
-    @DisplayName("空标签与空白标签被忽略")
-    void blankTagsIgnored() {
+    @DisplayName("同批内重复标签去重且保持首次出现顺序")
+    void taggingDeduplicatesWithinBatch() {
+        askAndGrade("q1", "4");
+        String entryId = store.listBankEntries("p").get(0).getEntryId();
+
+        QuestionBankEntry updated = service.tagQuestion(entryId, List.of("exam", "hard", "exam"));
+
+        assertThat(updated.getTags()).containsExactly("exam", "hard");
+    }
+
+    @Test
+    @DisplayName("空串与空白标签被保留（参考实现不做校验，不得顺手加固）")
+    void blankTagsPreserved() {
         askAndGrade("q1", "4");
         String entryId = store.listBankEntries("p").get(0).getEntryId();
 
         QuestionBankEntry updated = service.tagQuestion(entryId, List.of("", "  ", "real"));
 
-        assertThat(updated.getTags()).containsExactly("real");
+        assertThat(updated.getTags()).containsExactly("", "  ", "real");
     }
 
     @Test
-    @DisplayName("对不存在的条目打标签返回 null")
-    void tagMissingEntryReturnsNull() {
-        assertThat(service.tagQuestion("nope", List.of("x"))).isNull();
+    @DisplayName("空列表清空标签（整体替换的自然结果）")
+    void emptyListClearsTags() {
+        askAndGrade("q1", "4");
+        String entryId = store.listBankEntries("p").get(0).getEntryId();
+        service.tagQuestion(entryId, List.of("a", "b"));
+
+        QuestionBankEntry updated = service.tagQuestion(entryId, List.of());
+
+        assertThat(updated.getTags()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("null 标签转成 \"None\"（Python str(None)），与 String.valueOf 的 \"null\" 不同")
+    void nullTagBecomesPythonNone() {
+        askAndGrade("q1", "4");
+        String entryId = store.listBankEntries("p").get(0).getEntryId();
+
+        QuestionBankEntry updated = service.tagQuestion(entryId, List.of("ok"));
+        assertThat(updated.getTags()).containsExactly("ok");
+
+        QuestionBankEntry withNull = service.tagQuestion(entryId,
+                java.util.Arrays.asList("ok", null));
+        assertThat(withNull.getTags()).containsExactly("ok", "None");
+    }
+
+    @Test
+    @DisplayName("对不存在的条目打标签抛前置条件异常，文案逐字")
+    void tagMissingEntryThrows() {
+        assertThatThrownBy(() -> service.tagQuestion("nope", List.of("x")))
+                .isInstanceOf(PreconditionFailedException.class)
+                .hasMessage("unknown question bank entry: nope");
+    }
+
+    @Test
+    @DisplayName("空白 tag 是真值：参与过滤，返回 0 条（不是返回全部）")
+    void blankTagStillFilters() {
+        askAndGrade("q1", "4");
+        String entryId = store.listBankEntries("p").get(0).getEntryId();
+        service.tagQuestion(entryId, List.of("exam"));
+
+        assertThat(service.listQuestions("p", "  ")).isEmpty();
+        assertThat(service.listQuestions("p", "exam")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("空串与 null 的 tag 是假值：不过滤，返回全部")
+    void falsyTagReturnsAll() {
+        askAndGrade("q1", "4");
+
+        assertThat(service.listQuestions("p", "")).hasSize(1);
+        assertThat(service.listQuestions("p", null)).hasSize(1);
     }
 
     @Test

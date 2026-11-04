@@ -108,6 +108,14 @@
 | TC-K4 | 未判定零变更 | `specs/learning-tools` → `TC-K4` | `GradeFlowTest#ungradedLeavesNoTrace` | 通过（`0008`） |
 | TC-K5 | 提示降级 | `specs/learning-tools` → `TC-K5` | `GradeFlowTest#hintsDowngradeToPartial` | 通过（`0008`） |
 | TC-K6 | review 拒未掌握出题 | `specs/learning-tools` → `TC-K6` | `QuizGradeTest#reviewRejectsUnmastered` | 未实现（`0013`，工具层） |
+| —（题库） | 判分入库自动关联知识点 | `../MasteryPath/tests/test_question_bank.py` | `QuestionBankTest#bankEntryCapturesGrading` | 通过（`0008`） |
+| —（题库） | 标签**整体替换** | `service.py:1000` | `QuestionBankTest#taggingReplacesInsteadOfAppending` | 通过（`0011`，修正 `0008`） |
+| —（题库） | 同批去重保序 | `service.py:1000` | `QuestionBankTest#taggingDeduplicatesWithinBatch` | 通过（`0011`） |
+| —（题库） | 空白标签**保留** | `service.py:1000` | `QuestionBankTest#blankTagsPreserved` | 通过（`0011`，修正 `0008`） |
+| —（题库） | 空列表清空 | `service.py:1000` | `QuestionBankTest#emptyListClearsTags` | 通过（`0011`） |
+| —（题库） | `null` → `"None"` | `service.py:1000` | `QuestionBankTest#nullTagBecomesPythonNone` | 通过（`0011`） |
+| —（题库） | 条目不存在**抛错** | `service.py:999` | `QuestionBankTest#tagMissingEntryThrows` | 通过（`0011`，修正 `0008`） |
+| —（题库） | `tag` 真值语义（空白过滤） | `service.py:992` | `QuestionBankTest#blankTagStillFilters`、`#falsyTagReturnsAll` | 通过（`0011`，修正 `0008`） |
 | TC-H1 | 正文唯一匹配 | `specs/learning-tools` → `TC-H1` | `GradingTest#choiceBodyUniqueMatch` | 通过（`0008`） |
 | TC-H2 | 歧义不判分 | `specs/learning-tools` → `TC-H2` | `GradingTest#choiceUnparseableIsUngraded` | 通过（`0008`） |
 | TC-H3 | 数字等价 | `specs/learning-tools` → `TC-H3` | `GradingTest#shortNumeric` | 通过（`0008`） |
@@ -133,13 +141,13 @@
 
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
-| TC-G1 | 间隔序列 | `specs/review-scheduling` → `TC-G1` | `SchedulerTest#intervalSequence` | 未实现 |
-| TC-G2 | 失败进重学步 | `specs/review-scheduling` → `TC-G2` | `SchedulerTest#failureRelearning` | 未实现 |
-| TC-G3 | 恢复清标志 | `specs/review-scheduling` → `TC-G3` | `SchedulerTest#recoveryClearsFlag` | 未实现 |
-| TC-G4 | 会话内只 touch | `specs/review-scheduling` → `TC-G4` | `SchedulerTest#inSessionTouchOnly` | 未实现 |
-| TC-G5 | 声明轨比值 | `specs/review-scheduling` → `TC-G5` | `SchedulerTest#learnerTrackRatio` | 未实现 |
-| TC-G6 | 内部量隐藏 | `specs/review-scheduling` → `TC-G6` | `SchedulerTest#internalsHidden` | 未实现 |
-| TC-G7 | 场景不追溯 | `specs/review-scheduling` → `TC-G7` | `SchedulerTest#scenarioNoRetroApply` | 未实现 |
+| TC-G1 | 间隔序列 | `specs/review-scheduling` → `TC-G1` | `SchedulerTest#intervalSequence`、`#longSequence`、`#sequenceWithOtherEaseFactors`、`#roundsHalfToEven` | 通过（`0010`） |
+| TC-G2 | 失败进重学步 | `specs/review-scheduling` → `TC-G2` | `SchedulerTest#failureRelearning`、`ReviewSchedulingTest#reviewFailureSetsFlag` | 通过（`0010`） |
+| TC-G3 | 恢复清标志 | `specs/review-scheduling` → `TC-G3` | `SchedulerTest#recoveryClearsFlag`、`ReviewSchedulingTest#failureThenSuccessClearsFlag` | 通过（`0010`） |
+| TC-G4 | 会话内只 touch | `specs/review-scheduling` → `TC-G4` | `SchedulerTest#inSessionTouchOnly`、`ReviewSchedulingTest#inSessionPracticeKeepsAnchor` | 通过（`0010`） |
+| TC-G5 | 声明轨比值 | `specs/review-scheduling` → `TC-G5` | `SchedulerTest#learnerTrackRatio`、`ReviewSchedulingTest#overrideSeedsLearnerTrack` | 通过（`0010`） |
+| TC-G6 | 内部量隐藏 | `specs/review-scheduling` → `TC-G6` | `ReviewSchedulingTest#schedulerInternalsNotExposed` | **部分**（`0010`，仅公开签名；准入拒绝属 `0013`/`0014`） |
+| TC-G7 | 场景不追溯 | `specs/review-scheduling` → `TC-G7` | `SchedulerTest#desiredRetentionNotConsumed`、`#changingRetentionKeepsAnchor` | 通过（`0010`，端到端属 `0017`） |
 
 ## 6. API / 回合（agent-turn）
 
