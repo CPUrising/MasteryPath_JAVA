@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | G0 | 工程骨架可用 | **通过**（2026-11-04） | [verify/0001](docs/verify/0001-java-skeleton.md) · 3 用例 PASS |
 | G1 | 规范与纯逻辑冻结 | **通过**（2026-11-04） | [verify/0005](docs/verify/0005-mode-gating.md) · 130 用例 PASS |
-| G2 | 核心业务闭环 | 未开始 | — |
+| G2 | 核心业务闭环 | 进行中（service-core 已完成，待大纲与判分） | [verify/0006](docs/verify/0006-service-core.md) · 193 用例 PASS |
 | G3 | 大纲与质量 | 未开始 | — |
 | G4 | 回合与工具 | 未开始 | — |
 | G5 | 协议兼容 | 未开始 | — |

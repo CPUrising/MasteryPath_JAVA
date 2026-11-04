@@ -30,9 +30,9 @@
 | TC-C3 | procedure 满分掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#procedureFullMastery` | 通过（`0004`） |
 | TC-C4 | concept 量化分不打开 | `specs/learning-domain` → `TC-C4` | `MasteryPolicyTest#conceptIgnoresScore` | 通过（`0004`） |
 | TC-C5 | concept 定性通过掌握 | `specs/learning-domain` → `TC-C4` | `MasteryPolicyTest#conceptQualitativePass` | 通过（`0004`） |
-| TC-C6 | 声明掌握来源 learner | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideMarksLearnerSource` | 通过（`0004`） |
-| TC-C7 | 声明不写分 | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideDoesNotWriteScore` | 通过（`0004`） |
-| TC-C8 | 声明不产证据 | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideAddsNoEvidence` | 通过（`0004`） |
+| TC-C6 | 声明掌握来源 learner | `specs/learning-domain` → `TC-C6` | `MasteryOverrideServiceTest#overrideMarksLearnerSource` | 通过（`0006`） |
+| TC-C7 | 声明不写分 | `specs/learning-domain` → `TC-C6` | `MasteryOverrideServiceTest#overrideDoesNotWriteScore` | 通过（`0006`） |
+| TC-C8 | 声明不产证据 | `specs/learning-domain` → `TC-C6` | `MasteryOverrideServiceTest#overrideAddsNoEvidence` | 通过（`0006`） |
 | TC-C9 | 下一目标取首个可选 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#nextObjectiveFirstEligible` | 通过（`0004`） |
 | TC-C10 | 全掌握返回 complete | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#nextObjectiveComplete` | 通过（`0004`） |
 | TC-C11 | 待答题优先 | `specs/learning-domain` → `TC-C11` | `MasteryPolicyTest#nextObjectiveAnswerPending` | 通过（`0004`） |
@@ -101,7 +101,9 @@
 | TC-J5 | revise 禁改类型 | `specs/learning-tools` → `TC-J4` | `BuildReviseTest#reviseRejectsTypeChange` | 未实现 |
 | TC-J6 | 缺口上报 | `specs/learning-tools` → `TC-J6` | `BuildReviseTest#gapsReported` | 未实现 |
 | TC-K1 | 注册校验 | `specs/learning-tools` → `TC-K1` | `QuizGradeTest#registrationValidation` | 未实现 |
-| TC-K2 | 单槽位重放 | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现 |
+| TC-K2 | 单槽位重放 | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现（`0008`） |
+| TC-E1 | 单槽位（存储层） | `specs/learning-tools` → `TC-K2` | `QuizGradeTest#singleSlotReplay` | 未实现（`0008`） |
+| TC-E2 | 判分后可注册新题 | `specs/learning-tools` → `TC-E2` | `QuizGradeTest#registerAfterGraded` | 未实现（`0008`） |
 | TC-K3 | 判分幂等 | `specs/learning-tools` → `TC-K3` | `QuizGradeTest#gradingIdempotent` | 未实现 |
 | TC-K4 | 未判定零变更 | `specs/learning-tools` → `TC-K4` | `QuizGradeTest#ungradedNoStateChange` | 未实现 |
 | TC-K5 | 提示降级 | `specs/learning-tools` → `TC-K5` | `QuizGradeTest#hintsDowngrade` | 未实现 |
@@ -145,13 +147,13 @@
 | --- | --- | --- | --- | --- |
 | TC-I1 | REST 模式门控 | `specs/agent-turn` → `TC-I1` | `LearningApiTest#putMapModeConflict` | 未实现 |
 | TC-I2 | REST 重建需确认 | `specs/agent-turn` → `TC-I2` | `LearningApiTest#rebuildRequiresConfirm` | 未实现 |
-| TC-I3 | 投影不含答案 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectionTest#hidesAnswer` | 未实现 |
+| TC-I3 | 投影不含答案 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#hidesAnswerAndExplanation` | 通过（`0006`） |
 | TC-I4 | 事件补齐 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#sinceRecovers` | 未实现 |
 | TC-I5 | 失败不产事件 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#failureNoEvent` | 未实现 |
 | TC-I6 | 字段级重建 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#fieldLevelReplay` | 未实现 |
-| TC-I7 | 声明有事件无证据 | `specs/agent-turn` → `TC-I7` | `LearningApiTest#overrideEventNoEvidence` | 未实现 |
+| TC-I7 | 声明有事件无证据 | `specs/agent-turn` → `TC-I7` | `MasteryOverrideServiceTest#overrideEmitsEvent` | 部分通过（`0006`，服务层已覆盖，REST 待 `0014`） |
 | TC-E3 | 判分幂等（API） | `specs/learning-tools` → `TC-K3` | `LearningApiTest#gradeIdempotent` | 未实现 |
-| TC-E4 | 公共投影 | `specs/agent-turn` → `TC-I3` | `StatusProjectionTest#noAnswerFields` | 未实现 |
+| TC-E4 | 公共投影 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#projectionHasExactlySevenKeys` | 通过（`0006`） |
 | — | WS 事件顺序 | `specs/agent-turn` → `WS event order` | `WebSocketTurnTest#eventOrder` | 未实现 |
 | — | 流失败保留文本 | `specs/agent-turn` → `Partial text survives stream failure` | `WebSocketTurnTest#partialTextOnError` | 未实现 |
 

@@ -251,6 +251,24 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 | R5 | 向量检索依赖（llama-index/faiss）在 Java 无等价物 | 检索质量下降 | 已定（§9 Q3）：`0016` 只做确定性检索 + 可插拔嵌入接口；向量检索另立 change，质量差异登记到验证债，不阻塞归档 |
 | R6 | 前端字段漂移无人发现 | 联调失败 | `0014` 起每个端点写「字段快照测试」；`0019` 用真实前端跑通主要页面 |
 | R7 | 范围蔓延（顺手改前端/改阈值） | 失控 | 红线 1；任何额外改动单独开 change |
+| R8 | 参考实现存在**内部不一致**（同一概念不同措辞 / 同一字段不同事件是否携带） | 若在重写中「顺手统一」即为行为变化 | 一律**照抄并逐字锁定**；统一需求单独开 change（见 §11） |
+
+---
+
+## 11. 已知行为瑕疵登记（不改，只记录）
+
+> 下列条目均为**参考实现原样行为**。本重写按「行为等价」原则照抄，并用测试逐字锁定；
+> 任何统一/修正都属于行为变化，必须单独开 change 并同步修改 Python 参考实现。
+
+| # | 位置 | 现象 | 影响 | 处置 |
+| --- | --- | --- | --- | --- |
+| Q1 | `learning/service.py:370` vs `:871`/`:881` | 同一个「找不到知识点」有两种文案：`override_mastery` 用 `unknown knowledge point: {id}`，`note_explained` / `defer_objective` 用 `unknown objective: {id}` | 无功能影响；按字符串匹配错误信息的调用方需注意两套 | 照抄。Java 侧由 `MasteryOverrideServiceTest#unknownPointUsesKnowledgePointWording` 与 `ObjectiveStateTest#deferUnknownUsesObjectiveWording` 锁定 |
+| Q2 | `learning/service.py:885` vs `:873`/`:382` | `objective.deferred` 的 payload **不含** `note`，而 `objective.explained` 含 `summary`、`mastery.override` 含 `note` | 无功能影响；`note` 仅落在聚合的 `DeferredObjective.note`，事件回放拿不到 | 照抄。Java 侧由 `ObjectiveStateTest#deferEventOmitsNote` 与 `#noteExplainedEventIncludesSummary` 锁定 |
+| Q3 | `learning/policy.py:137` | `require_type_unchanged` 在生产代码中**无调用者**（真正生效的是 `learning/outline.py:444`） | 无功能影响；纯函数被保留但未接入 | `0004` 已实现该函数并有单测；`0007` 在 revise 中按 `outline.py` 的行为实现拒绝 |
+| Q4 | `capabilities/mastery/tools.py:626` | 文档 R4 要求 `mastery_grade` 在 review 下拒绝未掌握 KP，但代码只对 `quiz` 与 `assess` 做了该检查 | review 下可对未掌握 KP 判分（只要题已存在） | 照抄代码行为；`0008` 落地时登记 |
+
+**统一建议**：以上四条均建议在 `0019-acceptance` 完成后评估。届时全链路稳定，
+可新建 `0020-behavior-cleanup` 同时修改 Java 与 Python 两侧，并按增量规范走完整五阶段。
 
 ---
 

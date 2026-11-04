@@ -568,6 +568,57 @@ public class LearningStore implements AutoCloseable {
         }
     }
 
+    /**
+     * 级联删除一个路径及其从属数据。
+     *
+     * <p>顺序固定：{@code messages}（按该路径的会话子查询）→ {@code sessions} →
+     * {@code question_bank} → {@code interactions} → {@code paths}，全部在同一事务内。
+     *
+     * <p><b>不删除 {@code events}</b>：事件表是 append-only 审计日志（{@code INV-38}），
+     * 删路径后其历史事件仍可通过 {@link #eventsSince} 读到。
+     *
+     * @return 路径行被删除时为 {@code true}；路径不存在返回 {@code false}（不抛错）
+     */
+    public boolean deletePath(String pathId) {
+        synchronized (lock) {
+            try {
+                beginImmediate();
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM messages WHERE session_id IN "
+                                + "(SELECT session_id FROM sessions WHERE path_id=?)")) {
+                    ps.setString(1, pathId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM sessions WHERE path_id=?")) {
+                    ps.setString(1, pathId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM question_bank WHERE path_id=?")) {
+                    ps.setString(1, pathId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM interactions WHERE path_id=?")) {
+                    ps.setString(1, pathId);
+                    ps.executeUpdate();
+                }
+                int deleted;
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM paths WHERE path_id=?")) {
+                    ps.setString(1, pathId);
+                    deleted = ps.executeUpdate();
+                }
+                endTransaction(true);
+                return deleted > 0;
+            } catch (SQLException e) {
+                rollbackQuietly();
+                throw new IllegalStateException("delete path failed", e);
+            }
+        }
+    }
+
     /** 删除会话及其消息；路径本身不受影响。 */
     public Map<String, Object> deleteSession(String sessionId) {
         Map<String, Object> session = getSession(sessionId);
