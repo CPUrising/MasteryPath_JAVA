@@ -123,6 +123,12 @@
 | TC-H5 | open 最弱 | `specs/learning-tools` → `TC-H5` | `GradingTest#openOptionalInsufficient` | 通过（`0008`） |
 | TC-H6 | 提示降级判分 | `specs/learning-tools` → `TC-H6` | `GradeFlowTest#hintsDowngradeToPartial` | 通过（`0008`） |
 | TC-M1 | 捕获不改地图 | `specs/learning-tools` → `TC-M1` | `CaptureTest#proposalDoesNotChangeMap` | 未实现 |
+| TC-R1 | void 清除掌握与计划 | `service.py:467-483` | `RepairQuestionTest#voidRemovesMasteryAndMarksBank`、`#voidAbandonsInteraction` | 通过（`0012`） |
+| TC-R2 | correct 重判恢复门槛 | `service.py:484-552` | `RepairQuestionTest#correctRegradesStoredAnswerAndRestoresGate`、`#correctMarksInteractionRepaired` | 通过（`0012`） |
+| TC-R3 | 修复参数校验（action/reason/expected_answer） | `service.py:405-413` | `RepairQuestionTest#invalidActionRejected`、`#missingReasonRejected`、`#correctWithoutExpectedAnswerRejected` | 通过（`0012`，服务层；工具层属 `0015`） |
+| TC-P1 | 画像合并与可见 | `service.py:184-234` | `LearnerProfileTest#mergesAndIsVisible`、`#mergeKeepsOmittedFields` | 通过（`0012`） |
+| TC-P2 | 画像边界（白名单/枚举/无变更） | `service.py:197-214` | `LearnerProfileTest#noChangeEmitsNoEvent`、`#unknownKeysSilentlyDropped`、`#teachingStrategyValidated` | 通过（`0012`） |
+| —（快照） | `get_state` 19 键 + `INV-07` 投影 | `service.py:236-297` | `PathStateTest`（11 项） | 通过（`0012`，REST 端点属 `0016`） |
 | TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `QualitativeAssessTest#passClearsGate` | 通过（`0009`，定性评估侧） |
 | TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `GapClassificationTest#getCoverageReturnsReport` | 通过（`0007`） |
 | TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `OutlineEvalTest#coverageBelowThreshold` | 未实现（`0018`） |

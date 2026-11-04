@@ -17,6 +17,7 @@ import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.domain.model.QuizAttempt;
 import com.masterypath.domain.model.RepetitionState;
+import com.masterypath.domain.model.ReviewTask;
 import com.masterypath.domain.model.SourceGap;
 import com.masterypath.domain.model.TimeSupport;
 import com.masterypath.domain.model.TopicSource;
@@ -26,6 +27,8 @@ import com.masterypath.domain.outline.ReviseResult;
 import com.masterypath.domain.outline.SourceResolver;
 import com.masterypath.domain.policy.MasteryPolicy;
 import com.masterypath.domain.policy.MasteryScore;
+import com.masterypath.domain.policy.NextStep;
+import com.masterypath.domain.projection.QuestionCardProjector;
 import com.masterypath.domain.schedule.Sm2Scheduler;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
@@ -48,6 +51,15 @@ import java.util.Map;
  * {@link #deferObjective} / {@link #noteExplained} 用 {@code "unknown objective: "}。
  */
 public final class LearningService {
+
+    /** 学习者画像的白名单字段；其余键静默丢弃（参考实现原样行为）。 */
+    private static final java.util.Set<String> PROFILE_FIELDS = java.util.Set.of(
+            "prior_knowledge",
+            "target_level",
+            "time_budget",
+            "preferences",
+            "teaching_strategy",
+            "notes");
 
     private final LearningStore store;
 
@@ -600,6 +612,396 @@ public final class LearningService {
         });
     }
 
+    // -- 题目修复（ADR-020） ---------------------------------------------------
+
+    /**
+     * 作废或改键一道题，然后重建该目标的状态（{@code ADR-020}）。
+     *
+     * <p>{@code void} 退役 attempt / evidence / 题库行；{@code correct} 换答案键、重判已存作答、
+     * 追加改正证据。<b>历史永不删除</b>，只标记。
+     *
+     * <p>三项参数校验都在事务<b>之外</b>，顺序敏感：{@code action} → {@code reason} → {@code correct}
+     * 的 {@code expectedAnswer}。{@code reason} 先截断到 500 再判空。
+     *
+     * @throws PreconditionFailedException 参数非法、题号无法解析、知识点不存在、改正后无法判分
+     */
+    public Map<String, Object> repairQuestion(String pathId, String questionId, String action,
+                                              String expectedAnswer, String reason,
+                                              String sessionId, String turnId) {
+        String actionName = (action == null ? "" : action).strip().toLowerCase();
+        if (!"void".equals(actionName) && !"correct".equals(actionName)) {
+            throw new PreconditionFailedException("action must be 'void' or 'correct'");
+        }
+        String note = truncate((reason == null ? "" : reason).strip(), 500);
+        if (note.isEmpty()) {
+            throw new PreconditionFailedException("a reason is required so the repair can be audited");
+        }
+        String newExpected = (expectedAnswer == null ? "" : expectedAnswer).strip();
+        if ("correct".equals(actionName) && newExpected.isEmpty()) {
+            throw new PreconditionFailedException(
+                    "correcting a question requires the new expected_answer");
+        }
+        String safeSession = sessionId == null ? "" : sessionId;
+        String safeTurn = turnId == null ? "" : turnId;
+
+        return store.mutate(pathId, tx -> {
+            LearningProgress progress = tx.progress();
+            String requested = (questionId == null ? "" : questionId).strip();
+            MasteryInteraction interaction = requested.isEmpty() ? null : tx.getInteraction(requested);
+            PendingQuestion pending = progress.getPendingQuestion();
+            if (interaction == null && requested.isEmpty()) {
+                interaction = tx.getOpenInteraction();
+            }
+            String resolvedId;
+            if (interaction != null) {
+                resolvedId = interaction.getInteractionId();
+            } else if (!requested.isEmpty()) {
+                resolvedId = requested;
+            } else if (pending != null) {
+                resolvedId = pending.getQuestionId();
+            } else {
+                resolvedId = "";
+                for (int index = progress.getQuizAttempts().size() - 1; index >= 0; index--) {
+                    QuizAttempt attempt = progress.getQuizAttempts().get(index);
+                    if (!attempt.isVoided()) {
+                        resolvedId = attempt.getQuestionId();
+                        break;
+                    }
+                }
+            }
+            tx.require(!resolvedId.isEmpty(), "no question is available to repair");
+
+            if (interaction == null) {
+                interaction = tx.getInteraction(resolvedId);
+            }
+            PendingQuestion question = interaction == null ? null : interaction.getQuestion();
+            if (question == null && pending != null && resolvedId.equals(pending.getQuestionId())) {
+                question = pending;
+            }
+            List<QuizAttempt> attempts = new ArrayList<>();
+            for (QuizAttempt attempt : progress.getQuizAttempts()) {
+                if (resolvedId.equals(attempt.getQuestionId())) {
+                    attempts.add(attempt);
+                }
+            }
+            List<LearningEvidence> evidenceRows = new ArrayList<>();
+            for (LearningEvidence record : progress.getLearningEvidence()) {
+                if (resolvedId.equals(record.getQuestionId())) {
+                    evidenceRows.add(record);
+                }
+            }
+            String kpId = firstNonEmpty(
+                    question == null ? "" : question.getKnowledgePointId(),
+                    attempts.isEmpty() ? "" : attempts.get(0).getKnowledgePointId(),
+                    evidenceRows.isEmpty() ? "" : evidenceRows.get(0).getKnowledgePointId());
+            LearningProgress.KnowledgePointLocation location = progress.findKnowledgePoint(kpId);
+            tx.require(location.found(), "unknown objective: " + kpId);
+            KnowledgePoint kp = location.knowledgePoint();
+
+            boolean wasMastered = MasteryPolicy.isMastered(progress, kp);
+            String previousExpected = question == null ? "" : question.getExpectedAnswer();
+            Boolean previousIsCorrect = null;
+            for (QuizAttempt attempt : attempts) {
+                if (!attempt.isVoided()) {
+                    previousIsCorrect = attempt.isCorrect();
+                    break;
+                }
+            }
+
+            Boolean repairedCorrect;
+            if ("void".equals(actionName)) {
+                for (QuizAttempt attempt : attempts) {
+                    attempt.setVoided(true);
+                    attempt.setVoidReason(note);
+                }
+                for (LearningEvidence record : evidenceRows) {
+                    record.setVoided(true);
+                    record.setVoidReason(note);
+                }
+                if (interaction != null) {
+                    interaction.setStatus(InteractionStatus.ABANDONED);
+                    tx.saveInteraction(interaction);
+                }
+                if (pending != null && resolvedId.equals(pending.getQuestionId())) {
+                    progress.setPendingQuestion(null);
+                }
+                for (QuestionBankEntry entry : tx.findBankEntriesByQuestion(resolvedId)) {
+                    entry.setCorrect(false);
+                    entry.setResult("voided");
+                    tx.saveBankEntry(entry);
+                }
+                repairedCorrect = null;
+            } else {
+                tx.require(question != null, "the corrected question is no longer available");
+                String userAnswer = !attempts.isEmpty()
+                        ? String.valueOf(attempts.get(0).getUserAnswer())
+                        : (interaction == null ? "" : String.valueOf(interaction.getUserAnswer()));
+                // 必须先改答案键再判分，否则判的还是旧键。
+                question.setExpectedAnswer(newExpected);
+                if (interaction != null) {
+                    interaction.getQuestion().setExpectedAnswer(newExpected);
+                }
+                Decision decision = Grading.grade(question, userAnswer == null ? "" : userAnswer);
+                tx.require(!decision.isUngraded(),
+                        "corrected answer cannot be graded: " + decision.reason());
+                String repairedResult = decision.result();
+                if (question.getQuestionType() == PendingQuestion.QuestionType.OPEN
+                        && Decision.CORRECT.equals(repairedResult)) {
+                    repairedResult = Decision.PARTIAL;   // INV-35
+                }
+                repairedCorrect = Decision.CORRECT.equals(repairedResult);
+
+                for (QuizAttempt attempt : attempts) {
+                    attempt.setCorrect(repairedCorrect);
+                    attempt.setVoided(false);
+                    attempt.setVoidReason("");
+                }
+                for (LearningEvidence record : evidenceRows) {
+                    if (!record.isVoided()) {
+                        record.setVoided(true);
+                        record.setVoidReason("answer key corrected: " + note);
+                    }
+                }
+                LearningEvidence prior = evidenceRows.isEmpty()
+                        ? null : evidenceRows.get(evidenceRows.size() - 1);
+                LearningEvidence appended = new LearningEvidence();
+                appended.setEvidenceId(newEvidenceId());
+                appended.setQuestionId(resolvedId);
+                appended.setKnowledgePointId(kp.getId());
+                appended.setAssessmentType(prior != null
+                        ? prior.getAssessmentType() : AssessmentType.QUIZ);
+                appended.setResult(AssessmentResult.fromValue(repairedResult));
+                appended.setQuality(prior != null && prior.getQuality() != null
+                        ? prior.getQuality() : (repairedCorrect ? 1.0 : 0.0));
+                appended.setHintsUsed(prior != null ? prior.getHintsUsed() : 0);
+                appended.setAttemptCount(prior != null ? prior.getAttemptCount() : 1);
+                appended.setSessionId(safeSession);
+                appended.setTurnId(safeTurn);
+                appended.setSource("mastery_path");
+                progress.getLearningEvidence().add(appended);
+
+                if (interaction != null) {
+                    interaction.setStatus(InteractionStatus.GRADED);
+                    interaction.setUserAnswer(userAnswer == null ? "" : userAnswer);
+                    interaction.setResult(payload(
+                            "status", "graded",
+                            "knowledge_point_id", kp.getId(),
+                            "is_correct", repairedCorrect,
+                            "result", repairedResult,
+                            "repaired", true));
+                    tx.saveInteraction(interaction);
+                }
+                for (QuestionBankEntry entry : tx.findBankEntriesByQuestion(resolvedId)) {
+                    entry.setCorrectAnswer(newExpected);
+                    entry.setCorrect(repairedCorrect);
+                    entry.setResult(repairedResult);
+                    tx.saveBankEntry(entry);
+                }
+            }
+
+            recomputeAfterRepair(tx, kp, wasMastered);
+            tx.emit("void".equals(actionName) ? "assessment.voided" : "assessment.corrected",
+                    payload(
+                            "question_id", resolvedId,
+                            "knowledge_point_id", kp.getId(),
+                            "reason", note,
+                            "previous_expected", previousExpected,
+                            "expected_answer", newExpected,
+                            "previous_is_correct", previousIsCorrect,
+                            "is_correct", repairedCorrect),
+                    safeSession, safeTurn);
+            return payload(
+                    "status", "repaired",
+                    "action", actionName,
+                    "question_id", resolvedId,
+                    "knowledge_point_id", kp.getId(),
+                    "path_revision", progress.getVersion() + 1,
+                    "is_correct", repairedCorrect,
+                    "mastery", round3(MasteryPolicy.displayMastery(progress, kp)),
+                    "mastered", MasteryPolicy.isMastered(progress, kp),
+                    "next", MasteryPolicy.nextObjective(progress).toMap());
+        });
+    }
+
+    /**
+     * 修复后重算该目标并调和复习计划（{@code ADR-020}）。
+     *
+     * <p>只有定量类型重算分数——定性目标的掌握由 {@code qualitativeMastery} 决定，
+     * 修复不伪造分数（{@code INV-05}）。
+     *
+     * <p>与 {@code scheduleAfter}（{@code 0010}）<b>刻意不共用</b>：本函数先重算分数，
+     * 再按「未掌握 → 清除计划 / 原本已掌握 → 不动 / 否则 → 播种」三分支；条件与
+     * {@code scheduleAfter} 不同，抽公共函数会让两者交织。
+     */
+    private static void recomputeAfterRepair(Transaction tx, KnowledgePoint kp, boolean wasMastered) {
+        LearningProgress progress = tx.progress();
+        if (!MasteryPolicy.QUALITATIVE_TYPES.contains(kp.getType())) {
+            progress.getMasteryLevels().put(kp.getId(),
+                    MasteryScore.compute(MasteryPolicy.activeAttempts(progress, kp.getId())));
+        }
+        if (!MasteryPolicy.isMastered(progress, kp)) {
+            progress.getRepetitionStates().remove(kp.getId());
+            progress.getReviewQueue().removeIf(
+                    task -> kp.getId().equals(task.getKnowledgePointId()));
+            return;
+        }
+        if (wasMastered) {
+            return;
+        }
+        RepetitionState state = Sm2Scheduler.initialState("system", TimeSupport.nowSeconds());
+        progress.getRepetitionStates().put(kp.getId(), state);
+        Sm2Scheduler.upsertReviewTask(progress, kp, state, "mastery_path", "");
+        tx.emit("review.scheduled", payload(
+                "knowledge_point_id", kp.getId(),
+                "next_review_at", state.getNextReviewAt(),
+                "interval_index", state.getIntervalIndex(),
+                "provenance", state.getProvenance()));
+    }
+
+    // -- 学习者画像（ADR-020） -------------------------------------------------
+
+    /**
+     * 把 intake 作答合并进路径的学习者画像（{@code ADR-020}）。
+     *
+     * <p>只认 6 个白名单键，白名单外的键<b>静默丢弃</b>；值为 {@code null} 的跳过；
+     * 其余经 {@code str().strip()[:2000]} 清洗。
+     *
+     * <p><b>无变更时直接返回且不发事件</b>——重复提交同一份画像不应产生噪音事件。
+     *
+     * @return {@code profile}（合并后的完整画像）与 {@code changed}（本次真正变化的字段名）
+     * @throws PreconditionFailedException 清洗后无任何字段，或 {@code teaching_strategy} 非法
+     */
+    public ProfileUpdate recordLearnerProfile(String pathId, Map<String, Object> fields,
+                                              String sessionId, String turnId) {
+        Map<String, String> cleaned = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry
+                : (fields == null ? Map.<String, Object>of() : fields).entrySet()) {
+            if (!PROFILE_FIELDS.contains(entry.getKey()) || entry.getValue() == null) {
+                continue;
+            }
+            cleaned.put(entry.getKey(),
+                    truncate(String.valueOf(entry.getValue()).strip(), 2000));
+        }
+        if (cleaned.isEmpty()) {
+            throw new PreconditionFailedException("learner profile needs at least one field");
+        }
+        String strategy = cleaned.get("teaching_strategy");
+        if (strategy != null && !strategy.isEmpty()
+                && !"probe_first".equals(strategy) && !"teach_first".equals(strategy)) {
+            throw new PreconditionFailedException(
+                    "teaching_strategy must be probe_first or teach_first");
+        }
+        String safeSession = sessionId == null ? "" : sessionId;
+        String safeTurn = turnId == null ? "" : turnId;
+
+        return store.mutate(pathId, tx -> {
+            LearningProgress progress = tx.progress();
+            Map<String, Object> current = progress.getLearnerProfile() == null
+                    ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(progress.getLearnerProfile());
+            List<String> changed = new ArrayList<>();
+            for (Map.Entry<String, String> entry : cleaned.entrySet()) {
+                if (!entry.getValue().equals(current.get(entry.getKey()))) {
+                    changed.add(entry.getKey());
+                }
+            }
+            if (changed.isEmpty()) {
+                return new ProfileUpdate(new LinkedHashMap<>(current), List.of());
+            }
+            current.putAll(cleaned);
+            current.put("updated_at", TimeSupport.nowSeconds());
+            progress.setLearnerProfile(current);
+            tx.emit("path.learner_profile_recorded", payload("fields", changed),
+                    safeSession, safeTurn);
+            return new ProfileUpdate(new LinkedHashMap<>(current), List.copyOf(changed));
+        }, null, true);
+    }
+
+    /** 画像写入结果：合并后的完整画像 + 本次真正变化的字段名。 */
+    public record ProfileUpdate(Map<String, Object> profile, List<String> changed) {
+    }
+
+    // -- 状态快照 --------------------------------------------------------------
+
+    /**
+     * 路径状态快照（参考实现 {@code get_state}）。
+     *
+     * <p>{@code pendingQuestion} 走 {@link QuestionCardProjector} 白名单投影（{@code INV-07}）：
+     * 学习者可见视图 MUST NOT 含 {@code expectedAnswer} / {@code explanation}。
+     *
+     * @return 路径不存在时返回 {@code {status: "missing", path_id: ...}}
+     */
+    public Map<String, Object> getState(String pathId) {
+        LearningProgress progress = store.load(pathId);
+        if (progress == null) {
+            return payload("status", "missing", "path_id", pathId);
+        }
+        NextStep step = MasteryPolicy.nextObjective(progress);
+        Map<String, Map<String, Object>> summary = MasteryPolicy.mapSummary(progress);
+        Map<String, Object> counts = payload(
+                "mastered", 0, "learning", 0, "new", 0, "total", summary.size());
+        for (Map<String, Object> entry : summary.values()) {
+            String status = String.valueOf(entry.get("status"));
+            counts.put(status, ((Number) counts.get(status)).intValue() + 1);
+        }
+        double now = TimeSupport.nowSeconds();
+        List<Map<String, Object>> reviews = new ArrayList<>();
+        for (ReviewTask task : progress.getReviewQueue()) {
+            Map<String, Object> info = summary.getOrDefault(task.getKnowledgePointId(), Map.of());
+            reviews.add(payload(
+                    "id", task.getId(),
+                    "knowledge_point_id", task.getKnowledgePointId(),
+                    "knowledge_point_name", String.valueOf(info.getOrDefault("name", "")),
+                    "knowledge_type", task.getKnowledgeType().value(),
+                    "due_at", task.getDueAt(),
+                    "due", task.getDueAt() <= now,
+                    "forgetting_risk", task.getForgettingRisk(),
+                    "reason", task.getReason(),
+                    "interval_index", task.getState().getIntervalIndex(),
+                    "scheduled_after_failure", task.getState().isScheduledAfterFailure(),
+                    "desired_retention", task.getState().getDesiredRetention(),
+                    "provenance", task.getState().getProvenance()));
+        }
+        List<Map<String, Object>> knowledgeBases = new ArrayList<>();
+        for (TopicSource source : progress.getSources()) {
+            if ("knowledge_base".equals(source.getKind())) {
+                knowledgeBases.add(payload(
+                        "id", source.getSourceId() == null || source.getSourceId().isEmpty()
+                                ? source.getId() : source.getSourceId(),
+                        "name", source.getLabel(),
+                        "ready", source.isAvailable()));
+            }
+        }
+        List<Map<String, Object>> dueReviews = new ArrayList<>();
+        for (ReviewTask task : MasteryPolicy.dueReviews(progress, now)) {
+            dueReviews.add(reviewTaskMap(task));
+        }
+        return payload(
+                "status", "active",
+                "path_id", pathId,
+                "name", progress.getName(),
+                "goal", progress.getGoal(),
+                "version", progress.getVersion(),
+                "map", summary,
+                "counts", counts,
+                "next", step.toMap(),
+                "sources", dumpSources(progress.getSources()),
+                "knowledge_bases", knowledgeBases,
+                "gaps", gapMaps(progress.getSourceGaps()),
+                "proposals", progress.getProposals(),
+                "coverage", progress.getCoverage(),
+                "reviews", reviews,
+                "review_settings", payload(
+                        "desired_retention", progress.getDesiredRetention(),
+                        "scope", "path"),
+                "session_count", store.listSessions(pathId).size(),
+                "learner_profile", progress.getLearnerProfile(),
+                "pending_question", progress.getPendingQuestion() == null
+                        ? null
+                        : QuestionCardProjector.publicPendingQuestion(progress.getPendingQuestion()),
+                "due_reviews", dueReviews);
+    }
+
     // -- 内部 ----------------------------------------------------------------
 
     /**
@@ -654,6 +1056,58 @@ public final class LearningService {
             map.put(String.valueOf(keyValues[index]), keyValues[index + 1]);
         }
         return map;
+    }
+
+    /** Python 的 {@code s[:limit]}：按字符数截断。 */
+    private static String truncate(String text, int limit) {
+        return text.length() <= limit ? text : text.substring(0, limit);
+    }
+
+    private static String firstNonEmpty(String... candidates) {
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+        return "";
+    }
+
+    /** Python 的 {@code round(x, 3)}。 */
+    private static double round3(double value) {
+        return Math.round(value * 1000.0) / 1000.0;
+    }
+
+    /** 复习任务的完整 map（{@code get_state} 的 {@code due_reviews} 用）。 */
+    private static Map<String, Object> reviewTaskMap(ReviewTask task) {
+        return payload(
+                "id", task.getId(),
+                "knowledge_point_id", task.getKnowledgePointId(),
+                "knowledge_type", task.getKnowledgeType() == null
+                        ? "" : task.getKnowledgeType().value(),
+                "due_at", task.getDueAt(),
+                "priority", task.getPriority(),
+                "state", task.getState(),
+                "forgetting_risk", task.getForgettingRisk(),
+                "reason", task.getReason(),
+                "evidence_source", task.getEvidenceSource(),
+                "evidence_id", task.getEvidenceId());
+    }
+
+    /** 来源缺口的序列化（{@code model_dump()} 等价）。 */
+    private static List<Map<String, Object>> gapMaps(List<SourceGap> gaps) {
+        List<Map<String, Object>> dumped = new ArrayList<>();
+        for (SourceGap gap : gaps) {
+            dumped.add(payload(
+                    "id", gap.getId(),
+                    "kind", gap.getKind() == null ? "" : gap.getKind().value(),
+                    "ref", gap.getRef(),
+                    "reason", gap.getReason(),
+                    "candidate_source_ids", gap.getCandidateSourceIds(),
+                    "resolution", gap.getResolution() == null
+                            ? null : gap.getResolution().value(),
+                    "created_at", gap.getCreatedAt()));
+        }
+        return dumped;
     }
 
     /** 32 位十六进制证据 id（与参考实现的 {@code uuid4().hex} 长度一致）。 */

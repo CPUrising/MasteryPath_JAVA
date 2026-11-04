@@ -178,25 +178,44 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 | 9 | `0009-qualitative-assess` | 定性评估、证据累积、门槛清除 | `service/AssessService` | TC-M3、`test_assess` 对照 | 0008 |
 | 10 | `0010-scheduler-sm2` | SM-2、播种、失败重学步、复习队列 | `domain/schedule`、`service/ReviewService` | TC-G1…G7 | 0009 |
 | 11 | `0011-question-bank` | 判分入库、知识点自动关联、标签、筛选 | `service/QuestionBankService` | `test_question_bank` 对照 | 0010 |
-| 12 | `0012-repair-profile-nav` | 题目修复（void/correct）、画像写入、路径绑定/scratch/hand-off | `service/RepairService`、`service/NavigationService` | `test_repair_profile`、`test_path_binding`、`test_mastery_nav` 对照 | 0011 |
-| 13 | `0013-agent-loop-llm` | LLM 接口 + OpenAI 兼容客户端 + Fake + Loop + 预算 | `adapter/llm/*`、`adapter/loop/*` | `test_llm_client`、`test_loop` 对照；TC-M6 | 0012 |
-| 14 | `0014-rest-api` | 全部 REST 端点、错误码、事件流端点 | `adapter/web/*` | TC-I1…I7、`test_api`/`test_f0_api` 对照 | 0013 |
-| 15 | `0015-ws-turn` | WS 回合、事件顺序、`session_meta`、部分文本保留 | `adapter/turn/*`、`adapter/web/WsTurnHandler` | `test_turn_runner`、`test_ws_runtime` 对照 | 0014 |
-| 16 | `0016-knowledge-base` | 文件夹扫描、知识库 CRUD、索引、检索、`rag`/`read_source` 条件挂载 | `service/source/*`、`service/knowledge/*`、`adapter/tool` | `test_knowledge`、`test_knowledge_chat`、`test_source_tools` 对照 | 0015 |
-| 17 | `0017-settings-task-model` | 设置存储/提供方目录/探测、Task Model 建议 + 回退 | `storage/SettingsStore`、`adapter/llm/TaskModel` | `test_settings_probe`、`test_task_model`、`test_preferences` 对照 | 0016 |
-| 18 | `0018-outline-eval-cli` | 大纲评测 CLI、确定性指标、基线对比 | `adapter/eval/*`、`cli/*` | `test_eval` 对照、TC-N5/N6 | 0017 |
-| 19 | `0019-acceptance` | 旧库双向读取、前端联调、全量回归、全部归档 | 无新增业务代码 | 全量 PASS；G7 清单全绿 | 0018 |
+| 12 | `0012-repair-profile` | 题目修复（void/correct）、学习者画像、`getState` 快照 | `service/LearningService` | `test_repair_profile` 对照 | 0011 |
+| 13 | `0013-path-binding-scratch` | 路径概览、scratch 建档、会话绑定、删除级联 | `service/LearningService` | `test_path_binding` 对照 | 0012 |
+| 14 | `0014-mastery-nav` | 只读导航（topics/sessions/module 解析）+ hand-off 卡片 | `service/NavigationService` | `test_mastery_nav` 对照 | 0013 |
+| 15 | `0015-agent-loop-llm` | LLM 接口 + OpenAI 兼容客户端 + Fake + Loop + 预算 + **工具层**（`ToolContext` / `ToolResult` / `ToolRegistry` / 全部 `Mastery*Tool`，含 `MasteryRepairQuestionTool`、`MasteryProfileTool`） | `adapter/llm/*`、`adapter/loop/*`、`adapter/tool/*` | `test_llm_client`、`test_loop` 对照；TC-M6；`test_repair_profile` 的工具层 2 例；TC-M2 | 0014 |
+| 16 | `0016-rest-api` | 全部 REST 端点、错误码、事件流端点 | `adapter/web/*` | TC-I1…I7、`test_api`/`test_f0_api` 对照 | 0015 |
+| 17 | `0017-ws-turn` | WS 回合、事件顺序、`session_meta`、部分文本保留 | `adapter/turn/*`、`adapter/web/WsTurnHandler` | `test_turn_runner`、`test_ws_runtime`、`test_chat_nav` 对照 | 0016 |
+| 18 | `0018-knowledge-base` | 文件夹扫描、知识库 CRUD、索引、检索、`rag`/`read_source` 条件挂载 | `service/source/*`、`service/knowledge/*`、`adapter/tool` | `test_knowledge`、`test_knowledge_chat`、`test_source_tools` 对照 | 0017 |
+| 19 | `0019-settings-task-model` | 设置存储/提供方目录/探测、Task Model 建议 + 回退 | `storage/SettingsStore`、`adapter/llm/TaskModel` | `test_settings_probe`、`test_task_model`、`test_preferences` 对照 | 0018 |
+| 20 | `0020-outline-eval-cli` | 大纲评测 CLI、确定性指标、基线对比 | `adapter/eval/*`、`cli/*` | `test_eval` 对照、TC-N5/N6 | 0019 |
+| 21 | `0021-acceptance` | 旧库双向读取、前端联调、全量回归、全部归档 | 无新增业务代码 | 全量 PASS；G7 清单全绿 | 0020 |
 
 ### 5.1 依赖图
 
 ```
-0001 → 0002 ─┬→ 0003 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019
-             └→ 0004 ─┘
-             └→ 0005 ────────────────────────────────────────────────（0005 可与 0006 并行，但需在 0013 前完成）
+0001 → 0002 ─┬→ 0003 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014
+             └→ 0004 ─┘                                                              ↓
+             └→ 0005 ────────────────────────────────────────────────（0005 可与 0006 并行，但需在 0015 前完成）
+                                                                                     ↓
+     0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021
 ```
 
 - `0004`、`0005` 是纯函数层，可与 `0003` 并行推进（不同文件、无共享状态）。
 - 其余严格串行：每一步都建立在前一步的事务边界与投影之上。
+
+### 5.2 原 0012 的拆分记录（2026-11-04）
+
+原计划把「题目修复 + 画像 + 路径绑定 + 导航」合成一个 `0012-repair-profile-nav`。
+实测参考实现约 840 行、17 个原子任务，超过 `AGENTS.md` §3 的 8 个上限，故拆为三个：
+
+| 新编号 | 内容 | 任务数 | 测试对照 |
+| --- | --- | --- | --- |
+| `0012-repair-profile` | 题目修复 + 画像 + `getState` | 7 | `test_repair_profile.py`（5 用例） |
+| `0013-path-binding-scratch` | 路径概览 / scratch / 会话绑定 / 删除级联（写侧） | 5 | `test_path_binding.py`（5 用例） |
+| `0014-mastery-nav` | 只读导航 + hand-off 卡片 | 4 | `test_mastery_nav.py`（4 用例） |
+
+拆分理由：写侧绑定与只读导航是两种行为增量，混在一起违反「一个 change 只含一个行为增量」；
+原 `0013`–`0019` 顺延为 `0015`–`0021`（仅改编号，无代码成本）。
+`test_chat_nav.py` 依赖 `ChatService` + `AgentLoop` + 假 LLM，挂到 `0017-ws-turn`。
 
 ---
 
