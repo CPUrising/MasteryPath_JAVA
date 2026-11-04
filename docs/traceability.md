@@ -115,7 +115,7 @@
 | TC-H5 | open 最弱 | `specs/learning-tools` → `TC-H5` | `GradingTest#openOptionalInsufficient` | 通过（`0008`） |
 | TC-H6 | 提示降级判分 | `specs/learning-tools` → `TC-H6` | `GradeFlowTest#hintsDowngradeToPartial` | 通过（`0008`） |
 | TC-M1 | 捕获不改地图 | `specs/learning-tools` → `TC-M1` | `CaptureTest#proposalDoesNotChangeMap` | 未实现 |
-| TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `CaptureTest#acceptCreatesKp` | 未实现 |
+| TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `QualitativeAssessTest#passClearsGate` | 通过（`0009`，定性评估侧） |
 | TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `GapClassificationTest#getCoverageReturnsReport` | 通过（`0007`） |
 | TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `OutlineEvalTest#coverageBelowThreshold` | 未实现（`0018`） |
 | TC-F2 | 目标缺口重生成无效 | `specs/learning-tools` → `TC-F2` | `GapClassificationTest#regenerateDoesNotCloseGap` | 通过（`0007`） |

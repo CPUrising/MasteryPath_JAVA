@@ -481,6 +481,88 @@ public final class LearningService {
         });
     }
 
+    /**
+     * 定性评估（Feynman 式），{@code concept} / {@code design} 唯一的门槛打开方式。
+     *
+     * <p>与 {@link #grade} 的关键差异：<b>从不</b>写 {@code masteryLevels}（{@code INV-05}）；
+     * 证据类型固定 {@code QUALITATIVE}；未通过记为 {@code partial} 而非 {@code incorrect}
+     * （「还没讲清楚」不是「答错了」）。
+     *
+     * <p>{@code quality} 默认值：通过固定 {@code 1.0}（忽略传入值）；未通过时显式值优先，
+     * 缺省 {@code 0.2}。
+     *
+     * <p>已知缺口：参考实现在 {@code gateCleared} 时还会播种复习计划并发 {@code review.scheduled}。
+     * 该能力属 {@code 0010}（SM-2 调度），本 change 不实现。
+     *
+     * @throws PreconditionFailedException 知识点不存在，或类型不是 {@code concept} / {@code design}
+     */
+    public Map<String, Object> assess(String pathId, String kpId, boolean passed,
+                                      String evidenceText, Double quality, boolean review,
+                                      String sessionId, String turnId) {
+        String evidence = evidenceText == null ? "" : evidenceText;
+        return store.mutate(pathId, tx -> {
+            LearningProgress progress = tx.progress();
+            LearningProgress.KnowledgePointLocation location = progress.findKnowledgePoint(kpId);
+            tx.require(location.found(), "unknown objective: " + kpId);
+            KnowledgePoint kp = location.knowledgePoint();
+            tx.require(MasteryPolicy.QUALITATIVE_TYPES.contains(kp.getType()),
+                    "mastery_assess is for concept/design objectives; use mastery_grade "
+                            + "for memory/procedure");
+
+            boolean wasMastered = MasteryPolicy.isMastered(progress, kp);
+            progress.getQualitativeMastery().put(kpId, passed);
+
+            double recordedQuality;
+            if (passed) {
+                recordedQuality = 1.0;   // 通过时忽略传入值
+            } else {
+                recordedQuality = quality == null ? 0.2 : quality;
+            }
+
+            String evidenceId = newEvidenceId();
+            LearningEvidence record = new LearningEvidence();
+            record.setEvidenceId(evidenceId);
+            record.setKnowledgePointId(kpId);
+            record.setAssessmentType(AssessmentType.QUALITATIVE);
+            record.setResult(passed ? AssessmentResult.CORRECT : AssessmentResult.PARTIAL);
+            record.setQuality(recordedQuality);
+            record.setHintsUsed(0);
+            record.setSessionId(sessionId);
+            record.setTurnId(turnId);
+            record.setSource("mastery_path");
+            progress.getLearningEvidence().add(record);
+
+            boolean gateCleared = MasteryPolicy.isMastered(progress, kp) && !wasMastered;
+            String source = MasteryPolicy.masterySource(progress, kp);
+
+            // 只清同一知识点的待答题，避免误清别的目标上的当前题。
+            PendingQuestion pending = progress.getPendingQuestion();
+            if (pending != null && kpId.equals(pending.getKnowledgePointId())) {
+                progress.setPendingQuestion(null);
+            }
+
+            Map<String, Object> result = payload(
+                    "status", "assessed",
+                    "knowledge_point_id", kpId,
+                    "passed", passed,
+                    "gate_cleared", gateCleared,
+                    "source", source);
+
+            tx.emit("qualitative.assessed", payload(
+                    "knowledge_point_id", kpId,
+                    "passed", passed,
+                    "quality", quality));
+            if (gateCleared) {
+                tx.emit("objective.mastered", payload(
+                        "knowledge_point_id", kpId,
+                        "source", source));
+            }
+
+            tx.saveBankEntry(writtenBankEntry(pathId, kp, evidence, passed));
+            return result;
+        });
+    }
+
     // -- 内部 ----------------------------------------------------------------
 
     /** 构造保持插入顺序的 payload；键值交替传入。 */
@@ -520,6 +602,23 @@ public final class LearningService {
         entry.setUserAnswer(answer);
         entry.setCorrect(isCorrect);
         entry.setResult(result);
+        entry.setSource("mastery_path");
+        return entry;
+    }
+
+    /** 定性评估写入题库的条目：题型固定 {@code written}，题目用知识点名。 */
+    private static QuestionBankEntry writtenBankEntry(String pathId, KnowledgePoint kp,
+                                                      String evidence, boolean passed) {
+        QuestionBankEntry entry = new QuestionBankEntry();
+        entry.setEntryId(newEvidenceId());
+        entry.setPathId(pathId);
+        entry.setKnowledgePointId(kp.getId());
+        entry.setKnowledgePointName(kp.getName());
+        entry.setQuestion(kp.getName());
+        entry.setQuestionType("written");
+        entry.setUserAnswer(evidence);
+        entry.setCorrect(passed);
+        entry.setResult(passed ? "correct" : "partial");
         entry.setSource("mastery_path");
         return entry;
     }

@@ -28,8 +28,9 @@
 | 判分流程 | TC-K3/K4/K5 + 幂等 + 掌握推进 + INV-05 | `GradeFlowTest` | 通过 | 23 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
 | 出题注册 | TC-K2 单槽位 + 连续追问预算 | `QuizRegistrationTest` | 通过 | 12 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
 | 题库 | 判分入库 + 标签 + 筛选 | `QuestionBankTest` | 通过 | 9 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
-| 定性评估 | `assess`（concept/design 的 Feynman 通道） | 待建 `AssessServiceTest` | 未执行 | 属 `0009` |
-| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0009-qualitative-assess` 起；见 `docs/migration-plan.md` §5 |
+| 定性评估 | `assess`（concept/design 的 Feynman 通道） | `QualitativeAssessTest` | 通过 | 25 用例，见 [verify/0009](verify/0009-qualitative-assess.md) |
+| 复习调度 | TC-G1…G7（SM-2、播种、失败重学步、复习队列） | 待建 `SchedulerTest` | 未执行 | 属 `0010`；`assess`/`grade`/`override` 的 `gateCleared` 已算出，调度待接 |
+| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0010-scheduler-sm2` 起；见 `docs/migration-plan.md` §5 |
 | 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭 |
 | 参考实现行为瑕疵 | Q1–Q4（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；详见 `docs/migration-plan.md` §11，统一需另开 change |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |
