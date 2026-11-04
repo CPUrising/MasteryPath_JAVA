@@ -11,7 +11,7 @@
 | Gate | 语义 | 状态 | 证据 |
 | --- | --- | --- | --- |
 | G0 | 工程骨架可用 | **通过**（2026-11-04） | [verify/0001](docs/verify/0001-java-skeleton.md) · 3 用例 PASS |
-| G1 | 规范与纯逻辑冻结 | 进行中（domain + storage 已完成） | [verify/0003](docs/verify/0003-sqlite-store-cas.md) · 50 用例 PASS |
+| G1 | 规范与纯逻辑冻结 | 进行中（domain + storage + policy 已完成，待 mode-gating） | [verify/0004](docs/verify/0004-mastery-policy.md) · 88 用例 PASS |
 | G2 | 核心业务闭环 | 未开始 | — |
 | G3 | 大纲与质量 | 未开始 | — |
 | G4 | 回合与工具 | 未开始 | — |

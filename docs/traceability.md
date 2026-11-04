@@ -25,27 +25,27 @@
 | TC-A4 | 忽略未知字段 | `specs/learning-domain` → `TC-A4` | `KnowledgePointTest#unknownFieldsIgnored` | 通过（`0002`） |
 | TC-A5 | 旧式选项解析 | `specs/learning-tools` → `TC-K1` | `PendingQuestionTest#legacyOptionStringsParsed` | 通过（`0002`） |
 | TC-A6 | 聚合序列化往返 | `specs/learning-domain` → `TC-A4` | `LearningProgressJsonTest#roundTripKeepsAllFields` | 通过（`0002`） |
-| TC-C1 | 量化门槛 0.85 未掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#quantitativeBelowGate` | 未实现 |
-| TC-C2 | 量化门槛 0.90 掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#quantitativeAtGate` | 未实现 |
-| TC-C3 | procedure 满分掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#procedureFullMastery` | 未实现 |
-| TC-C4 | concept 量化分不打开 | `specs/learning-domain` → `TC-C4` | `MasteryPolicyTest#conceptIgnoresScore` | 未实现 |
-| TC-C5 | concept 定性通过掌握 | `specs/learning-domain` → `TC-C4` | `MasteryPolicyTest#conceptQualitativePass` | 未实现 |
-| TC-C6 | 声明掌握来源 learner | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideMarksLearnerSource` | 未实现 |
-| TC-C7 | 声明不写分 | `specs/learning-domain` → `TC-C6` | `LearningServiceTest#overrideDoesNotWriteScore` | 未实现 |
-| TC-C8 | 声明不产证据 | `specs/learning-domain` → `TC-C6` | `LearningServiceTest#overrideAddsNoEvidence` | 未实现 |
-| TC-C9 | 下一目标取首个可选 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#nextObjectiveFirstEligible` | 未实现 |
-| TC-C10 | 全掌握返回 complete | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#nextObjectiveComplete` | 未实现 |
-| TC-C11 | 待答题优先 | `specs/learning-domain` → `TC-C11` | `MasteryPolicyTest#nextObjectiveAnswerPending` | 未实现 |
-| TC-C12 | 作废不计账 | `specs/learning-domain` → `TC-C12` | `MasteryPolicyTest#voidedAttemptIgnored` | 未实现 |
-| TC-C13 | 三种状态派生 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#objectiveStatusBranches` | 未实现 |
-| TC-C14 | map_summary 一致 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#mapSummaryMatchesGate` | 未实现 |
-| TC-C15 | deferred 跳过 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#deferredSkipped` | 未实现 |
-| TC-C16 | 类型只读 | `specs/learning-tools` → `TC-J5` | `LearningServiceTest#typeIsReadOnly` | 未实现 |
-| TC-C17 | goal 保留 | `specs/learning-domain` → `TC-C17` | `LearningServiceTest#goalPreserved` | 未实现 |
-| TC-F1 | 模块阈值不推进 | `specs/learning-domain` → `TC-F1` | `MasteryPolicyTest#displayTargetNotGate` | 未实现 |
-| TC-F6 | 前置硬门控 | `specs/learning-domain` → `TC-F6` | `MasteryPolicyTest#prerequisiteHardGate` | 未实现 |
-| TC-F7 | 前置通过但未定性 | `specs/learning-domain` → `TC-F7` | `MasteryPolicyTest#prerequisitePassedButNoQualitative` | 未实现 |
-| TC-F8 | 两条件相与 | `specs/learning-domain` → `TC-F8` | `MasteryPolicyTest#prerequisiteAndQualitative` | 未实现 |
+| TC-C1 | 量化门槛 0.85 未掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#quantitativeBelowGate` | 通过（`0004`） |
+| TC-C2 | 量化门槛 0.90 掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#quantitativeAtGate` | 通过（`0004`） |
+| TC-C3 | procedure 满分掌握 | `specs/learning-domain` → `TC-C1` | `MasteryPolicyTest#procedureFullMastery` | 通过（`0004`） |
+| TC-C4 | concept 量化分不打开 | `specs/learning-domain` → `TC-C4` | `MasteryPolicyTest#conceptIgnoresScore` | 通过（`0004`） |
+| TC-C5 | concept 定性通过掌握 | `specs/learning-domain` → `TC-C4` | `MasteryPolicyTest#conceptQualitativePass` | 通过（`0004`） |
+| TC-C6 | 声明掌握来源 learner | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideMarksLearnerSource` | 通过（`0004`） |
+| TC-C7 | 声明不写分 | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideDoesNotWriteScore` | 通过（`0004`） |
+| TC-C8 | 声明不产证据 | `specs/learning-domain` → `TC-C6` | `MasteryPolicyTest#overrideAddsNoEvidence` | 通过（`0004`） |
+| TC-C9 | 下一目标取首个可选 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#nextObjectiveFirstEligible` | 通过（`0004`） |
+| TC-C10 | 全掌握返回 complete | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#nextObjectiveComplete` | 通过（`0004`） |
+| TC-C11 | 待答题优先 | `specs/learning-domain` → `TC-C11` | `MasteryPolicyTest#nextObjectiveAnswerPending` | 通过（`0004`） |
+| TC-C12 | 作废不计账 | `specs/learning-domain` → `TC-C12` | `MasteryPolicyTest#voidedAttemptIgnored` | 通过（`0004`） |
+| TC-C13 | 三种状态派生 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#objectiveStatusBranches` | 通过（`0004`） |
+| TC-C14 | map_summary 一致 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#mapSummaryMatchesGate` | 通过（`0004`） |
+| TC-C15 | deferred 跳过 | `specs/learning-domain` → `TC-C9` | `MasteryPolicyTest#deferredSkipped` | 通过（`0004`） |
+| TC-C16 | 类型只读 | `specs/learning-tools` → `TC-J5` | `MasteryPolicyTest#typeIsReadOnly` | 通过（`0004`） |
+| TC-C17 | goal 保留 | `specs/learning-domain` → `TC-C17` | `GoalPreservationTest#goalSurvivesMutation` | 通过（`0004`） |
+| TC-F1 | 模块阈值不推进 | `specs/learning-domain` → `TC-F1` | `MasteryPolicyTest#displayTargetNotGate` | 通过（`0004`） |
+| TC-F6 | 前置硬门控 | `specs/learning-domain` → `TC-F6` | `MasteryPolicyTest#prerequisiteHardGate` | 通过（`0004`） |
+| TC-F7 | 前置通过但未定性 | `specs/learning-domain` → `TC-F7` | `MasteryPolicyTest#prerequisitePassedButNoQualitative` | 通过（`0004`） |
+| TC-F8 | 两条件相与 | `specs/learning-domain` → `TC-F8` | `MasteryPolicyTest#prerequisiteAndQualitative` | 通过（`0004`） |
 | TC-F9 | 跨类型拆分 | `specs/learning-tools` → `TC-J3` | `LearningServiceTest#crossTypeSplitOnBuild` | 未实现 |
 
 ## 2. 存储与 CAS（learning-storage）

@@ -106,9 +106,9 @@ if (-not (Test-Path $mvnw)) {
 $goals = @('-B', '-ntp', 'test')
 
 switch ($Scope) {
-    'unit'    { $goals += @('-Dtest=*PolicyTest,*GradingTest,*SchedulerTest,*ModelTest') }
-    'storage' { $goals += @('-Dtest=*StoreTest,*StoreConcurrencyTest') }
-    'api'     { $goals += @('-Dtest=*ApiTest,*WebSocketTurnTest,*TurnRunnerTest') }
+    'unit'    { $goals += @('-Dtest=*PolicyTest,*OrderingTest,*ScoreTest,*GradingTest,*SchedulerTest,*ModelTest,*JsonTest,*ProjectionTest,*ClassificationTest,*CoverageTest,*GapTest,*BuildReviseTest,*QuizGradeTest,*CaptureTest,*OutlineEvalTest') }
+    'storage' { $goals += @('-Dtest=*StoreTest,*StoreConcurrencyTest,*CompatibilityTest,*PreservationTest') }
+    'api'     { $goals += @('-Dtest=*ApiTest,*WebSocketTurnTest,*TurnRunnerTest,*RestTest') }
     'all'     { }
 }
 
