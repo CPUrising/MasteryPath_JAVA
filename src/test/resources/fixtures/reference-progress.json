@@ -1,0 +1,100 @@
+{
+  "path_id": "p",
+  "name": "N",
+  "goal": "G",
+  "owner_session_id": "",
+  "sources": [],
+  "learner_profile": null,
+  "modules": [
+    {
+      "id": "m",
+      "name": "M",
+      "order": 0,
+      "objective": "O",
+      "display_target": 0.8,
+      "knowledge_points": [
+        {
+          "id": "k1",
+          "name": "ab",
+          "type": "concept",
+          "module_id": "m",
+          "prerequisite_ids": [
+            "k0"
+          ],
+          "source_ids": [
+            "s1"
+          ],
+          "required_evidence": [
+            "quiz"
+          ]
+        }
+      ]
+    }
+  ],
+  "current_module_id": "",
+  "current_kp_index": 0,
+  "knowledge_types": {},
+  "mastery_levels": {
+    "k1": 0.85
+  },
+  "qualitative_mastery": {
+    "k1": true
+  },
+  "quiz_attempts": [],
+  "learning_evidence": [],
+  "repetition_states": {
+    "k1": {
+      "interval_index": 2,
+      "consecutive_correct": 0,
+      "consecutive_wrong": 0,
+      "next_review_at": 1730000000.0,
+      "ease_factor": 2.5,
+      "last_review_at": null,
+      "last_scheduled_at": null,
+      "scheduled_after_failure": true,
+      "review_count": 0,
+      "lapse_count": 0,
+      "provenance": "system",
+      "desired_retention": 0.9,
+      "difficulty": 0.3,
+      "stability": 0.0,
+      "retrievability": 1.0
+    }
+  },
+  "review_queue": [],
+  "learner_mastery_overrides": {},
+  "deferred_objectives": {},
+  "explained_objectives": {},
+  "source_gaps": [],
+  "proposals": [],
+  "coverage": null,
+  "consecutive_questions": 0,
+  "pending_question": {
+    "question_id": "q1",
+    "knowledge_point_id": "k1",
+    "module_id": "",
+    "prompt": "",
+    "question_type": "choice",
+    "expected_answer": "A",
+    "options": [
+      {
+        "label": "A",
+        "body": "x"
+      },
+      {
+        "label": "B",
+        "body": "y"
+      }
+    ],
+    "explanation": "e",
+    "difficulty": "",
+    "accepted_answers": [],
+    "required_keywords": [],
+    "optional_keywords": [],
+    "created_at": 1793766250.5497196
+  },
+  "desired_retention": 0.95,
+  "version": 7,
+  "created_at": 1793766250.549619,
+  "updated_at": 1793766250.5496192
+}

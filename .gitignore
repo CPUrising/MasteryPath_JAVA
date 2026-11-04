@@ -1,0 +1,25 @@
+target/
+build/
+out/
+
+# 运行时数据（含 settings.json 可能含 key）
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# 例外：跨语言兼容性测试的 fixture 由参考实现（Python）真实建库产出，
+# 是「数据等价」证据的一部分，必须入库。
+!src/test/resources/fixtures/**/*.db
+
+# 验证产物
+artifacts/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store

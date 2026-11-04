@@ -1,0 +1,21 @@
+# 默认：文本文件统一 LF 入库，检出时由各平台处理
+* text=auto eol=lf
+
+# Shell 脚本必须保持 LF，否则在 Linux/macOS 上 shebang 会失效
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Windows 批处理必须保持 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# PowerShell 脚本用 CRLF（Windows 上主要运行环境）
+*.ps1 text eol=crlf
+
+# 二进制：禁止任何换行转换
+*.db binary
+*.jar binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.gif binary
