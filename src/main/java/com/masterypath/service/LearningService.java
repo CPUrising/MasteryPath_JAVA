@@ -7,13 +7,16 @@ import com.masterypath.domain.model.AssessmentResult;
 import com.masterypath.domain.model.AssessmentType;
 import com.masterypath.domain.model.CoverageReport;
 import com.masterypath.domain.model.DeferredObjective;
+import com.masterypath.domain.model.GapKind;
 import com.masterypath.domain.model.InteractionStatus;
 import com.masterypath.domain.model.KnowledgePoint;
+import com.masterypath.domain.model.KnowledgeType;
 import com.masterypath.domain.model.LearnerMasteryOverride;
 import com.masterypath.domain.model.LearningEvidence;
 import com.masterypath.domain.model.LearningModule;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.MasteryInteraction;
+import com.masterypath.domain.model.ObjectiveProposal;
 import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.domain.model.QuizAttempt;
@@ -1128,6 +1131,87 @@ public final class LearningService {
     /** 单个会话；不存在返回 {@code null}。 */
     public Map<String, Object> getSession(String sessionId) {
         return store.getSession(sessionId);
+    }
+
+    /**
+     * 写入会话模式（参考实现 {@code set_session_mode}）。
+     *
+     * <p>会话不存在时先建档（{@code ensure_session}），再改 {@code mode}。
+     * 工具层调用它时**不**因失败而让工具失败——回合已切到新模式，持久化失败只记录。
+     *
+     * @return 更新后的会话行
+     */
+    public Map<String, Object> setSessionMode(String pathId, String sessionId, String mode) {
+        Map<String, Object> session = store.getSession(sessionId);
+        if (session == null) {
+            Map<String, Object> created = new LinkedHashMap<>();
+            created.put("session_id", sessionId);
+            created.put("path_id", pathId);
+            created.put("title", "");
+            created.put("mode", mode);
+            created.put("status", "active");
+            created.put("message_count", 0);
+            created.put("last_message", "");
+            created.put("has_pending_question", false);
+            session = store.upsertSession(created);
+        }
+        session.put("mode", mode);
+        return store.upsertSession(session);
+    }
+
+    /**
+     * 记录候选目标（参考实现 {@code propose_objective}，{@code INV-53/54}）。
+     *
+     * <p><b>不改地图</b>：只追加到 {@code proposals} 并发 {@code objective.proposed}。
+     *
+     * @return {@code {proposal_id, status}}
+     */
+    public Map<String, Object> proposeObjective(String pathId, String name, String kpType,
+                                                String reason, String moduleId,
+                                                List<String> sourceIds, String proposedBy,
+                                                String sessionId, String turnId) {
+        return store.mutate(pathId, tx -> {
+            ObjectiveProposal proposal = new ObjectiveProposal();
+            proposal.setId(newEvidenceId());
+            proposal.setPathId(pathId);
+            proposal.setName(name == null ? "" : name.strip());
+            proposal.setType(KnowledgeType.fromValue(kpType));
+            proposal.setReason(reason == null ? "" : reason);
+            proposal.setModuleId(moduleId == null ? "" : moduleId);
+            proposal.setSourceIds(sourceIds == null ? new ArrayList<>() : new ArrayList<>(sourceIds));
+            proposal.setProposedBy("learner".equals(proposedBy) ? "learner" : "tutor");
+            proposal.setSessionId(sessionId == null ? "" : sessionId);
+            proposal.setTurnId(turnId == null ? "" : turnId);
+            tx.progress().getProposals().add(proposal);
+            tx.emit("objective.proposed", payload(
+                    "proposal_id", proposal.getId(),
+                    "name", proposal.getName(),
+                    "type", proposal.getType().value()));
+            return payload("proposal_id", proposal.getId(), "status", "pending");
+        });
+    }
+
+    /**
+     * 记录覆盖缺口（参考实现 {@code note_gap}）。
+     *
+     * <p><b>不改地图</b>：只追加到 {@code source_gaps} 并发 {@code gap.noted}。
+     *
+     * @return {@code {gap_id}}
+     */
+    public Map<String, Object> noteGap(String pathId, String kind, String ref, String reason) {
+        return store.mutate(pathId, tx -> {
+            SourceGap gap = new SourceGap();
+            gap.setId("g" + newEvidenceId().substring(0, 8));
+            gap.setKind(GapKind.fromValue(kind));
+            gap.setRef(ref == null ? "" : ref);
+            gap.setReason(reason == null ? "" : reason);
+            tx.progress().getSourceGaps().add(gap);
+            tx.emit("gap.noted", payload(
+                    "gap_id", gap.getId(),
+                    "kind", kind,
+                    "ref", gap.getRef()));
+            return payload("gap_id", gap.getId());
+        });
     }
 
     private static boolean hasKnowledgePoints(LearningProgress progress) {

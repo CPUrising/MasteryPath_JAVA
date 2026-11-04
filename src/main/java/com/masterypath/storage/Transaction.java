@@ -22,7 +22,7 @@ import java.util.Map;
 public class Transaction {
 
     /** 未终态的题目状态（占据单槽位，{@code INV-02}）。 */
-    private static final List<String> ACTIVE_STATUSES = List.of("registered", "awaiting_input", "answered");
+    static final List<String> ACTIVE_STATUSES = List.of("registered", "awaiting_input", "answered");
 
     private final LearningProgress progress;
     private final Connection connection;

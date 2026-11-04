@@ -408,6 +408,36 @@ public class LearningStore implements AutoCloseable {
         }
     }
 
+    /**
+     * 当前未终态题目；单槽位语义（{@code INV-02}）。
+     *
+     * <p>与 {@link Transaction#getOpenInteraction()} 同语义，但用于事务外读取
+     * （工具层需要在不写库的前提下判断「是否已有待答题」）。
+     *
+     * @return 最近创建的非终态交互；没有则 {@code null}
+     */
+    public MasteryInteraction getOpenInteraction(String pathId) {
+        synchronized (lock) {
+            String placeholders = String.join(",",
+                    Transaction.ACTIVE_STATUSES.stream().map(status -> "?").toList());
+            String sql = "SELECT data FROM interactions WHERE path_id=? AND status IN ("
+                    + placeholders + ") ORDER BY created_at DESC LIMIT 1";
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, pathId);
+                for (int index = 0; index < Transaction.ACTIVE_STATUSES.size(); index++) {
+                    ps.setString(index + 2, Transaction.ACTIVE_STATUSES.get(index));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next()
+                            ? mapper.readValue(rs.getString("data"), MasteryInteraction.class)
+                            : null;
+                }
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException("get open interaction failed", e);
+            }
+        }
+    }
+
     public QuestionBankEntry saveBankEntry(QuestionBankEntry entry) {
         synchronized (lock) {
             try {

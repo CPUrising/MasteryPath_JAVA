@@ -20,3 +20,4 @@
 | 2026-11-04 | `0014-mastery-nav` | 504 | 0 | 0 | [verify/0014](verify/0014-mastery-nav.md) |
 | 2026-11-04 | `0015-llm-client` | 535 | 0 | 0 | [verify/0015](verify/0015-llm-client.md) |
 | 2026-11-04 | `0016-agent-loop` | 554 | 0 | 0 | [verify/0016](verify/0016-agent-loop.md) |
+| 2026-11-04 | `0017-tool-layer` | 601 | 0 | 0 | [verify/0017](verify/0017-tool-layer.md) |

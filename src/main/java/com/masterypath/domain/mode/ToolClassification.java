@@ -45,6 +45,10 @@ public final class ToolClassification {
                     "mastery_paths",
                     "mastery_switch",
                     "mastery_leave",
+                    "mastery_topics",
+                    "mastery_sessions",
+                    "mastery_open_session",
+                    "mastery_new_session",
                     "rag",
                     "read_source")));
 

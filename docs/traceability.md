@@ -190,6 +190,12 @@
 | TC-LOOP3 | 回合预算（`INV-60`） | `loop.py:129-134` | `AgentLoopTest#budgetStopsBeforeExecuting`、`#budgetAccumulatesAcrossRounds` | 通过（`0016`） |
 | TC-LOOP4 | 出题结束回合（`INV-44`）+ 轮数耗尽 | `loop.py:170-175` | `AgentLoopTest#endTurnYieldsCardAfterResult`、`#stopsAtMaxRounds` | 通过（`0016`） |
 | TC-LOOP5 | 工具失败三降级 + OpenAI 工具历史 | `loop.py:139-169` | `AgentLoopTest#badArgumentsDegrade`、`#unknownToolDegrades`、`#raisingToolDegrades`、`#writesOpenAiToolHistory` | 通过（`0016`） |
+| TC-TOOL1 | 工具 schema 完整性（19 份 + 枚举 + required） | `tools.py:911-1140` | `ToolSchemasTest`（5 项） | 通过（`0017`） |
+| TC-TOOL2 | 注册表 + 调用期门控（含未记录模式放行） | `tools.py:57-61, 1144-1167` | `MasteryToolsTest#registryIsComplete`、`#buildRefusedInStudy`、`#quizRefusedInOutline`、`#unrecordedModeEnforcesNothing`、`#sharedToolsAlwaysAllowed` | 通过（`0017`） |
+| TC-TOOL3 | 服务层异常 → `ToolResult(ok=false)` | `tools.py:715-799` | `MasteryToolsTest#repairToolConvertsException`、`#repairToolRequiresReason`、`#profileToolRecordsPartialFields`、`#profileToolRejectsEmpty` | 通过（`0017`） |
+| TC-TOOL4 | 条件挂载（`rag` / `read_source`） | `tools.py:378-385` | `MasteryToolsTest#conditionalMounting`、`#mountsSourceToolsWhenInputsExist`、`#mountingDoesNotMutateRegistry` | 通过（`0017`） |
+| TC-TOOL5 | 状态快照 + 模式切换 + 出题判分 | `tools.py:64-195, 508-657` | `StatusAndQuizToolsTest`（17 项） | 通过（`0017`） |
+| TC-TOOL6 | 来源工具 + 导航工具 | `tools.py:289-375`、`nav_tools.py` | `SourceToolsTest`（10 项）、`MasteryToolsTest#openSessionFromAnotherTopicRefused`、`#newSessionOnSameTopicRefused`、`#navFailureMessages` | 通过（`0017`） |
 
 ## 7. 知识库（knowledge-base）
 
