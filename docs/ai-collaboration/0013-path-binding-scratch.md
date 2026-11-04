@@ -51,5 +51,5 @@
 | `deleteSession` 返回值含义 | **会话删除成功**，与 path 是否删除无关 | 参考实现 `return True` 在 path 判断之前 |
 | 概览排序键 | **`path_id` 升序** | 参考实现 `sort(key=lambda item: item["path_id"])` |
 | 概览 `name` 空值处理 | **回退 `path_id`** | 参考实现 `progress.name or progress.path_id` |
-| 工具层三个 `Tool` 类是否本 change 实现 | **不实现** | 属 `0015`；服务层用例已覆盖同样的语义 |
+| 工具层三个 `Tool` 类是否本 change 实现 | **不实现** | 属 `0017`；服务层用例已覆盖同样的语义 |
 | 「切换到不存在的路径」的拒绝在哪层 | **工具层** | 服务层 `setSessionPath` 对未知 session 返回 `null`，不做路径存在性校验 |

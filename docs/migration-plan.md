@@ -183,7 +183,7 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 | 14 | `0014-mastery-nav` | 只读导航（topics/sessions/module 解析）+ hand-off 卡片 | `service/NavigationService` | `test_mastery_nav` 对照 | 0013 |
 | 15 | `0015-llm-client` | LLM 抽象（`LlmClient` / `ToolCall` / `LlmResponse` / `StreamChunk` / `LlmError`）+ SSE 解析 + OpenAI 兼容客户端 + Fake | `adapter/llm/*` | `test_llm_client` 对照（除 2 个 schema 用例） | 0014 |
 | 16 | `0016-agent-loop` | `ToolContext` / `ToolResult` / `Tool` 契约 + `AgentLoop` + 回合预算 + 事件流 | `adapter/loop/*`、`adapter/tool/ToolContext.java` | `test_loop` 对照；TC-M6 | 0015 |
-| 17 | `0017-tool-layer` | `ToolRegistry` + 19 个 `Mastery*Tool` + `ToolSchemas` + 条件挂载 | `adapter/tool/*` | `test_llm_client` 的 2 个 schema 用例；`test_repair_profile` 工具层 2 例；TC-M2；`test_mastery_nav` 工具层 2 例 | 0016 |
+| 17 | `0017-tool-layer` | `ToolRegistry` + 23 个工具（19 mastery + 4 导航）+ `ToolSchemas` + 条件挂载 | `adapter/tool/*` | `test_llm_client` 的 2 个 schema 用例；`test_repair_profile` 工具层 2 例；TC-M2；`test_mastery_nav` 工具层 2 例 | 0016 |
 | 18 | `0018-rest-api` | 全部 REST 端点、错误码、事件流端点 | `adapter/web/*` | TC-I1…I7、`test_api`/`test_f0_api` 对照 | 0017 |
 | 19 | `0019-ws-turn` | WS 回合、事件顺序、`session_meta`、部分文本保留 | `adapter/turn/*`、`adapter/web/WsTurnHandler` | `test_turn_runner`、`test_ws_runtime`、`test_chat_nav` 对照 | 0018 |
 | 20 | `0020-knowledge-base` | 文件夹扫描、知识库 CRUD、索引、检索、`rag`/`read_source` 条件挂载 | `service/source/*`、`service/knowledge/*`、`adapter/tool` | `test_knowledge`、`test_knowledge_chat`、`test_source_tools` 对照 | 0019 |
@@ -227,9 +227,9 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 
 | 新编号 | 内容 | 任务数 | 测试对照 |
 | --- | --- | --- | --- |
-| `0015-llm-client` | LLM 抽象 + SSE 解析 + OpenAI 兼容客户端 + Fake | 6 | `test_llm_client.py`（11 用例，其中 2 个 schema 用例归 `0017`） |
-| `0016-agent-loop` | `ToolContext` / `ToolResult` / `Tool` 契约 + `AgentLoop` + 预算 | 6 | `test_loop.py`（11 用例） |
-| `0017-tool-layer` | `ToolRegistry` + 19 个工具 + schemas + 条件挂载 | 8 | `test_llm_client` 的 2 个 schema 用例；`test_repair_profile` 工具层 2 例；`test_mastery_nav` 工具层 2 例；TC-M2 |
+| `0015-llm-client` | LLM 抽象 + SSE 解析 + OpenAI 兼容客户端 + Fake | 6 | `test_llm_client.py`（10 用例，其中 2 个 schema 用例归 `0017`） |
+| `0016-agent-loop` | `ToolContext` / `ToolResult` / `Tool` 契约 + `AgentLoop` + 预算 | 6 | `test_loop.py`（10 用例） |
+| `0017-tool-layer` | `ToolRegistry` + 23 个工具（19 mastery + 4 导航）+ schemas + 条件挂载 | 8 | `test_llm_client` 的 2 个 schema 用例；`test_repair_profile` 工具层 2 例；`test_mastery_nav` 工具层 2 例；TC-M2 |
 
 拆分理由：三者是三种行为增量——「协议适配」「回合编排」「工具语义」；
 且 `0015` 可完全离线单测（不依赖 `LearningService`），`0016` 只需一个假工具，

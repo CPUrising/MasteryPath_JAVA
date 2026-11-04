@@ -61,4 +61,4 @@
 | `total_sessions` 用截断前还是后 | **截断前** | 参考实现 `total = len(rows)` 在切片之前 |
 | `findTopic` 的 `modules` 是否截断 | **不截断** | 参考实现 `find_topic` 直接 `_modules(progress)` |
 | 导航层是否写库 | **不写** | 参考实现 `navigation.py` 无任何写操作 |
-| 工具层 4 个 `Tool` 类是否本 change 实现 | **不实现** | 属 `0015`；数据构造已全部覆盖 |
+| 工具层 4 个 `Tool` 类是否本 change 实现 | **不实现** | 属 `0017`；数据构造已全部覆盖 |

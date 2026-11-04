@@ -83,8 +83,8 @@
 
 | Python 用例 | Java 对应 | 说明 |
 |---|---|---|
-| `test_paths_lists_built_paths_and_active` | `#listsBuiltPathsSorted` + `#overviewCountsReflectMap` | 参考用例经 `MasteryPathsTool` 断言 id 集合与 `active_path_id`；工具层属 `0015`，本 change 在服务层断言同一语义 |
-| `test_switch_binds_turn_and_session` | `#bindMovesSession` | 参考用例断言 `ctx.path_id` 与 session 绑定；`ctx` 属工具层（`0015`），本 change 只断言 session 侧 |
+| `test_paths_lists_built_paths_and_active` | `#listsBuiltPathsSorted` + `#overviewCountsReflectMap` | 参考用例经 `MasteryPathsTool` 断言 id 集合与 `active_path_id`；工具层属 `0017`，本 change 在服务层断言同一语义 |
+| `test_switch_binds_turn_and_session` | `#bindMovesSession` | 参考用例断言 `ctx.path_id` 与 session 绑定；`ctx` 属工具层（`0017`），本 change 只断言 session 侧 |
 | `test_switch_unknown_path_is_refused` | `#bindUnknownSessionReturnsNull` | 参考用例的「拒绝」发生在工具层（先查路径存在性）；服务层 `setSessionPath` 对未知 session 返回 `null`，语义一致 |
 | `test_leave_creates_hidden_scratch_path` | `#scratchDerivedFromSession` + `#emptyScratchHiddenFromOverview` | 同断言（id 前缀、owner、不出现在列表） |
 | `test_deleting_session_removes_owned_empty_scratch` | `#deleteSessionRemovesOwnedEmptyScratch` | 同断言 |
@@ -107,10 +107,10 @@
 
 | 编号 | 偏差 | 等级 | 处理 |
 |---|---|---|---|
-| D1 | 未实现工具层 `MasteryPathsTool` / `MasterySwitchTool` / `MasteryLeaveTool` | 一般 | 属 `0015`。参考实现三个类共 91 行，只做「参数解析 + 服务层调用 + `ToolResult` 包装」。本 change 用服务层用例覆盖同样的语义（与 `0012` 同理由） |
-| D2 | `test_switch_unknown_path_is_refused` 的「拒绝」在工具层，服务层无对应拒绝 | 一般 | 服务层 `setSessionPath` 对未知 session 返回 `null`（不抛错）；「路径不存在则拒绝切换」的判定在工具层，属 `0015`。已登记 `verification-debt.md` |
+| D1 | 未实现工具层 `MasteryPathsTool` / `MasterySwitchTool` / `MasteryLeaveTool` | 一般 | 属 `0017`。参考实现三个类共 91 行，只做「参数解析 + 服务层调用 + `ToolResult` 包装」。本 change 用服务层用例覆盖同样的语义（与 `0012` 同理由） |
+| D2 | `test_switch_unknown_path_is_refused` 的「拒绝」在工具层，服务层无对应拒绝 | 一般 | 服务层 `setSessionPath` 对未知 session 返回 `null`（不抛错）；「路径不存在则拒绝切换」的判定在工具层，属 `0017`。已登记 `verification-debt.md` |
 | D3 | `TC-S1`–`TC-S4` 是 Java 侧分组标签 | 无 | 参考实现只声明 `TC-S*` 家族，未细分；本报告 §2 已注明 |
-| D4 | `test_turn_path_switch.py`（`TC-S5`）未覆盖 | 无 | 依赖 WS 回合，属 `0017` |
+| D4 | `test_turn_path_switch.py`（`TC-S5`）未覆盖 | 无 | 依赖 WS 回合，属 `0019` |
 | D5 | 概览的 `due_reviews` 只断言键存在，未断言具体数值 | 低 | `dueReviews` 的数值语义已由 `0010` 的 `ReviewSchedulingTest` 覆盖；本 change 只验证「概览把它接进来」 |
 
 ## 5. 未覆盖项（已登记验证债）

@@ -244,6 +244,66 @@ class MasteryToolsTest {
                         + "Call mastery_topics for the topics you can send the learner to.");
     }
 
+    // -- 捕获工具 -------------------------------------------------------------
+
+    @Test
+    @DisplayName("mastery_propose_objective 写入候选目标且不改地图")
+    void proposeObjectiveRecordsCandidate() {
+        buildPath("p1", "Statistics");
+        ToolContext ctx = ctx("p1", SessionMode.STUDY);
+
+        ToolResult result = MasteryTools.all().get("mastery_propose_objective")
+                .execute(Map.of("name", "Bayes theorem", "type", "concept",
+                        "reason", "missing prerequisite"), ctx);
+
+        assertThat(result.ok()).isTrue();
+        assertThat(result.metadata()).containsEntry("status", "pending");
+        assertThat(service.store().load("p1").getProposals()).hasSize(1);
+        // 不改地图：知识点数量不变（INV-53）。
+        assertThat(service.store().load("p1").getModules().get(0).getKnowledgePoints()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("mastery_propose_objective 名字过短被拒")
+    void proposeObjectiveRequiresName() {
+        buildPath("p1", "Statistics");
+        ToolContext ctx = ctx("p1", SessionMode.STUDY);
+
+        ToolResult result = MasteryTools.all().get("mastery_propose_objective")
+                .execute(Map.of("name", "x"), ctx);
+
+        assertThat(result.ok()).isFalse();
+        assertThat(result.content()).contains("2+ characters");
+    }
+
+    @Test
+    @DisplayName("mastery_note_gap 写入缺口且不改地图")
+    void noteGapRecordsGap() {
+        buildPath("p1", "Statistics");
+        ToolContext ctx = ctx("p1", SessionMode.STUDY);
+        int before = service.store().load("p1").getSourceGaps().size();
+
+        ToolResult result = MasteryTools.all().get("mastery_note_gap")
+                .execute(Map.of("kind", "goal_gap", "ref", "k1", "reason", "no source"), ctx);
+
+        assertThat(result.ok()).isTrue();
+        assertThat(result.metadata()).containsKey("gap_id");
+        assertThat(service.store().load("p1").getSourceGaps()).hasSize(before + 1);
+    }
+
+    @Test
+    @DisplayName("mastery_note_gap 非法 kind 被拒")
+    void noteGapRejectsUnknownKind() {
+        buildPath("p1", "Statistics");
+        ToolContext ctx = ctx("p1", SessionMode.STUDY);
+
+        ToolResult result = MasteryTools.all().get("mastery_note_gap")
+                .execute(Map.of("kind", "banana"), ctx);
+
+        assertThat(result.ok()).isFalse();
+        assertThat(result.content()).isEqualTo("kind must be goal_gap or source_omission");
+    }
+
     // -- 辅助 -----------------------------------------------------------------
 
     private ToolContext ctx(String pathId, SessionMode mode) {

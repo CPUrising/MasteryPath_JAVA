@@ -21,7 +21,7 @@ AI 按推荐方案（拆成 3 个）执行，并记入 `migration-plan.md` §5.3
 | --- | --- | --- |
 | `0015-llm-client` | LLM 抽象 + SSE 解析 + OpenAI 兼容客户端 + Fake | 6 |
 | `0016-agent-loop` | `ToolContext` / `ToolResult` / `Tool` 契约 + `AgentLoop` + 预算 | 6 |
-| `0017-tool-layer` | `ToolRegistry` + 19 个工具 + schemas + 条件挂载 | 8 |
+| `0017-tool-layer` | `ToolRegistry` + 23 个工具（19 mastery + 4 导航）+ schemas + 条件挂载 | 8 |
 
 原 `0016`–`0021` 顺延为 `0018`–`0023`（仅改编号，无代码成本）。
 

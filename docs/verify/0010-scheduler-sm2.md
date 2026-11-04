@@ -32,9 +32,9 @@
 | Provenance Seeding | TC-G5 双轨比值 | `SchedulerTest#learnerTrackRatio` + `ReviewSchedulingTest#overrideSeedsLearnerTrack` | PASS | 比值 0.5 |
 | Provenance Seeding | 播种字段 | `SchedulerTest#initialStateFields` | PASS | `interval_index=1` |
 | Provenance Seeding | 来源归一 | `SchedulerTest#provenanceNormalisesToSystem` | PASS | `""`/`null`/未知 → system |
-| Provenance Seeding | TC-G6 内部量隐藏 | `ReviewSchedulingTest#schedulerInternalsNotExposed` | PASS（部分） | 仅公开签名反射断言；准入拒绝属 `0013`/`0014` |
+| Provenance Seeding | TC-G6 内部量隐藏 | `ReviewSchedulingTest#schedulerInternalsNotExposed` | PASS（部分） | 仅公开签名反射断言；准入拒绝属 `0017` |
 | Provenance Seeding | TC-G7 不消费 desired_retention | `SchedulerTest#desiredRetentionNotConsumed` | PASS | `INV-31` |
-| Provenance Seeding | TC-G7 改设置不动锚点 | `SchedulerTest#changingRetentionKeepsAnchor` | PASS | 端到端属 `0017` |
+| Provenance Seeding | TC-G7 改设置不动锚点 | `SchedulerTest#changingRetentionKeepsAnchor` | PASS | 端到端见 `0018` |
 
 服务层接线（参考实现 `_schedule_after` 三分支）：
 
@@ -103,8 +103,8 @@
 |---|---|---|---|
 | D1 | 未按 `migration-plan.md` §5 新建 `service/ReviewService`，`scheduleAfter` 放进 `LearningService` | 一般 | 参考实现 `_schedule_after` 就是 `service.py` 的模块级私有函数，被 3 个方法共享 `tx`；拆类需把 `tx` 暴露成参数类型，反而扩大可见面。与 `0009` 同理由，见 `design.md` Decisions 6 |
 | D2 | 三处「已知缺口：…属 0010」Javadoc 已删除并改写为实际行为说明 | 无 | 缺口已补齐 |
-| D3 | `TC-G6` 只做公开签名反射断言，未做准入拒绝 | 一般 | 服务层无可执行面；真正的拒绝在 `0013`（工具门控）与 `0014`（REST 参数校验）。已在 `verification-debt.md` 记为部分覆盖 |
-| D4 | `TC-G7` 只验证「SM-2 不消费 `desired_retention`」与「改聚合设置不动锚点」，未验证 `PUT /review-settings` 端到端 | 一般 | 属 `0017`（设置存储与 REST） |
+| D3 | `TC-G6` 只做公开签名反射断言，未做准入拒绝 | 一般 | 服务层无可执行面；真正的拒绝在 `0017`（工具门控）。已在 `verification-debt.md` 记为部分覆盖 |
+| D4 | `TC-G7` 只验证「SM-2 不消费 `desired_retention`」与「改聚合设置不动锚点」，未验证 `PUT /review-settings` 端到端 | 一般 | 端到端已由 `0018` 的 `LearningApiTest#reviewSettingsClampsToRange` 覆盖 |
 | D5 | `forgetting_risk` / `priority` 恒 `0.0` / `0`，未补计算公式 | 无（照抄） | 参考实现从不赋值；补公式即行为变化 |
 | D6 | 两分支 `review.scheduled` payload 不对称（播种有 `provenance` 无 `scheduled_after_failure`；重排反之） | 无（照抄） | 参考实现原样行为，已逐字锁定并有用例 |
 | D7 | 自愈期间**放宽了断言**：`gradeSeedsAndEmitsInOrder` 用 `containsSubsequence` 替代 `containsExactly`；`inSessionPracticeKeepsAnchor` 用「恰好一次」替代「零事件」 | **重要** | 人类审查后自查发现。已改为「基线索引 + 切片 `containsExactly`」，恢复严格性；修正后 unit 340 / 全量 409 仍全绿，证明实现本就正确 |

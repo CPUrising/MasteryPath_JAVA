@@ -85,7 +85,7 @@
 | D2 | 参考实现 `_schedule_after` 传 `result="correct" if passed else "incorrect"`，而证据记 `partial` | 一般 | **参考实现的不一致，照抄**：证据用 `partial`（「还没讲清楚」），调度参数用 `incorrect`。调度属 `0010`，届时按此实现 |
 | D3 | `gateCleared` 时未播种复习计划、未发 `review.scheduled` | **重要** | 属 `0010`；已登记验证债 |
 | D4 | `review` 参数当前只透传，不影响证据类型（参考实现固定写 `QUALITATIVE`） | 一般 | 照抄参考实现；`review` 的实际作用是传给 `_schedule_after`，属 `0010` |
-| D5 | 工具层 `mastery_assess` 与 review 模式下拒绝未掌握 KP 的检查未实现 | 一般 | 属 `0013` |
+| D5 | 工具层 `mastery_assess` 与 review 模式下拒绝未掌握 KP 的检查未实现 | 一般 | 属 `0017` |
 
 ## 5. 未覆盖项（已登记验证债）
 

@@ -161,7 +161,7 @@
 | D3 | `casefold` 与 `toLowerCase(Locale.ROOT)` 对德语 `ß` 等极少数场景不同 | 一般 | 已登记 `migration-plan.md` §11；测试数据不含此类字符 |
 | D4 | `hintsUsed > MAX_HINTS_PER_QUESTION` 分支被 `hintsUsed > 0` 完全覆盖，属冗余 | 一般 | 照抄参考实现以保持行为一致 |
 | D5 | `gateCleared` 时未播种复习计划、未发 `review.scheduled` | **重要** | 属 `0010`（SM-2 调度）；已登记验证债 |
-| D6 | 工具层的 mode 门控与 `ToolResult` 包装未实现 | 一般 | 属 `0013`；本 change 只做服务层与纯函数 |
+| D6 | 工具层的 mode 门控与 `ToolResult` 包装未实现 | 一般 | 属 `0017`；本 change 只做服务层与纯函数 |
 | D7 | 工作区的 `.gitignore` 被意外删除，导致 `artifacts/`、`target/` 变成未跟踪文件 | 一般 | 已 `git checkout -- .gitignore` 恢复；两个目录重新被忽略 |
 | D8 | `scripts/verify.ps1` 出现**两个** UTF-8 BOM（`EF BB BF EF BB BF`），PowerShell 报 `Unexpected attribute 'CmdletBinding'` | 一般 | 去重为单个 BOM 后复跑，全量 353 项通过。根因：多次用编辑工具改该文件时 BOM 被重复写入 |
 

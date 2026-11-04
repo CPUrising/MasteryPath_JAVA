@@ -17,7 +17,7 @@
 - 服务层缺口：`LearningStore.getOpenInteraction(pathId)`、
   `LearningService.setSessionMode` / `proposeObjective` / `noteGap`
 - 工具层（`adapter/tool`）：
-  - `ToolSchemas`（19 份 schema）、`ToolSupport`（门控 / `repr` / 真值）、
+  - `ToolSchemas`（23 份 schema）、`ToolSupport`（门控 / `repr` / 真值）、
     `StatePayload`（导师视角快照）
   - `SharedTools`（5）、`OutlineTools`（2）、`StudyTools`（5）、
     `RepairTools`（5）、`SourceTools`（2）、`NavTools`（4）
@@ -38,7 +38,8 @@
 
 ## 4. 回归结果
 
-- 用例数 / 失败数：本 change 新增 47 / 0；全量 601 / 0（554 → 601）。
+- 用例数 / 失败数：本 change 新增 51 / 0；全量 675 / 0（554 → 675）。
+  （其中 4 个捕获工具用例在 `0018` 阶段补测，见 `docs/verify/0017-tool-layer.md` §2.6）
 - 证据链接：[`docs/verify/0017-tool-layer.md`](../verify/0017-tool-layer.md)
 - 日志：`artifacts/verify-0017-tool-layer-20261104-204508.log`
 - 参考实现对照：6 个测试文件共 **37 passed**

@@ -59,4 +59,4 @@
 | 画像白名单外键 | **静默丢弃** | 参考实现 `if key in allowed` 过滤 |
 | `getState` 的 `pendingQuestion` 是否直接返回完整对象 | **不，走投影** | `INV-07`：不得含 `expectedAnswer` |
 | `getState` 键数量 | **19** | Python 探针实测；初稿写 21 是笔误 |
-| 工具层两个 `Tool` 类是否本 change 实现 | **不实现** | 属 `0015`；服务层用例已覆盖同样的校验分支 |
+| 工具层两个 `Tool` 类是否本 change 实现 | **不实现** | 属 `0017`；服务层用例已覆盖同样的校验分支 |

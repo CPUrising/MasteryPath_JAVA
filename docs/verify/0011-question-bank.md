@@ -100,7 +100,7 @@ missing: PreconditionError | unknown question bank entry: nope
 | D4 | `0008` 用 `isBlank()` 判断 `tag`，与 Python 真值语义不符 | 一般（已修复） | `'  '` 在 Python 是真值 |
 | D5 | 三个 `0008` 用例**断言了错误行为** | **重要**（已改写） | `taggingDeduplicates` / `blankTagsIgnored` / `tagMissingEntryReturnsNull` 已重写为正确语义 |
 | D6 | 未新建 `service/QuestionBankService` | 一般 | 参考实现两个方法共 12 行，就在 `LearningService`；与 `0009`/`0010` 同理由 |
-| D7 | 未实现 REST 端点 | 无 | 属 `0014` |
+| D7 | 未实现 REST 端点 | 无 | 属 `0018` |
 
 **D1–D5 的性质说明**：这不是「实现细节差异」，而是 `0008` 阶段把**与参考实现相反的行为**
 连测试一起固化了下来。这类错误只有「跑参考实现真实代码 + 逐条对照」才能发现，

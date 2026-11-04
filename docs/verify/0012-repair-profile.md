@@ -129,9 +129,9 @@ missing: {status: missing, path_id: nope}
 |---|---|---|
 | `test_void_removes_mastery_and_marks_bank` | `#voidRemovesMasteryAndMarksBank` | 同断言 |
 | `test_correct_regrades_stored_answer_and_restores_gate` | `#correctRegradesStoredAnswerAndRestoresGate` | 同断言 |
-| `test_repair_tool_requires_reason_and_valid_action` | `#invalidActionRejected` + `#missingReasonRejected` | 拆为服务层两例（工具层属 `0015`） |
+| `test_repair_tool_requires_reason_and_valid_action` | `#invalidActionRejected` + `#missingReasonRejected` | 拆为服务层两例（工具层转换属 `0017`） |
 | `test_profile_merges_and_is_visible` | `#mergesAndIsVisible` | 同断言 |
-| `test_profile_tool_records_partial_fields` | `#mergesAndIsVisible`（服务层等价） | 工具层属 `0015` |
+| `test_profile_tool_records_partial_fields` | `#mergesAndIsVisible`（服务层等价） | 工具层属 `0017` |
 
 ### Java 侧超出参考测试覆盖的部分
 
@@ -152,21 +152,21 @@ missing: {status: missing, path_id: nope}
 
 | 编号 | 偏差 | 等级 | 处理 |
 |---|---|---|---|
-| D1 | 未实现工具层 `MasteryRepairQuestionTool` / `MasteryProfileTool` | 一般 | 属 `0015`（Agent Loop 工具层）。参考实现的两个工具类各 34/49 行，只是把服务层异常转成 `ToolResult`；本 change 用服务层用例覆盖同样的校验分支 |
+| D1 | 未实现工具层 `MasteryRepairQuestionTool` / `MasteryProfileTool` | 一般 | 属 `0017`（工具层）。参考实现的两个工具类各 34/49 行，只是把服务层异常转成 `ToolResult`；本 change 用服务层用例覆盖同样的校验分支 |
 | D2 | `recomputeAfterRepair` 与 `scheduleAfter` 未抽公共函数 | 无（刻意） | 两者条件不同（前者先重算分数，后者按 gateCleared/review/touch 三分支）；参考实现也是两个独立函数 |
 | D3 | 原计划 `0012-repair-profile-nav` 拆为三个 change | 无（已批准） | 实测 17 个任务超 `AGENTS.md` §3 上限，人类批准拆分；见 `migration-plan.md` §5.2 |
 | D4 | `getState` 文档初稿误写「21 个键」 | 无（已修正） | Python 探针实测为 **19 个键**，已同步修正 `design.md` / `tasks.md` / 测试注释 |
-| D5 | `test_repair_tool_requires_reason_and_valid_action` 的工具层断言未移植 | 一般 | 拆为服务层 `#invalidActionRejected` + `#missingReasonRejected`。**注意：这两例只覆盖「校验规则」，不覆盖「异常 → `ToolResult(ok=false)` 的转换」**——后者是参考实现该用例的真正断言对象。已登记到 `verification-debt.md`「工具层：修复与画像」行，`0015` 结算 |
-| D6 | `test_chat_nav.py` 端到端未覆盖 | 无 | 依赖 `ChatService` + `AgentLoop` + 假 LLM，挂到 `0017-ws-turn` |
+| D5 | `test_repair_tool_requires_reason_and_valid_action` 的工具层断言未移植 | 一般 | 拆为服务层 `#invalidActionRejected` + `#missingReasonRejected`。**注意：这两例只覆盖「校验规则」，不覆盖「异常 → `ToolResult(ok=false)` 的转换」**——后者是参考实现该用例的真正断言对象。已登记到 `verification-debt.md`「工具层：修复与画像」行，`0017` 结算 |
+| D6 | `test_chat_nav.py` 端到端未覆盖 | 无 | 依赖 `ChatService` + `AgentLoop` + 假 LLM，挂到 `0019-ws-turn` |
 
 ## 5. 未覆盖项（已登记验证债）
 
 | 场景 | 归属 change | 原因 |
 |---|---|---|
-| `MasteryRepairQuestionTool` / `MasteryProfileTool` 的工具层包装 | `0015` | 需 `ToolContext` / `ToolResult`。**校验规则**已覆盖；**异常 → `ok=false` 的转换**未覆盖（参考实现 `test_repair_tool_requires_reason_and_valid_action` 的真正断言对象） |
-| `test_chat_nav.py` 端到端 | `0017` | 需 `ChatService` + `AgentLoop` |
-| `repair_question` 的 REST 端点 | `0016` | 需 REST 层 |
-| `getState` 的 REST 端点 | `0016` | 同上 |
+| `MasteryRepairQuestionTool` / `MasteryProfileTool` 的工具层包装 | `0017` | 需 `ToolContext` / `ToolResult`。**校验规则**已覆盖；**异常 → `ok=false` 的转换**未覆盖（参考实现 `test_repair_tool_requires_reason_and_valid_action` 的真正断言对象） |
+| `test_chat_nav.py` 端到端 | `0019` | 需 `ChatService` + `AgentLoop` |
+| `repair_question` 的 REST 端点 | `0018` | 需 REST 层 |
+| `getState` 的 REST 端点 | `0018` | 同上 |
 
 ## 6. 结论
 

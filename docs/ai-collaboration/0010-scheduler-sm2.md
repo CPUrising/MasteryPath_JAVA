@@ -73,5 +73,5 @@
 | 是否新建 `ReviewService` | **不新建** | 参考实现就在 `service.py`；拆类需暴露 `tx` |
 | 接线位置 | **写入之后、清空待答题之前** | 事件顺序须为 `review.scheduled` → 主事件 → `objective.mastered` |
 | `forgetting_risk` / `priority` | **不补公式** | 参考实现从不赋值（恒 `0.0` / `0`）；补公式即行为变化 |
-| TC-G6 的验证方式 | **公开签名反射断言（部分覆盖）** | 服务层无可执行面；真正的准入拒绝属 `0013`/`0014` |
-| TC-G7 的验证方式 | **六函数不读 `desiredRetention` + 改设置不动锚点** | 端到端 `PUT /review-settings` 属 `0017` |
+| TC-G6 的验证方式 | **公开签名反射断言（部分覆盖）** | 服务层无可执行面；真正的准入拒绝属 `0017` |
+| TC-G7 的验证方式 | **六函数不读 `desiredRetention` + 改设置不动锚点** | 端到端 `PUT /review-settings` 见 `0018` |

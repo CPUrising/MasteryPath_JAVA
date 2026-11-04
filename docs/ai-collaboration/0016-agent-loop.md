@@ -7,7 +7,7 @@
   `src/test/java/com/masterypath/adapter/loop/AgentLoopTest.java`（新增）、
   `scripts/verify.ps1`（`-Scope unit` 补 `*AgentLoopTest`）、
   `openspec/changes/0016-agent-loop/**`、`docs/**`。
-- 明确不做的事：19 个 `Mastery*Tool` 与 schema 表（`0017`）、`TurnRunner` / WS（`0019`）、
+- 明确不做的事：23 个工具（19 mastery + 4 导航）与 schema 表（`0017`）、`TurnRunner` / WS（`0019`）、
   `ChatService`（`0019`）。
 - 出处：用户指令原文「提交后继续0016」；`docs/migration-plan.md` §5 第 16 行（拆分后）。
 

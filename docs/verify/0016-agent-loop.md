@@ -116,7 +116,7 @@
 |---|---|---|
 | `test_loop_builds_outline_then_finishes` 的「地图真的建出来」 | `0017` | 需 `mastery_build` 工具本体 |
 | `test_loop_refuses_tool_in_wrong_mode` | `0017` | 需门控文案与 `mastery_build` |
-| 19 个工具与 schema 表 | `0017` | 本 change 只做契约与循环 |
+| 23 个工具与 schema 表 | `0017` | 本 change 只做契约与循环 |
 | `TurnRunner` / WS 回合 | `0019` | 需 REST/WS 层 |
 
 ## 6. 结论

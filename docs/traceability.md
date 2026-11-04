@@ -125,10 +125,10 @@
 | TC-M1 | 捕获不改地图 | `specs/learning-tools` → `TC-M1` | `CaptureTest#proposalDoesNotChangeMap` | 未实现 |
 | TC-R1 | void 清除掌握与计划 | `service.py:467-483` | `RepairQuestionTest#voidRemovesMasteryAndMarksBank`、`#voidAbandonsInteraction` | 通过（`0012`） |
 | TC-R2 | correct 重判恢复门槛 | `service.py:484-552` | `RepairQuestionTest#correctRegradesStoredAnswerAndRestoresGate`、`#correctMarksInteractionRepaired` | 通过（`0012`） |
-| TC-R3 | 修复参数校验（action/reason/expected_answer） | `service.py:405-413` | `RepairQuestionTest#invalidActionRejected`、`#missingReasonRejected`、`#correctWithoutExpectedAnswerRejected` | 通过（`0012`，服务层；工具层属 `0015`） |
+| TC-R3 | 修复参数校验（action/reason/expected_answer） | `service.py:405-413` | `RepairQuestionTest#invalidActionRejected`、`#missingReasonRejected`、`#correctWithoutExpectedAnswerRejected` | 通过（`0012` 服务层 + `0017` 工具层） |
 | TC-P1 | 画像合并与可见 | `service.py:184-234` | `LearnerProfileTest#mergesAndIsVisible`、`#mergeKeepsOmittedFields` | 通过（`0012`） |
 | TC-P2 | 画像边界（白名单/枚举/无变更） | `service.py:197-214` | `LearnerProfileTest#noChangeEmitsNoEvent`、`#unknownKeysSilentlyDropped`、`#teachingStrategyValidated` | 通过（`0012`） |
-| —（快照） | `get_state` 19 键 + `INV-07` 投影 | `service.py:236-297` | `PathStateTest`（11 项） | 通过（`0012`，REST 端点属 `0016`） |
+| —（快照） | `get_state` 19 键 + `INV-07` 投影 | `service.py:236-297` | `PathStateTest`（11 项） | 通过（`0012` 服务层 + `0018` REST） |
 | TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `QualitativeAssessTest#passClearsGate` | 通过（`0009`，定性评估侧） |
 | TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `GapClassificationTest#getCoverageReturnsReport` | 通过（`0007`） |
 | TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `OutlineEvalTest#coverageBelowThreshold` | 未实现（`0018`） |
@@ -144,14 +144,14 @@
 | TC-N6 | 评测可复现 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#deterministicRepeatable` | 未实现（`0018`） |
 | TC-S1 | 路径概览（9 键 / 跳过空 map / name 回退 / 升序） | `../MasteryPath/tests/test_path_binding.py`（`TC-S*`） | `PathBindingTest#listsBuiltPathsSorted`、`#overviewHasNineKeys`、`#emptyMapPathsHidden`、`#nameFallsBackToPathId` | 通过（`0013`） |
 | TC-S2 | scratch 派生 / 认领 / 隐藏 | `service.py:99-130` | `PathBindingTest#scratchDerivedFromSession`、`#scratchSanitisesSessionId`、`#scratchFallsBackToDefault`、`#scratchClaimsOwnerWithoutEvent`、`#emptyScratchHiddenFromOverview` | 通过（`0013`） |
-| TC-S3 | 会话绑定 | `service.py:132-136` | `PathBindingTest#bindMovesSession`、`#bindEmptySessionIsNoop` | 通过（`0013`，工具层拒绝属 `0015`） |
+| TC-S3 | 会话绑定 | `service.py:132-136` | `PathBindingTest#bindMovesSession`、`#bindEmptySessionIsNoop` | 通过（`0013` 服务层 + `0017` 工具层拒绝） |
 | TC-S4 | 删除会话与空 scratch 级联 | `service.py:1014-1029` | `PathBindingTest#deleteSessionRemovesOwnedEmptyScratch`、`#deleteSessionKeepsPathWithKnowledgePoints`、`#deleteSessionKeepsForeignPath`、`#deleteSessionKeepsPathWithOtherSessions` | 通过（`0013`） |
 | TC-S5 | 回合内切换路径持久化 | `../MasteryPath/tests/test_turn_path_switch.py` | `WebSocketTurnTest#switchPersistsBinding` | 未实现（`0017`） |
 | TC-NAV1 | 课程卡片（筛选 / 截断 / 条件键） | `learning/navigation.py:41-83` | `NavigationTest#listsBuiltTopics`、`#queryFiltersByHaystack`、`#haystackExcludesPathId`、`#queryKeyOnlyWhenTruthy`、`#modulesTruncated`、`#topicsTruncated` | 通过（`0014`） |
 | TC-NAV2 | 单条课程（空 map 视为不存在） | `navigation.py:86-104` | `NavigationTest#findTopicReturnsCard`、`#findTopicEmptyMapIsNull`、`#findTopicMissingIsNull`、`#findTopicStripsPathId` | 通过（`0014`） |
 | TC-NAV3 | 模块解析（id / 名称 / 1 基序号） | `navigation.py:107-122` | `NavigationTest#resolveModuleById`、`#resolveModuleByName`、`#resolveModuleByOrder`、`#resolveModuleNoMatch` | 通过（`0014`） |
 | TC-NAV4 | 会话列表（archived 过滤 / awaiting 复合 / 截断） | `navigation.py:125-159` | `NavigationTest#listsSessions`、`#skipsArchivedSessions`、`#awaitingAnswerIsComposite`、`#sessionsTruncated` | 通过（`0014`） |
-| TC-NAV5 | hand-off 卡片 17 键 | `nav_tools.py:43-70` | `NavigationTest#handoffHasSeventeenKeys`、`#handoffDefaults`、`#navigationIsReadOnly` | 通过（`0014`，工具层属 `0015`） |
+| TC-NAV5 | hand-off 卡片 17 键 | `nav_tools.py:43-70` | `NavigationTest#handoffHasSeventeenKeys`、`#handoffDefaults`、`#navigationIsReadOnly` | 通过（`0014` 服务层 + `0017` 工具层） |
 
 ## 5. 复习调度（review-scheduling）
 
@@ -162,8 +162,8 @@
 | TC-G3 | 恢复清标志 | `specs/review-scheduling` → `TC-G3` | `SchedulerTest#recoveryClearsFlag`、`ReviewSchedulingTest#failureThenSuccessClearsFlag` | 通过（`0010`） |
 | TC-G4 | 会话内只 touch | `specs/review-scheduling` → `TC-G4` | `SchedulerTest#inSessionTouchOnly`、`ReviewSchedulingTest#inSessionPracticeKeepsAnchor` | 通过（`0010`） |
 | TC-G5 | 声明轨比值 | `specs/review-scheduling` → `TC-G5` | `SchedulerTest#learnerTrackRatio`、`ReviewSchedulingTest#overrideSeedsLearnerTrack` | 通过（`0010`） |
-| TC-G6 | 内部量隐藏 | `specs/review-scheduling` → `TC-G6` | `ReviewSchedulingTest#schedulerInternalsNotExposed` | **部分**（`0010`，仅公开签名；准入拒绝属 `0013`/`0014`） |
-| TC-G7 | 场景不追溯 | `specs/review-scheduling` → `TC-G7` | `SchedulerTest#desiredRetentionNotConsumed`、`#changingRetentionKeepsAnchor` | 通过（`0010`，端到端属 `0017`） |
+| TC-G6 | 内部量隐藏 | `specs/review-scheduling` → `TC-G6` | `ReviewSchedulingTest#schedulerInternalsNotExposed` | **部分**（`0010`，仅公开签名；准入拒绝属 `0017`） |
+| TC-G7 | 场景不追溯 | `specs/review-scheduling` → `TC-G7` | `SchedulerTest#desiredRetentionNotConsumed`、`#changingRetentionKeepsAnchor`、`LearningApiTest#reviewSettingsClampsToRange` | 通过（`0010` + `0018` 端到端） |
 
 ## 6. API / 回合（agent-turn）
 
@@ -190,7 +190,7 @@
 | TC-LOOP3 | 回合预算（`INV-60`） | `loop.py:129-134` | `AgentLoopTest#budgetStopsBeforeExecuting`、`#budgetAccumulatesAcrossRounds` | 通过（`0016`） |
 | TC-LOOP4 | 出题结束回合（`INV-44`）+ 轮数耗尽 | `loop.py:170-175` | `AgentLoopTest#endTurnYieldsCardAfterResult`、`#stopsAtMaxRounds` | 通过（`0016`） |
 | TC-LOOP5 | 工具失败三降级 + OpenAI 工具历史 | `loop.py:139-169` | `AgentLoopTest#badArgumentsDegrade`、`#unknownToolDegrades`、`#raisingToolDegrades`、`#writesOpenAiToolHistory` | 通过（`0016`） |
-| TC-TOOL1 | 工具 schema 完整性（19 份 + 枚举 + required） | `tools.py:911-1140` | `ToolSchemasTest`（5 项） | 通过（`0017`） |
+| TC-TOOL1 | 工具 schema 完整性（23 份 + 枚举 + required） | `tools.py:911-1140` | `ToolSchemasTest`（5 项） | 通过（`0017`） |
 | TC-TOOL2 | 注册表 + 调用期门控（含未记录模式放行） | `tools.py:57-61, 1144-1167` | `MasteryToolsTest#registryIsComplete`、`#buildRefusedInStudy`、`#quizRefusedInOutline`、`#unrecordedModeEnforcesNothing`、`#sharedToolsAlwaysAllowed` | 通过（`0017`） |
 | TC-TOOL3 | 服务层异常 → `ToolResult(ok=false)` | `tools.py:715-799` | `MasteryToolsTest#repairToolConvertsException`、`#repairToolRequiresReason`、`#profileToolRecordsPartialFields`、`#profileToolRejectsEmpty` | 通过（`0017`） |
 | TC-TOOL4 | 条件挂载（`rag` / `read_source`） | `tools.py:378-385` | `MasteryToolsTest#conditionalMounting`、`#mountsSourceToolsWhenInputsExist`、`#mountingDoesNotMutateRegistry` | 通过（`0017`） |

@@ -94,17 +94,21 @@
 | 打开别的课程的会话被拒 | `MasteryToolsTest#openSessionFromAnotherTopicRefused` | PASS | 对应 `test_open_rejects_session_from_another_topic` |
 | 同一课程新建会话被拒 | `#newSessionOnSameTopicRefused` | PASS | 对应 `test_new_session_handoff_and_same_topic_guard` |
 | 导航失败文案逐字 | `#navFailureMessages` | PASS | 参考实现无此用例 |
+| `mastery_propose_objective` 写入候选且不改地图 | `#proposeObjectiveRecordsCandidate` | PASS | `INV-53`；参考实现无此用例 |
+| `mastery_propose_objective` 名字过短被拒 | `#proposeObjectiveRequiresName` | PASS | 参考实现无此用例 |
+| `mastery_note_gap` 写入缺口且不改地图 | `#noteGapRecordsGap` | PASS | 参考实现无此用例 |
+| `mastery_note_gap` 非法 kind 被拒 | `#noteGapRejectsUnknownKind` | PASS | 参考实现无此用例 |
 
-本 change 新增用例：**47 个**（`ToolSchemasTest` 5 + `MasteryToolsTest` 15 +
+本 change 新增用例：**51 个**（`ToolSchemasTest` 5 + `MasteryToolsTest` 19 +
 `SourceToolsTest` 10 + `StatusAndQuizToolsTest` 17），全部 PASS。
-全量 **601 个，0 失败**（554 → 601）。
+全量 **675 个，0 失败**（554 → 675）。
 
 ## 3. 回归
 
 | 范围 | 命令 | 结果 |
 |---|---|---|
 | 纯函数专项 | `verify.ps1 -Scope unit` | Tests run: 514, Failures: 0 |
-| 全量 | `verify.ps1 -Change 0017-tool-layer` | BUILD SUCCESS，Tests run: 601, Failures: 0 |
+| 全量 | `verify.ps1 -Change 0017-tool-layer` | BUILD SUCCESS，Tests run: 675, Failures: 0 |
 | 既有通过项是否回退 | 对照 `docs/regression-log.md` | 无回退（0016 的 554 项全部仍通过） |
 | 参考实现对照 | `pytest tests/test_mastery_status.py tests/test_source_tools.py tests/test_loop.py tests/test_llm_client.py tests/test_repair_profile.py tests/test_mastery_nav.py -q` | **37 passed** |
 
@@ -135,6 +139,7 @@
 | `#readSourceDefaultsToSingleSource` / `#readSourceRequiresIdWhenSeveral` / `#readSourceTruncates` | 参考实现无 `read_source` 边界用例 |
 | `#mountingDoesNotMutateRegistry` | 参考实现无「不改全局表」用例 |
 | `#navFailureMessages` | 参考实现无导航文案逐字用例 |
+| `#proposeObjectiveRecordsCandidate` / `#proposeObjectiveRequiresName` / `#noteGapRecordsGap` / `#noteGapRejectsUnknownKind` | 参考实现无捕获工具（`propose_objective` / `note_gap`）的执行体用例 |
 
 ## 4. 偏差与风险
 
@@ -162,6 +167,7 @@
 - [ ] 需修复后复验
 - [ ] 需人类决策
 
-**证据说明**：`BUILD SUCCESS` 与 `Tests run: 601, Failures: 0` 来自
-`artifacts/verify-0017-tool-layer-20261104-204508.log`；参考实现对照见
+**证据说明**：`BUILD SUCCESS` 与 `Tests run: 675, Failures: 0` 来自
+`artifacts/verify-0017-tool-layer-20261104-204508.log`（原始 601 项）与
+`0018` 阶段补测的 4 个捕获工具用例；参考实现对照见
 6 个测试文件的 `37 passed`。

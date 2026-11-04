@@ -117,14 +117,16 @@
 
 本 change 新增用例：**70 个**（`LearningApiTest` 36 + `SessionApiTest` 14 +
 `StudyApiTest` 10 + `SettingsApiTest` 9 + `CorsApiTest` 1），全部 PASS。
-全量 **671 个，0 失败**（601 → 671）。
+另在 `0017` 的 `MasteryToolsTest` 补测 4 个捕获工具用例（`propose_objective` / `note_gap`），
+关闭该处验证债。
+全量 **675 个，0 失败**（601 → 675）。
 
 ## 3. 回归
 
 | 范围 | 命令 | 结果 |
 |---|---|---|
 | REST 专项 | `verify.ps1 -Scope api -Change 0018-rest-api` | Tests run: 70, Failures: 0 |
-| 全量 | `verify.ps1 -Change 0018-rest-api` | BUILD SUCCESS，Tests run: 671, Failures: 0 |
+| 全量 | `verify.ps1 -Change 0018-rest-api` | BUILD SUCCESS，Tests run: 675, Failures: 0 |
 | 既有通过项是否回退 | 对照 `docs/regression-log.md` | 无回退（0017 的 601 项全部仍通过） |
 | 参考实现对照 | `pytest tests/test_api.py tests/test_f0_api.py -q` | **18 passed** |
 
@@ -191,7 +193,8 @@
 - [ ] 需修复后复验
 - [ ] 需人类决策
 
-**证据说明**：`BUILD SUCCESS` 与 `Tests run: 671, Failures: 0` 来自
-`artifacts/verify-0018-rest-api-20261104-214554.log`；参考实现对照见
+**证据说明**：`BUILD SUCCESS` 与 `Tests run: 675, Failures: 0` 来自
+`artifacts/verify-0018-rest-api-20261104-214554.log`（671 项）与随后补测的
+4 个捕获工具用例；参考实现对照见
 `pytest tests/test_api.py tests/test_f0_api.py -q` 的 `18 passed`（其中 2 个 WS 用例
 不计入本 change 的对照范围）。

@@ -132,10 +132,10 @@ card: {due_reviews: 0, emoji: "", kind: "new", mastered: 0, module_id: "",
 
 | Python 用例 | Java 对应 | 说明 |
 |---|---|---|
-| `test_topics_lists_built_paths_and_filters` | `#listsBuiltTopics` + `#queryFiltersByHaystack` | 参考用例经 `MasteryTopicsTool` 断言；工具层属 `0015`，本 change 在服务层断言同一语义 |
+| `test_topics_lists_built_paths_and_filters` | `#listsBuiltTopics` + `#queryFiltersByHaystack` | 参考用例经 `MasteryTopicsTool` 断言；工具层属 `0017`，本 change 在服务层断言同一语义 |
 | `test_sessions_and_open_handoff` | `#listsSessions` + `#handoffHasSeventeenKeys` | 同上；`module="1"` 的解析由 `#resolveModuleByOrder` 覆盖 |
-| `test_open_rejects_session_from_another_topic` | 未覆盖 | 拒绝发生在工具层（`_topic` + 会话归属校验），属 `0015` |
-| `test_new_session_handoff_and_same_topic_guard` | `#handoffDefaults` | 「同一课程拒绝」在工具层（`topic["path_id"] == ctx.path_id`），属 `0015` |
+| `test_open_rejects_session_from_another_topic` | 未覆盖 | 拒绝发生在工具层（`_topic` + 会话归属校验），属 `0017` |
+| `test_new_session_handoff_and_same_topic_guard` | `#handoffDefaults` | 「同一课程拒绝」在工具层（`topic["path_id"] == ctx.path_id`），属 `0017` |
 
 ### Java 侧超出参考测试覆盖的部分
 
@@ -155,9 +155,9 @@ card: {due_reviews: 0, emoji: "", kind: "new", mastered: 0, module_id: "",
 
 | 编号 | 偏差 | 等级 | 处理 |
 |---|---|---|---|
-| D1 | 未实现工具层 4 个 `Mastery*Tool` 及其失败文案 | 一般 | 属 `0015`。参考实现 `nav_tools.py` 221 行中，工具类只做「参数解析 + 服务层调用 + `ToolResult` 包装」；本 change 覆盖了它们背后的全部数据构造 |
-| D2 | `test_open_rejects_session_from_another_topic` 未覆盖 | 一般 | 拒绝在工具层（`_topic` 查不到课程 + 会话不属于该课程），属 `0015`。已登记 `verification-debt.md` |
-| D3 | `test_new_session_handoff_and_same_topic_guard` 的「同一课程拒绝」未覆盖 | 一般 | 同上，属 `0015` |
+| D1 | 未实现工具层 4 个 `Mastery*Tool` 及其失败文案 | 一般 | 属 `0017`。参考实现 `nav_tools.py` 221 行中，工具类只做「参数解析 + 服务层调用 + `ToolResult` 包装」；本 change 覆盖了它们背后的全部数据构造 |
+| D2 | `test_open_rejects_session_from_another_topic` 未覆盖 | 一般 | 拒绝在工具层（`_topic` 查不到课程 + 会话不属于该课程），属 `0017`。已登记 `verification-debt.md` |
+| D3 | `test_new_session_handoff_and_same_topic_guard` 的「同一课程拒绝」未覆盖 | 一般 | 同上，属 `0017` |
 | D4 | `casefold()` 与 `toLowerCase(Locale.ROOT)` 差异 | 低 | 与 `Grading.normalize` 同一处已登记（`migration-plan.md` §11）；影响 `ß` 等少数场景 |
 | D5 | `int(ref.rstrip("."))` 的 Python 宽松解析 | 低 | Python 接受 `"1_0"`（=10）与 `" 1 "`；Java `parseInt` 只接受后者。实际输入是「第 N 课」，不会出现下划线。已在此登记 |
 | D6 | `topicCards` 的 `modules` 用 `subList` 视图 | 无 | 返回的是 `ArrayList` 副本，调用方修改不影响聚合 |
