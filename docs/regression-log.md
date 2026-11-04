@@ -21,3 +21,4 @@
 | 2026-11-04 | `0015-llm-client` | 535 | 0 | 0 | [verify/0015](verify/0015-llm-client.md) |
 | 2026-11-04 | `0016-agent-loop` | 554 | 0 | 0 | [verify/0016](verify/0016-agent-loop.md) |
 | 2026-11-04 | `0017-tool-layer` | 601 | 0 | 0 | [verify/0017](verify/0017-tool-layer.md) |
+| 2026-11-04 | `0018-rest-api` | 671 | 0 | 0 | [verify/0018](verify/0018-rest-api.md) |

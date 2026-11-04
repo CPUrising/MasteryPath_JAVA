@@ -1134,6 +1134,22 @@ public final class LearningService {
     }
 
     /**
+     * 会话详情（参考实现 {@code get_session}）：会话行 + 消息列表。
+     *
+     * <p>与 {@link #getSession} 的区别是这里返回<b>嵌套结构</b>
+     * {@code {session, messages}}，REST 端点用的就是它。
+     *
+     * @return 会话不存在时返回 {@code null}
+     */
+    public Map<String, Object> getSessionDetail(String sessionId) {
+        Map<String, Object> session = store.getSession(sessionId);
+        if (session == null) {
+            return null;
+        }
+        return payload("session", session, "messages", store.listMessages(sessionId));
+    }
+
+    /**
      * 写入会话模式（参考实现 {@code set_session_mode}）。
      *
      * <p>会话不存在时先建档（{@code ensure_session}），再改 {@code mode}。
@@ -1212,6 +1228,77 @@ public final class LearningService {
                     "ref", gap.getRef()));
             return payload("gap_id", gap.getId());
         });
+    }
+
+    /**
+     * 清空学习态但保留地图（参考实现 {@code reset}）。
+     *
+     * <p>清 10 个 map 与 3 个 list 的对应字段；漏清任一项都会让旧进度影响新大纲。
+     * 发 {@code path.reset}。
+     *
+     * @return {@code {status: "reset"}}
+     */
+    public Map<String, Object> reset(String pathId) {
+        return store.mutate(pathId, tx -> {
+            OutlineBuilder.resetLearningState(tx.progress());
+            tx.emit("path.reset", payload());
+            return payload("status", "reset");
+        });
+    }
+
+    /**
+     * 设置复习保留率（参考实现 {@code set_review_settings}）。
+     *
+     * <p>限幅到 {@code [0.7, 0.99]}，并回写**全部**已有重复状态——否则旧状态仍按旧值排期。
+     * 发 {@code review.settings}。
+     *
+     * @return {@code {desired_retention, scope: "path"}}
+     */
+    public Map<String, Object> setReviewSettings(String pathId, double desiredRetention) {
+        double value = Math.max(0.7, Math.min(0.99, desiredRetention));
+        return store.mutate(pathId, tx -> {
+            tx.progress().setDesiredRetention(value);
+            for (RepetitionState state : tx.progress().getRepetitionStates().values()) {
+                state.setDesiredRetention(value);
+            }
+            tx.emit("review.settings", payload("desired_retention", value));
+            return payload("desired_retention", value, "scope", "path");
+        });
+    }
+
+    /**
+     * 接受或拒绝候选目标（参考实现 {@code resolve_proposal}）。
+     *
+     * <p>接受时重算覆盖报告；两种动作都发 {@code objective.proposal_resolved}。
+     *
+     * @return {@code {proposal_id, status}}
+     * @throws PreconditionFailedException 动作非法或候选不存在
+     */
+    public Map<String, Object> resolveProposal(String pathId, String proposalId, String action) {
+        return store.mutate(pathId, tx -> {
+            ObjectiveProposal proposal;
+            if ("accept".equals(action)) {
+                proposal = OutlineBuilder.applyProposal(tx.progress(), proposalId);
+                tx.progress().setCoverage(OutlineBuilder.computeCoverage(
+                        tx.progress(), selectedSourceIds(tx.progress())));
+            } else if ("reject".equals(action)) {
+                proposal = OutlineBuilder.rejectProposal(tx.progress(), proposalId);
+            } else {
+                throw new PreconditionFailedException("unknown proposal action: " + action);
+            }
+            tx.emit("objective.proposal_resolved", payload(
+                    "proposal_id", proposalId, "action", action));
+            return payload("proposal_id", proposalId, "status", proposal.getStatus());
+        });
+    }
+
+    /** 全部来源 id（覆盖计算用）。 */
+    private static java.util.Set<String> selectedSourceIds(LearningProgress progress) {
+        java.util.Set<String> ids = new LinkedHashSet<>();
+        for (TopicSource source : progress.getSources()) {
+            ids.add(source.getId());
+        }
+        return ids;
     }
 
     private static boolean hasKnowledgePoints(LearningProgress progress) {

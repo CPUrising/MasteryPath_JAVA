@@ -631,7 +631,7 @@ public final class OutlineBuilder {
      *
      * <p>清 7 个 map 与 3 个 list 的对应字段；漏清任一项都会让旧进度影响新大纲。
      */
-    static void resetLearningState(LearningProgress progress) {
+    public static void resetLearningState(LearningProgress progress) {
         progress.getMasteryLevels().clear();
         progress.getQualitativeMastery().clear();
         progress.getQuizAttempts().clear();

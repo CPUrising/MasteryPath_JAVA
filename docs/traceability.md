@@ -169,13 +169,13 @@
 
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
-| TC-I1 | REST 模式门控 | `specs/agent-turn` → `TC-I1` | `LearningApiTest#putMapModeConflict` | 未实现 |
-| TC-I2 | REST 重建需确认 | `specs/agent-turn` → `TC-I2` | `LearningApiTest#rebuildRequiresConfirm` | 未实现 |
+| TC-I1 | REST 模式门控 | `specs/agent-turn` → `TC-I1` | `LearningApiTest#mapWriteRequiresOutlineMode`、`#mapWriteWithoutRecordedModeIsAllowed` | 通过（`0018`） |
+| TC-I2 | REST 重建需确认 | `specs/agent-turn` → `TC-I2` | `LearningApiTest#rebuildRequiresConfirm`、`#rebuildWithConfirmReplacesMap` | 通过（`0018`） |
 | TC-I3 | 投影不含答案 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#hidesAnswerAndExplanation` | 通过（`0006`） |
-| TC-I4 | 事件补齐 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#sinceRecovers` | 未实现 |
-| TC-I5 | 失败不产事件 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#failureNoEvent` | 未实现 |
-| TC-I6 | 字段级重建 | `specs/agent-turn` → `TC-I4` | `EventsApiTest#fieldLevelReplay` | 未实现 |
-| TC-I7 | 声明有事件无证据 | `specs/agent-turn` → `TC-I7` | `MasteryOverrideServiceTest#overrideEmitsEvent` | 部分通过（`0006`，服务层已覆盖，REST 待 `0014`） |
+| TC-I4 | 事件补齐 | `specs/agent-turn` → `TC-I4` | `LearningApiTest#eventsSinceFiltersByRevision`、`#eventsForUnknownPathIsEmptyList` | 通过（`0018`） |
+| TC-I5 | 失败不产事件 | `specs/agent-turn` → `TC-I4` | `LearningApiTest#failedMapWriteEmitsNoEvent` | 通过（`0018`） |
+| TC-I6 | 字段级重建 | `specs/agent-turn` → `TC-I4` | `LearningApiTest#mapWriteWithOpsRevises` | 通过（`0018`，`revise` 差分路径） |
+| TC-I7 | 声明有事件无证据 | `specs/agent-turn` → `TC-I7` | `MasteryOverrideServiceTest#overrideEmitsEvent`、`LearningApiTest#overrideKnownObjectiveSucceeds` | 通过（`0006` 服务层 + `0018` REST 侧） |
 | TC-E3 | 判分幂等（API） | `specs/learning-tools` → `TC-K3` | `GradeFlowTest#gradeIsIdempotent` | 通过（`0008`，服务层；REST 待 `0014`） |
 | TC-E4 | 公共投影 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#projectionHasExactlySevenKeys` | 通过（`0006`） |
 | — | WS 事件顺序 | `specs/agent-turn` → `WS event order` | `WebSocketTurnTest#eventOrder` | 未实现 |
@@ -196,6 +196,11 @@
 | TC-TOOL4 | 条件挂载（`rag` / `read_source`） | `tools.py:378-385` | `MasteryToolsTest#conditionalMounting`、`#mountsSourceToolsWhenInputsExist`、`#mountingDoesNotMutateRegistry` | 通过（`0017`） |
 | TC-TOOL5 | 状态快照 + 模式切换 + 出题判分 | `tools.py:64-195, 508-657` | `StatusAndQuizToolsTest`（17 项） | 通过（`0017`） |
 | TC-TOOL6 | 来源工具 + 导航工具 | `tools.py:289-375`、`nav_tools.py` | `SourceToolsTest`（10 项）、`MasteryToolsTest#openSessionFromAnotherTopicRefused`、`#newSessionOnSameTopicRefused`、`#navFailureMessages` | 通过（`0017`） |
+| TC-REST1 | 路径 CRUD + 地图写入 + 重建 + override(412) + 缺口(422) | `api/app.py:133-275` | `LearningApiTest`（36 项） | 通过（`0018`） |
+| TC-REST2 | 会话 CRUD + 模式三级校验 + 偏好合并 | `api/app.py:470-528` | `SessionApiTest`（14 项） | 通过（`0018`） |
+| TC-REST3 | REST 学习端点复用工具层（`_run_tool`） | `api/app.py:531-552` | `StudyApiTest`（10 项） | 通过（`0018`） |
+| TC-REST4 | 设置分组读写 + 归一 | `settings/store.py`、`api/app.py:390-406` | `SettingsApiTest`（9 项） | 通过（`0018`） |
+| TC-REST5 | CORS 字面量 `*` | `api/app.py:37-48` | `CorsApiTest`（1 项） | 通过（`0018`） |
 
 ## 7. 知识库（knowledge-base）
 
