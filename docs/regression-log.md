@@ -8,3 +8,4 @@
 | 2026-11-04 | `0002-domain-model` | 23 | 0 | 0 | [verify/0002](verify/0002-domain-model.md) |
 | 2026-11-04 | `0003-sqlite-store-cas` | 50 | 0 | 0 | [verify/0003](verify/0003-sqlite-store-cas.md) |
 | 2026-11-04 | `0004-mastery-policy` | 88 | 0 | 0 | [verify/0004](verify/0004-mastery-policy.md) |
+| 2026-11-04 | `0005-mode-gating` | 130 | 0 | 0 | [verify/0005](verify/0005-mode-gating.md) |

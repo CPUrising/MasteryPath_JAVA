@@ -74,21 +74,21 @@
 
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
-| TC-D1 | outline 禁 quiz | `specs/mode-gating` → `TC-D1` | `ModePolicyTest#outlineRejectsQuiz` | 未实现 |
-| TC-D2 | study 禁 build | `specs/mode-gating` → `TC-D2` | `ModePolicyTest#studyRejectsBuild` | 未实现 |
-| TC-D3 | 共享工具放行 | `specs/mode-gating` → `TC-D1` | `ModePolicyTest#sharedToolAllowed` | 未实现 |
-| TC-D4 | 模式缺失不门控 | `specs/mode-gating` → `TC-D4` | `ModePolicyTest#unknownModeAllowsAll` | 未实现 |
-| TC-D5 | 无大纲准入错误 | `specs/mode-gating` → `TC-D5` | `ModePolicyTest#admissionErrorNoOutline` | 未实现 |
-| TC-D6 | 有大纲准入放行 | `specs/mode-gating` → `TC-D5` | `ModePolicyTest#admissionOkWithOutline` | 未实现 |
-| TC-D7 | review 拒未掌握 | `specs/mode-gating` → `TC-K6` | `ModePolicyTest#reviewRejectsUnmastered` | 未实现 |
-| TC-D8 | review 放行已掌握 | `specs/mode-gating` → `TC-K6` | `ModePolicyTest#reviewAllowsMastered` | 未实现 |
-| TC-D9 | 分类完整性守卫 | `specs/mode-gating` → `TC-D9` | `ToolClassificationTest#guardComplete` | 未实现 |
-| TC-L1 | 切换写会话模式 | `specs/mode-gating` → `TC-L1` | `SessionModeTest#switchPersists` | 未实现 |
-| TC-L2 | 按钮切换持久化 | `specs/mode-gating` → `TC-L1` | `SessionModeRestTest#putModePersists` | 未实现 |
-| TC-L3 | 被拒切换不持久 | `specs/mode-gating` → `TC-L3` | `SessionModeTest#rejectedNotPersisted` | 未实现 |
-| TC-L4 | 重开会话恢复模式 | `specs/mode-gating` → `TC-L1` | `SessionModeTest#reopenRestores` | 未实现 |
-| TC-M2 | study 禁改结构 | `specs/mode-gating` → `TC-M2` | `MasteryToolsTest#reviseBlockedInStudy` | 未实现 |
-| TC-M6 | 工具预算 | `specs/mode-gating` → `TC-M6` | `AgentLoopTest#toolBudgetStops` | 未实现 |
+| TC-D1 | outline 禁 quiz | `specs/mode-gating` → `TC-D1` | `ModeGateTest#quizRefusedInOutline` | 通过（`0005`） |
+| TC-D2 | study 禁 build | `specs/mode-gating` → `TC-D2` | `ModeGateTest#buildRefusedInStudy` | 通过（`0005`） |
+| TC-D3 | 共享工具放行 | `specs/mode-gating` → `TC-D1` | `ModeGateTest#sharedToolAllowedEverywhere` | 通过（`0005`） |
+| TC-D4 | 模式缺失不门控 | `specs/mode-gating` → `TC-D4` | `ModeGateTest#unrecordedModeEnforcesNothing` | 通过（`0005`） |
+| TC-D5 | 无大纲准入错误 | `specs/mode-gating` → `TC-D5` | `ModeGateTest#studyWithoutOutlineRefused` | 通过（`0005`） |
+| TC-D6 | 有大纲准入放行 | `specs/mode-gating` → `TC-D5` | `ModeGateTest#studyWithOutlineAllowed` | 通过（`0005`） |
+| TC-D7 | review 拒未掌握 | `specs/mode-gating` → `TC-K6` | `ModeGateTest#quizOwnedByStudyThenReview` | 部分通过（`0005`） |
+| TC-D8 | review 放行已掌握 | `specs/mode-gating` → `TC-K6` | `ModeGateTest#reviewAllowsAssess` | 部分通过（`0005`） |
+| TC-D9 | 分类完整性守卫 | `specs/mode-gating` → `TC-D9` | `ToolClassificationTest#defaultClassificationIsComplete` | 通过（`0005`） |
+| TC-L1 | 切换写会话模式 | `specs/mode-gating` → `TC-L1` | `SessionModeTest#switchPersists` | 未实现（`0006`） |
+| TC-L2 | 按钮切换持久化 | `specs/mode-gating` → `TC-L1` | `SessionModeRestTest#putModePersists` | 未实现（`0015`） |
+| TC-L3 | 被拒切换不持久 | `specs/mode-gating` → `TC-L3` | `SessionModeTest#rejectedNotPersisted` | 未实现（`0006`） |
+| TC-L4 | 重开会话恢复模式 | `specs/mode-gating` → `TC-L1` | `SessionModeTest#reopenRestores` | 未实现（`0006`） |
+| TC-M2 | study 禁改结构 | `specs/mode-gating` → `TC-M2` | `MasteryToolsTest#reviseBlockedInStudy` | 未实现（`0007`） |
+| TC-M6 | 工具预算 | `specs/mode-gating` → `TC-M6` | `AgentLoopTest#toolBudgetStops` | 部分通过（`0005`，仅常量） |
 
 ## 4. 学习工具（learning-tools）
 
