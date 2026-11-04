@@ -180,6 +180,11 @@
 | TC-E4 | 公共投影 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#projectionHasExactlySevenKeys` | 通过（`0006`） |
 | — | WS 事件顺序 | `specs/agent-turn` → `WS event order` | `WebSocketTurnTest#eventOrder` | 未实现 |
 | — | 流失败保留文本 | `specs/agent-turn` → `Partial text survives stream failure` | `WebSocketTurnTest#partialTextOnError` | 未实现 |
+| TC-LLM1 | SSE 解析（文本增量 / 分片拼装 / `[DONE]` / 坏参数） | `agents/llm.py:92-158` | `SseParserTest`（10 项） | 通过（`0015`） |
+| TC-LLM2 | 非流式客户端（tools / tool_choice / 错误映射） | `agents/llm.py:303-361` | `OpenAiCompatibleClientTest#chatSendsToolsAndParsesCalls`、`#chatMarksInvalidArguments`、`#authErrorIsStructuredAndSafe`、`#httpErrorBranches` | 通过（`0015`） |
+| TC-LLM3 | 请求头与端点拼接 | `agents/llm.py:245-295` | `OpenAiCompatibleClientTest#opencodeSessionHeader`、`#explicitHeadersWin`、`#bearerHeaderOnlyWithKey`、`#chatEndpointIdempotent` | 通过（`0015`） |
+| TC-LLM4 | 流式客户端与 Fake | `agents/llm.py:167-212, 363-396` | `OpenAiCompatibleClientTest#streamSendsStreamFlagAndParses`、`FakeLlmClientTest`（7 项） | 通过（`0015`） |
+| — | 工具 schema 完整性 | `capabilities/mastery/tools.py:911-1140` | `ToolSchemasTest#everyToolHasSchema`、`#requiredParametersMatchExecutors` | 未实现（`0017`） |
 
 ## 7. 知识库（knowledge-base）
 
