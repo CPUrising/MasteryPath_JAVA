@@ -89,10 +89,11 @@ Java 侧 `pom.xml` 已有 `spring-boot-starter-web`；`0017` 已提供 23 个工
     - 因此 `quiz` 的返回含 `status` / `question_id` / `question_card`，
       `grade` 的返回含 `status` / `result` / `gate_cleared`。
 
-11. **`GET /learning/sessions/{sid}` 返回会话行本身**
-    - 参考实现：`return session`（不是 `{session, messages}`）。
-    - 注意 `test_f0_api.py` 断言 `detail["session"]["session_id"]`——那是**旧版**契约；
-      当前参考实现返回扁平结构。本 change 按**当前代码**实现，并在 verify 报告登记该差异。
+11. **`GET /learning/sessions/{sid}` 返回 `{session, messages}`**
+    - 参考实现：`return service.get_session(session_id)`，而 `service.get_session`
+      返回 `{"session": session, "messages": [...]}`（`service.py:1008-1012`）。
+    - `test_f0_api.py#test_sessions_and_mode` 断言 `detail["session"]["session_id"]`，
+      与代码一致，无偏差。
 
 12. **`DELETE /learning/sessions/{sid}` 返回 204，不存在返回 404**
     - 参考实现：`if not service.delete_session(session_id): raise 404`。
@@ -140,6 +141,4 @@ Java 侧 `pom.xml` 已有 `spring-boot-starter-web`；`0017` 已提供 23 个工
 ## Open Questions
 
 - 无。语义以 `../MasteryPath/masterypath/api/app.py` 为唯一依据。
-- 参考实现测试与代码不一致处（本 change 会登记）：
-  - `test_f0_api.py#test_sessions_and_mode` 断言 `detail["session"]["session_id"]`，
-    但当前 `app.py:479` 返回扁平会话行。本 change 按代码实现。
+- 参考实现测试与代码一致，无需要登记的差异。

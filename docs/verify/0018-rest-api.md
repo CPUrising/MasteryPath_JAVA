@@ -77,7 +77,7 @@
 | **模式值先于路径校验** | `#modeValueIsCheckedBeforePathExistence` | PASS | 三级顺序不可调换 |
 | 模式值归一（大小写/空白） | `#modeIsNormalisedToLowerCase` | PASS | |
 | `actor` 缺省 `learner` | `#actorDefaultsToLearner` | PASS | |
-| 会话详情为 `{session, messages}` | `#getSessionReturnsNestedSessionAndMessages` | PASS | 见 §4 D1 |
+| 会话详情为 `{session, messages}` | `#getSessionReturnsNestedSessionAndMessages` | PASS | 与 `service.get_session` 一致 |
 | 未知会话 → 404 | `#getUnknownSessionIs404` | PASS | |
 | 删除会话 204 → 再删 404 | `#deleteSessionReturns204Then404` | PASS | |
 | 删除会话连带清理空 scratch | `#deleteSessionDropsOwnedEmptyScratchPath` | PASS | 三重条件 |
@@ -146,7 +146,7 @@
 | `test_rename_redo_delete` | `#renamePath` + `#redoClearsLearningStateButKeepsMap` + `#deletePathReturns204` | 同断言 |
 | `test_rest_quiz_and_grade` | `StudyApiTest#quizThenGradeClosesTheLoop` | 同断言 |
 | `test_rest_assess_and_skip` | `#assessConceptObjective` + `#skipQuestionAbandonsIt` | 同断言 |
-| `test_sessions_and_mode` | `SessionApiTest#setModeCreatesSessionAndListsIt` + `#getSessionReturnsNestedSessionAndMessages` | 同断言（见 D1） |
+| `test_sessions_and_mode` | `SessionApiTest#setModeCreatesSessionAndListsIt` + `#getSessionReturnsNestedSessionAndMessages` | 同断言（`detail["session"]["session_id"]`） |
 | `test_cors_allows_frontend_origin` | `CorsApiTest#allowsAnyOriginWithLiteralStar` | 同断言（字面量 `*`） |
 | `test_ws_turn_builds_outline` / `test_ws_turn_persists_session` | — | **WS 用例，属 `0019`** |
 
@@ -168,13 +168,12 @@
 
 | 编号 | 偏差 | 等级 | 处理 |
 |---|---|---|---|
-| D1 | `test_f0_api.py#test_sessions_and_mode` 断言 `detail["session"]["session_id"]`，而 `app.py:479` 返回扁平会话行 | 无（参考实现自相矛盾） | 按**服务层** `service.get_session`（`service.py:1008-1012` 返回 `{session, messages}`）实现，与测试断言一致；`app.py` 的扁平返回是端点层漏包一层。已在 `design.md` 决策 11 登记 |
-| D2 | `GET /learning/paths` 用独立实现而非 `listPathOverviews` | 无（必要） | 两者跳过条件不同：REST 只跳过「有 owner 且无知识点」，`listPathOverviews` 跳过所有空 map。合并会让普通空路径消失 |
-| D3 | 设置分组为**内存实现** | 低 | 落盘（`settings.json`）与提供方探测属 `0021`；本 change 只冻结分组语义与归一规则 |
-| D4 | `WebConfig` 用 `@Bean` 装配 `LearningStore` | 无 | 参考实现把 store 作为 `create_app` 参数；Spring 侧用 bean 表达同一件事。工作目录由 `masterypath.data-dir` 指定 |
-| D5 | `ApiExceptionHandler` 只做兜底 | 无 | 需要非默认状态码的端点（412 / 404）在控制器内显式 `try/catch`，与参考实现逐端点 `HTTPException` 一致 |
-| D6 | `GET /learning/paths/{id}/suggest-question` 与 `POST /eval` 未实现 | 低 | 分别属 `0021`（Task Model）与 `0022`（评测 CLI），`design.md` Non-Goals 已声明 |
-| D7 | `POST /learning/paths/{id}/sources`（文件夹扫描）与 `PUT /knowledge-bases` 未实现 | 低 | 属 `0020-knowledge-base`，`design.md` Non-Goals 已声明 |
+| D1 | `GET /learning/paths` 用独立实现而非 `listPathOverviews` | 无（必要） | 两者跳过条件不同：REST 只跳过「有 owner 且无知识点」，`listPathOverviews` 跳过所有空 map。合并会让普通空路径消失 |
+| D2 | 设置分组为**内存实现** | 低 | 落盘（`settings.json`）与提供方探测属 `0021`；本 change 只冻结分组语义与归一规则 |
+| D3 | `WebConfig` 用 `@Bean` 装配 `LearningStore` | 无 | 参考实现把 store 作为 `create_app` 参数；Spring 侧用 bean 表达同一件事。工作目录由 `masterypath.data-dir` 指定 |
+| D4 | `ApiExceptionHandler` 只做兜底 | 无 | 需要非默认状态码的端点（412 / 404）在控制器内显式 `try/catch`，与参考实现逐端点 `HTTPException` 一致 |
+| D5 | `GET /learning/paths/{id}/suggest-question` 与 `POST /eval` 未实现 | 低 | 分别属 `0021`（Task Model）与 `0022`（评测 CLI），`design.md` Non-Goals 已声明 |
+| D6 | `POST /learning/paths/{id}/sources`（文件夹扫描）与 `PUT /knowledge-bases` 未实现 | 低 | 属 `0020-knowledge-base`，`design.md` Non-Goals 已声明 |
 
 ## 5. 未覆盖项（已登记验证债）
 

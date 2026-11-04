@@ -59,6 +59,6 @@
 | 异常映射是否全局一刀切 | **不，逐端点 `try/catch`** | 否则 override 的 412 会变成 409 |
 | REST 学习端点直调服务还是复用工具层 | **复用工具层** | 保证 REST 与 WS 行为一致（同样的门控与 metadata） |
 | CORS 用 `allowedOrigins("*")` 还是 `allowedOriginPatterns("*")` | **`allowedOrigins("*")`** | 后者回显来源，前端契约要求字面量 `*` |
-| `GET /learning/sessions/{id}` 返回扁平行还是 `{session, messages}` | **`{session, messages}`** | 服务层 `service.get_session` 就是这个结构；`app.py:479` 的扁平返回是端点层漏包一层（见 verify §4 D1） |
+| `GET /learning/sessions/{id}` 返回扁平行还是 `{session, messages}` | **`{session, messages}`** | `app.py:479` 的 `return session` 里 `session` 就是 `service.get_session(...)` 的返回值，而它返回 `{session, messages}`（`service.py:1008-1012`）；`test_f0_api.py` 的断言与之一致 |
 | 设置分组是否落盘 | **不落盘（内存）** | 落盘与探测属 `0021`；本 change 只冻结分组语义与归一规则 |
 | `LearningStore` 如何注入 | **`@Bean`** | 参考实现把 store 作为 `create_app` 参数；Spring 侧用 bean 表达同一件事 |
