@@ -16,3 +16,4 @@
 | 2026-11-04 | `0010-scheduler-sm2` | 409 | 0 | 0 | [verify/0010](verify/0010-scheduler-sm2.md) |
 | 2026-11-04 | `0011-question-bank` | 414 | 0 | 0 | [verify/0011](verify/0011-question-bank.md) |
 | 2026-11-04 | `0012-repair-profile` | 456 | 0 | 0 | [verify/0012](verify/0012-repair-profile.md) |
+| 2026-11-04 | `0013-path-binding-scratch` | 478 | 0 | 0 | [verify/0013](verify/0013-path-binding-scratch.md) |

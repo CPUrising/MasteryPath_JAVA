@@ -142,6 +142,11 @@
 | TC-N4 | 含环检测 | `specs/learning-tools` → `TC-N2` | `CoverageReportTest#cycleDetected` | 通过（`0007`） |
 | TC-N5 | 评测不达标非零退出 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#belowMinF1Fails` | 未实现（`0018`） |
 | TC-N6 | 评测可复现 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#deterministicRepeatable` | 未实现（`0018`） |
+| TC-S1 | 路径概览（9 键 / 跳过空 map / name 回退 / 升序） | `../MasteryPath/tests/test_path_binding.py`（`TC-S*`） | `PathBindingTest#listsBuiltPathsSorted`、`#overviewHasNineKeys`、`#emptyMapPathsHidden`、`#nameFallsBackToPathId` | 通过（`0013`） |
+| TC-S2 | scratch 派生 / 认领 / 隐藏 | `service.py:99-130` | `PathBindingTest#scratchDerivedFromSession`、`#scratchSanitisesSessionId`、`#scratchFallsBackToDefault`、`#scratchClaimsOwnerWithoutEvent`、`#emptyScratchHiddenFromOverview` | 通过（`0013`） |
+| TC-S3 | 会话绑定 | `service.py:132-136` | `PathBindingTest#bindMovesSession`、`#bindEmptySessionIsNoop` | 通过（`0013`，工具层拒绝属 `0015`） |
+| TC-S4 | 删除会话与空 scratch 级联 | `service.py:1014-1029` | `PathBindingTest#deleteSessionRemovesOwnedEmptyScratch`、`#deleteSessionKeepsPathWithKnowledgePoints`、`#deleteSessionKeepsForeignPath`、`#deleteSessionKeepsPathWithOtherSessions` | 通过（`0013`） |
+| TC-S5 | 回合内切换路径持久化 | `../MasteryPath/tests/test_turn_path_switch.py` | `WebSocketTurnTest#switchPersistsBinding` | 未实现（`0017`） |
 
 ## 5. 复习调度（review-scheduling）
 

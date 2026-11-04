@@ -11,6 +11,7 @@ import com.masterypath.domain.model.InteractionStatus;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.LearnerMasteryOverride;
 import com.masterypath.domain.model.LearningEvidence;
+import com.masterypath.domain.model.LearningModule;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.MasteryInteraction;
 import com.masterypath.domain.model.PendingQuestion;
@@ -1000,6 +1001,155 @@ public final class LearningService {
                         ? null
                         : QuestionCardProjector.publicPendingQuestion(progress.getPendingQuestion()),
                 "due_reviews", dueReviews);
+    }
+
+    // -- 路径概览与 scratch（ADR-021） -----------------------------------------
+
+    /**
+     * 学习者可切换的路径列表（参考实现 {@code list_path_overviews}）。
+     *
+     * <p><b>空 map 的路径被跳过</b>——这是 scratch 路径「隐藏」的唯一机制：scratch 没有知识点，
+     * {@code mapSummary} 返回空 map，因此不出现在列表里。不需要额外的 {@code is_scratch} 标志。
+     *
+     * <p>副作用（照抄）：一条建过大纲但被清空的普通路径也会被隐藏。
+     *
+     * @return 按 {@code path_id} 升序的 9 键列表
+     */
+    public List<Map<String, Object>> listPathOverviews() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (LearningProgress progress : store.listPaths()) {
+            Map<String, Map<String, Object>> summary = MasteryPolicy.mapSummary(progress);
+            if (summary.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> counts = payload(
+                    "mastered", 0, "learning", 0, "new", 0, "total", summary.size());
+            for (Map<String, Object> entry : summary.values()) {
+                String status = String.valueOf(entry.get("status"));
+                counts.put(status, ((Number) counts.get(status)).intValue() + 1);
+            }
+            rows.add(payload(
+                    "path_id", progress.getPathId(),
+                    "name", progress.getName() == null || progress.getName().isEmpty()
+                            ? progress.getPathId() : progress.getName(),
+                    "goal", progress.getGoal(),
+                    "objectives", counts.get("total"),
+                    "mastered", counts.get("mastered"),
+                    "learning", counts.get("learning"),
+                    "not_started", counts.get("new"),
+                    "due_reviews", MasteryPolicy.dueReviews(progress).size(),
+                    "owner_session_id", progress.getOwnerSessionId()));
+        }
+        rows.sort(java.util.Comparator.comparing(row -> String.valueOf(row.get("path_id"))));
+        return rows;
+    }
+
+    /**
+     * 返回该会话的私有 scratch 路径，不存在则建档（参考实现 {@code ensure_scratch_path}）。
+     *
+     * <p>id 派生：{@code "scratch-" + re.sub("[^A-Za-z0-9_-]", "_", sessionId).strip("_")}，
+     * 空则兜底 {@code default}。注意 {@code strip("_")} 在替换<b>之后</b>：
+     * {@code "!!!"} → {@code "___"} → {@code ""} → {@code "scratch-default"}。
+     *
+     * <p>已存在但无 owner 时<b>认领</b>（单独 mutate，<b>不发事件</b>——{@code path.created}
+     * 已经发过了，再发会让事件流出现重复创建）。
+     */
+    public LearningProgress ensureScratchPath(String sessionId) {
+        String raw = sessionId == null ? "" : sessionId;
+        String safe = stripUnderscores(raw.replaceAll("[^A-Za-z0-9_-]", "_"));
+        String pathId = "scratch-" + (safe.isEmpty() ? "default" : safe);
+        LearningProgress existing = store.load(pathId);
+        if (existing != null) {
+            if ((existing.getOwnerSessionId() == null || existing.getOwnerSessionId().isEmpty())
+                    && !raw.isEmpty()) {
+                return store.mutate(pathId, tx -> {
+                    tx.progress().setOwnerSessionId(raw);
+                    return tx.progress();
+                });
+            }
+            return existing;
+        }
+        return store.mutate(pathId, tx -> {
+            tx.progress().setName("Scratch");
+            tx.progress().setOwnerSessionId(raw);
+            tx.emit("path.created", payload(
+                    "goal", "",
+                    "name", "Scratch",
+                    "scratch", true), raw, "");
+            return tx.progress();
+        }, null, true);
+    }
+
+    /**
+     * 把会话指向另一条路径，从下一回合生效（参考实现 {@code bind_session_path}）。
+     *
+     * <p>空 {@code sessionId} 返回 {@code null} 且<b>不写库</b>——没有会话就没有绑定对象，
+     * 写库会产生孤儿记录。
+     */
+    public Map<String, Object> bindSessionPath(String sessionId, String pathId) {
+        if (sessionId == null || sessionId.isEmpty()) {
+            return null;
+        }
+        return store.setSessionPath(sessionId, pathId);
+    }
+
+    /**
+     * 删除会话；若它是某条空 scratch 路径的 owner 且该路径已无其他会话，一并删除路径。
+     *
+     * <p>三重条件必须同时满足：{@code ownerSessionId == sessionId}、
+     * 没有任何模块含知识点、该路径已无其他会话。
+     *
+     * <p>顺序照抄参考实现：先读 session → 读其 path → <b>删 session</b> → 再判断是否删 path。
+     *
+     * @return 会话不存在时 {@code false}；否则 {@code true}（路径是否删除不影响返回值）
+     */
+    public boolean deleteSession(String sessionId) {
+        Map<String, Object> session = store.getSession(sessionId);
+        if (session == null) {
+            return false;
+        }
+        String pathId = String.valueOf(session.getOrDefault("path_id", ""));
+        LearningProgress progress = pathId.isEmpty() ? null : store.load(pathId);
+        store.deleteSession(sessionId);
+        if (progress != null
+                && sessionId.equals(progress.getOwnerSessionId())
+                && !hasKnowledgePoints(progress)
+                && store.listSessions(pathId).isEmpty()) {
+            store.deletePath(pathId);
+        }
+        return true;
+    }
+
+    /** 该路径的会话列表（存储层转发）。 */
+    public List<Map<String, Object>> listSessions(String pathId) {
+        return store.listSessions(pathId);
+    }
+
+    /** 单个会话；不存在返回 {@code null}。 */
+    public Map<String, Object> getSession(String sessionId) {
+        return store.getSession(sessionId);
+    }
+
+    private static boolean hasKnowledgePoints(LearningProgress progress) {
+        for (LearningModule module : progress.getModules()) {
+            if (!module.getKnowledgePoints().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Python 的 {@code s.strip("_")}：只去首尾下划线（Java 的 {@code strip()} 只去空白）。 */
+    private static String stripUnderscores(String text) {
+        int start = 0;
+        int end = text.length();
+        while (start < end && text.charAt(start) == '_') {
+            start++;
+        }
+        while (end > start && text.charAt(end - 1) == '_') {
+            end--;
+        }
+        return text.substring(start, end);
     }
 
     // -- 内部 ----------------------------------------------------------------
