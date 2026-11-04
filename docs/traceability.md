@@ -185,6 +185,11 @@
 | TC-LLM3 | 请求头与端点拼接 | `agents/llm.py:245-295` | `OpenAiCompatibleClientTest#opencodeSessionHeader`、`#explicitHeadersWin`、`#bearerHeaderOnlyWithKey`、`#chatEndpointIdempotent` | 通过（`0015`） |
 | TC-LLM4 | 流式客户端与 Fake | `agents/llm.py:167-212, 363-396` | `OpenAiCompatibleClientTest#streamSendsStreamFlagAndParses`、`FakeLlmClientTest`（7 项） | 通过（`0015`） |
 | — | 工具 schema 完整性 | `capabilities/mastery/tools.py:911-1140` | `ToolSchemasTest#everyToolHasSchema`、`#requiredParametersMatchExecutors` | 未实现（`0017`） |
+| TC-LOOP1 | 回合基本流程（`done` / 提示词框定 / `extraContext`） | `agents/loop.py:30-40, 68-109` | `AgentLoopTest#finishesWithDone`、`#executesToolThenContinues`、`#systemPromptFramesMode`、`#extraContextAppended` | 通过（`0016`） |
+| TC-LOOP2 | 工具定义按名字升序 | `tools.py:1123-1140` | `AgentLoopTest#toolDefinitionsSorted` | 通过（`0016`） |
+| TC-LOOP3 | 回合预算（`INV-60`） | `loop.py:129-134` | `AgentLoopTest#budgetStopsBeforeExecuting`、`#budgetAccumulatesAcrossRounds` | 通过（`0016`） |
+| TC-LOOP4 | 出题结束回合（`INV-44`）+ 轮数耗尽 | `loop.py:170-175` | `AgentLoopTest#endTurnYieldsCardAfterResult`、`#stopsAtMaxRounds` | 通过（`0016`） |
+| TC-LOOP5 | 工具失败三降级 + OpenAI 工具历史 | `loop.py:139-169` | `AgentLoopTest#badArgumentsDegrade`、`#unknownToolDegrades`、`#raisingToolDegrades`、`#writesOpenAiToolHistory` | 通过（`0016`） |
 
 ## 7. 知识库（knowledge-base）
 

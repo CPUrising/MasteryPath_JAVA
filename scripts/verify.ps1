@@ -106,7 +106,7 @@ if (-not (Test-Path $mvnw)) {
 $goals = @('-B', '-ntp', 'test')
 
 switch ($Scope) {
-    'unit'    { $goals += @('-Dtest=*PolicyTest,*OrderingTest,*ScoreTest,*GradingTest,*SchedulerTest,*SchedulingTest,*RepairTest,*ProfileTest,*PathStateTest,*PathBindingTest,*NavigationTest,*LlmClientTest,*SseParserTest,*CompatibleClientTest,*ModelTest,*JsonTest,*ProjectionTest,*ProjectorTest,*ClassificationTest,*ModeTest,*ModeGateTest,*BudgetTest,*CoverageTest,*GapTest,*OutlineBuildTest,*OutlineReviseTest,*QuizSpecTest,*QuizRegistrationTest,*GradeFlowTest,*QuestionBankTest,*AssessTest,*BuildReviseTest,*QuizGradeTest,*CaptureTest,*OutlineEvalTest,*LifecycleTest,*AttachmentTest,*OverrideServiceTest,*ObjectiveStateTest') }
+    'unit'    { $goals += @('-Dtest=*PolicyTest,*OrderingTest,*ScoreTest,*GradingTest,*SchedulerTest,*SchedulingTest,*RepairTest,*ProfileTest,*PathStateTest,*PathBindingTest,*NavigationTest,*LlmClientTest,*SseParserTest,*CompatibleClientTest,*AgentLoopTest,*ModelTest,*JsonTest,*ProjectionTest,*ProjectorTest,*ClassificationTest,*ModeTest,*ModeGateTest,*BudgetTest,*CoverageTest,*GapTest,*OutlineBuildTest,*OutlineReviseTest,*QuizSpecTest,*QuizRegistrationTest,*GradeFlowTest,*QuestionBankTest,*AssessTest,*BuildReviseTest,*QuizGradeTest,*CaptureTest,*OutlineEvalTest,*LifecycleTest,*AttachmentTest,*OverrideServiceTest,*ObjectiveStateTest') }
     'storage' { $goals += @('-Dtest=*StoreTest,*StoreConcurrencyTest,*CompatibilityTest,*PreservationTest,*DeletionTest') }
     'api'     { $goals += @('-Dtest=*ApiTest,*WebSocketTurnTest,*TurnRunnerTest,*RestTest') }
     'all'     { }
