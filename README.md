@@ -13,7 +13,7 @@
 | G0 | 工程骨架可用 | **通过**（2026-11-04） | [verify/0001](docs/verify/0001-java-skeleton.md) · 3 用例 PASS |
 | G1 | 规范与纯逻辑冻结 | **通过**（2026-11-04） | [verify/0005](docs/verify/0005-mode-gating.md) · 130 用例 PASS |
 | G2 | 核心业务闭环 | **通过**（2026-11-04） | [verify/0014](docs/verify/0014-mastery-nav.md) · 504 用例 PASS |
-| G3 | 大纲与质量 | 进行中（build/revise/缺口/覆盖已完成，待评测 CLI） | [verify/0007](docs/verify/0007-outline-build-revise.md) |
+| G3 | 大纲与质量 | **通过**（2026-11-05：build/revise/缺口/覆盖 + 离线评测 CLI） | [verify/0023](docs/verify/0023-outline-eval-cli.md) · 864 用例 PASS |
 | G4 | 回合与工具 | **通过**（2026-11-04） | [verify/0017](docs/verify/0017-tool-layer.md) · 601 用例 PASS |
 | G5 | 协议兼容 | **通过**（2026-11-05） | [verify/0019](docs/verify/0019-ws-turn.md) · 690 用例 PASS |
 | G6 | 知识库与设置 | **通过**（2026-11-05：聊天 + 知识库 + 设置落盘 + 提供方探测 + Task Model） | [verify/0022](docs/verify/0022-settings-task-model.md) · 835 用例 PASS |

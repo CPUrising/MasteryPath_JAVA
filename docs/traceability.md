@@ -131,7 +131,7 @@
 | —（快照） | `get_state` 19 键 + `INV-07` 投影 | `service.py:236-297` | `PathStateTest`（11 项） | 通过（`0012` 服务层 + `0018` REST） |
 | TC-M3 | accept 后成为 KP | `specs/learning-tools` → `TC-M3` | `QualitativeAssessTest#passClearsGate` | 通过（`0009`，定性评估侧） |
 | TC-M4 | 覆盖报告持久化 | `specs/learning-tools` → `TC-N1` | `GapClassificationTest#getCoverageReturnsReport` | 通过（`0007`） |
-| TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `OutlineEvalTest#coverageBelowThreshold` | 未实现（`0018`） |
+| TC-M5 | 覆盖不达标 | `specs/learning-tools` → `TC-N2` | `EvalApiTest#evalReportsUnusedSource`（`coverage_ratio=0.5`、`passed=false`） | 通过（`0023`） |
 | TC-F2 | 目标缺口重生成无效 | `specs/learning-tools` → `TC-F2` | `GapClassificationTest#regenerateDoesNotCloseGap` | 通过（`0007`） |
 | TC-F3 | 来源遗漏重生成闭合 | `specs/learning-tools` → `TC-F2` | `GapClassificationTest#sourceOmissionClosesWhenUsed` | 通过（`0007`） |
 | TC-F4 | 接受缺口与消解 | `specs/learning-tools` → `TC-F4` | `GapClassificationTest#acceptGapThenResolved` | 通过（`0007`） |
@@ -140,8 +140,10 @@
 | TC-N2 | 未用来源进缺失 | `specs/learning-tools` → `TC-N2` | `CoverageReportTest#unusedSourceIsMissing` | 通过（`0007`） |
 | TC-N3 | 未声明不展开 | `specs/learning-tools` → `TC-N1` | `CoverageReportTest#unreportedDoesNotExpandMissing` | 通过（`0007`） |
 | TC-N4 | 含环检测 | `specs/learning-tools` → `TC-N2` | `CoverageReportTest#cycleDetected` | 通过（`0007`） |
-| TC-N5 | 评测不达标非零退出 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#belowMinF1Fails` | 未实现（`0018`） |
-| TC-N6 | 评测可复现 | `specs/learning-tools` → `TC-M5` | `OutlineEvalTest#deterministicRepeatable` | 未实现（`0018`） |
+| TC-N5 | 评测不达标非零退出 | `specs/learning-tools` → `TC-M5` | `OutlineEvalCliTest#failsBelowMinF1`、`#failsOnCycle`、`#failsOutOfBounds`、`#failsOnBaselineRegression` | 通过（`0023`） |
+| TC-N6 | 评测可复现 | `specs/learning-tools` → `TC-M5` | `EvalApiTest#evalIsDeterministic`、`OutlineEvalTest#evaluationIsDeterministic` | 通过（`0023`） |
+| — | 离线指标（令牌重叠代理） | `../MasteryPath/docs/09-outline-eval.md` §二 | `OutlineEvalTest`（15 项） | 通过（`0023`） |
+| — | CLI 形态与参数 | `../MasteryPath/docs/09-outline-eval.md` §一 | `OutlineEvalCliTest`（8 项） | 通过（`0023`） |
 | TC-S1 | 路径概览（9 键 / 跳过空 map / name 回退 / 升序） | `../MasteryPath/tests/test_path_binding.py`（`TC-S*`） | `PathBindingTest#listsBuiltPathsSorted`、`#overviewHasNineKeys`、`#emptyMapPathsHidden`、`#nameFallsBackToPathId` | 通过（`0013`） |
 | TC-S2 | scratch 派生 / 认领 / 隐藏 | `service.py:99-130` | `PathBindingTest#scratchDerivedFromSession`、`#scratchSanitisesSessionId`、`#scratchFallsBackToDefault`、`#scratchClaimsOwnerWithoutEvent`、`#emptyScratchHiddenFromOverview` | 通过（`0013`） |
 | TC-S3 | 会话绑定 | `service.py:132-136` | `PathBindingTest#bindMovesSession`、`#bindEmptySessionIsNoop` | 通过（`0013` 服务层 + `0017` 工具层拒绝） |

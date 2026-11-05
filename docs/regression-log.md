@@ -26,3 +26,4 @@
 | 2026-11-05 | `0020-chat-service` | 732 | 0 | 0 | [verify/0020](verify/0020-chat-service.md) |
 | 2026-11-05 | `0021-knowledge-base` | 805 | 0 | 0 | [verify/0021](verify/0021-knowledge-base.md) |
 | 2026-11-05 | `0022-settings-task-model` | 835 | 0 | 0 | [verify/0022](verify/0022-settings-task-model.md) |
+| 2026-11-05 | `0023-outline-eval-cli` | 864 | 0 | 0 | [verify/0023](verify/0023-outline-eval-cli.md) |

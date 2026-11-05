@@ -5,6 +5,7 @@ import com.masterypath.domain.grading.Grading;
 import com.masterypath.domain.mode.BehaviorBudget;
 import com.masterypath.domain.model.AssessmentResult;
 import com.masterypath.domain.model.AssessmentType;
+import com.masterypath.domain.model.CoverageGap;
 import com.masterypath.domain.model.CoverageReport;
 import com.masterypath.domain.model.DeferredObjective;
 import com.masterypath.domain.model.GapKind;
@@ -43,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 服务核心（参考实现 {@code learning/service.py} 的 {@code LearningService}）。
@@ -277,6 +279,54 @@ public final class LearningService {
     public CoverageReport getCoverage(String pathId) {
         LearningProgress progress = store.load(pathId);
         return progress == null ? null : progress.getCoverage();
+    }
+
+    /**
+     * 当前地图的确定性质量指标（参考实现 {@code eval_outline}，{@code INV-57} / {@code spec 09}）。
+     *
+     * <p><b>重算而不是读存库报告</b>：参考实现按调用时的来源集合重新计算覆盖。
+     * 只读，不写库、不调模型。
+     *
+     * @return 8 键报告；路径不存在返回 {@code null}
+     */
+    public Map<String, Object> evalOutline(String pathId) {
+        LearningProgress progress = store.load(pathId);
+        if (progress == null) {
+            return null;
+        }
+        Set<String> selected = new LinkedHashSet<>();
+        for (TopicSource source : progress.getSources()) {
+            selected.add(source.getId());
+        }
+        CoverageReport report = OutlineBuilder.computeCoverage(progress, selected);
+        double coverageRatio = report.getDocuments() == 0
+                ? 1.0 : (double) report.getCovered() / report.getDocuments();
+
+        double coverageThreshold = 0.9;
+        double groundingThreshold = 1.0;
+        boolean acyclicThreshold = true;
+        boolean passed = coverageRatio >= coverageThreshold
+                && report.getGroundingRatio() >= groundingThreshold
+                && report.isAcyclic() == acyclicThreshold;
+
+        List<Map<String, Object>> missing = new ArrayList<>();
+        for (CoverageGap gap : report.getMissing()) {
+            missing.add(payload("label", gap.getLabel(), "document", gap.getDocument()));
+        }
+        Map<String, Object> thresholds = payload(
+                "coverage", coverageThreshold,
+                "grounding", groundingThreshold,
+                "acyclic", acyclicThreshold);
+
+        return payload(
+                "coverage_ratio", coverageRatio,
+                "grounding_ratio", report.getGroundingRatio(),
+                "acyclic", report.isAcyclic(),
+                "documents", report.getDocuments(),
+                "covered", report.getCovered(),
+                "missing", missing,
+                "passed", passed,
+                "thresholds", thresholds);
     }
 
     // -- 出题与判分 -----------------------------------------------------------

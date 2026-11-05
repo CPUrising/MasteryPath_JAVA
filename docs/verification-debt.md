@@ -22,7 +22,7 @@
 | 大纲构建与修订 | TC-J1…J6 + 8 个 revise op + dropKpState 全字段 | `OutlineBuildTest`、`OutlineReviseTest` | 通过 | 42 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
 | 覆盖报告 | TC-N1…N4 + 接地比 + 无环检测 | `CoverageReportTest` | 通过 | 12 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
 | 缺口分类 | TC-F2/F3/F4 + 服务层事件 | `GapClassificationTest` | 通过 | 15 用例，见 [verify/0007](verify/0007-outline-build-revise.md) |
-| 大纲评测 | TC-N5/N6（覆盖比/接地比/无环阈值 + CLI 确定性） | 待建 `OutlineEvalTest` | 未执行 | 属 `0023-outline-eval-cli` |
+| 大纲评测 | TC-N5/N6（覆盖比/接地比/无环阈值 + CLI 确定性） | `OutlineEvalTest`、`OutlineEvalCliTest`、`EvalApiTest` | 通过 | 29 用例，见 [verify/0023](verify/0023-outline-eval-cli.md) |
 | 候选目标 | `propose_objective` / `note_gap`（捕获-延后） | `MasteryToolsTest#proposeObjectiveRecordsCandidate`、`#proposeObjectiveRequiresName`、`#noteGapRecordsGap`、`#noteGapRejectsUnknownKind`；`LearningApiTest#proposalsListAndResolve` | 通过 | 工具执行体与 REST 均已覆盖，见 [verify/0017](verify/0017-tool-layer.md) |
 | 确定性判分 | TC-H1…H5 + normalize/similarity/resolveChoice | `GradingTest` | 通过 | 27 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
 | 出题校验 | TC-K1 全部校验分支 + 旧式选项解析 | `QuizSpecTest` | 通过 | 20 用例，见 [verify/0008](verify/0008-quiz-grade.md) |
@@ -59,7 +59,7 @@
 | 提供方探测 | URL 校验、端点推导、鉴权头三态、模型分类、探测/取列表/测维度、厂商目录 | `ProviderProbeTest` | 通过 | 13 用例，见 [verify/0022](verify/0022-settings-task-model.md)；用 JDK `HttpServer` 起真实本地端点 |
 | 探测端点 | catalog / probe / fetch-models / detect-dimension + 掩码回退 + 不写配置 | `SettingsProbeApiTest` | 通过 | 8 用例（含 `suggest-question` 两例），见 [verify/0022](verify/0022-settings-task-model.md) |
 | Task Model | LLM 优先 + 5 条确定性回退逐字复刻 + 会话名 | `TaskModelTest` | 通过 | 9 用例，见 [verify/0022](verify/0022-settings-task-model.md) |
-| 全部业务 | 剩余 change（`0023` 评测 CLI、`0024` 验收）尚未开始 | — | 未执行 | 见 `docs/migration-plan.md` §5 |
+| 全部业务 | 剩余 change（`0024` 验收）尚未开始 | — | 未执行 | 见 `docs/migration-plan.md` §5 |
 | 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭（已完成 `test_policy`/`test_mode`/`test_outline`/`test_eval`/`test_grading`/`test_study`/`test_interactions`/`test_assess`/`test_scheduler`/`test_review`/`test_question_bank`/`test_repair_profile`/`test_path_binding`/`test_mastery_nav`/`test_llm_client`/`test_loop`/`test_mastery_status`/`test_source_tools`/`test_api`/`test_f0_api`/`test_turn_runner`/`test_ws_runtime`/`test_turn_path_switch`/`test_chat_nav`/`test_preferences`/`test_knowledge`/`test_knowledge_chat`/`test_settings_probe`/`test_task_model`） |
 | 参考实现行为瑕疵 | Q1–Q5（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握 / **`tag_question` 保留空白标签**） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；Q5 由 `0011` 实测确认并锁定，详见 `docs/migration-plan.md` §11 |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |

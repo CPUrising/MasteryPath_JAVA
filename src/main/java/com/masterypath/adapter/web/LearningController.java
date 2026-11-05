@@ -422,6 +422,20 @@ public class LearningController {
         return report;
     }
 
+    /**
+     * 大纲质量的确定性指标（参考实现 {@code eval_outline}，{@code INV-57}）。
+     *
+     * <p>只读、不调模型；未知路径 → 404 {@code "unknown path"}。
+     */
+    @PostMapping("/paths/{pathId}/eval")
+    public Map<String, Object> evalOutline(@PathVariable String pathId) {
+        Map<String, Object> report = service.evalOutline(pathId);
+        if (report == null) {
+            throw new ApiException(404, "unknown path");
+        }
+        return report;
+    }
+
     // -- 辅助 -----------------------------------------------------------------
 
     /**
