@@ -27,7 +27,8 @@ openspec/                  规范与变更的单一真实源
   project.md               目标 / 边界 / 技术栈 / 工程标准
   AGENTS.md                AI 操作规程（人机契约）
   specs/                   基线规范（实现阶段只读）
-  changes/                 增量变更沙箱（0001 起）
+  changes/                 增量变更沙箱（当前无活跃 change）
+    archive/               已归档的 change（2026-11-05 归档 0001–0023）
 docs/
   migration-plan.md        迁移计划（范围论证 / 架构映射 / Gate / change 清单）
   traceability.md          验收场景 ↔ 规范 ↔ Java 测试
