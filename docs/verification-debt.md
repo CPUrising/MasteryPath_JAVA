@@ -56,6 +56,7 @@
 | 索引与检索 | 分块、进度、余弦 top-k、未建索引错误 | `VectorIndexerTest` | 通过 | 9 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
 | 知识库服务 | 嵌入解析、分块配置、后台索引、同 run 去重、检索三重短路、参考块 | `KnowledgeServiceTest` | 通过 | 17 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
 | 知识库 REST | 12 个端点 + 路径 sources 三端点 + 错误码分工 | `KnowledgeApiTest` | 通过 | 19 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
+| 索引性能 | 真实规模耗时与内存：1.02 MB / 983 块、5.19 MB / 200 文件 / 5000 块 | 一次性脚本（`artifacts/perf`，gitignored） | 通过（手工） | 29.42 s（1 MB，判据 < 60 s）、143.42 s（5 MB）、峰值堆 986.2 MB；进度单调、失败文件 0，见 [verify/0025](verify/0025-manual-verification.md) |
 | 提供方探测 | URL 校验、端点推导、鉴权头三态、模型分类、探测/取列表/测维度、厂商目录 | `ProviderProbeTest` | 通过 | 13 用例，见 [verify/0022](verify/0022-settings-task-model.md)；用 JDK `HttpServer` 起真实本地端点 |
 | 探测端点 | catalog / probe / fetch-models / detect-dimension + 掩码回退 + 不写配置 | `SettingsProbeApiTest` | 通过 | 8 用例（含 `suggest-question` 两例），见 [verify/0022](verify/0022-settings-task-model.md) |
 | Task Model | LLM 优先 + 5 条确定性回退逐字复刻 + 会话名 | `TaskModelTest` | 通过 | 9 用例，见 [verify/0022](verify/0022-settings-task-model.md) |
@@ -63,10 +64,10 @@
 | 前端联调 | Next.js 14 指向 Java 后端：路径/设置/探测/聊天/知识库 | 浏览器实测 | 通过 | 4 条主链路，见 [verify/0024](verify/0024-acceptance.md) |
 | 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 通过 | 29 个测试文件逐组对照后全部关闭 |
 | 参考实现行为瑕疵 | Q1–Q5（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握 / **`tag_question` 保留空白标签**） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；Q5 由 `0011` 实测确认并锁定，详见 `docs/migration-plan.md` §11 |
-| LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |
+| LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` + 手工冒烟 | 通过（手工） | 真实 DeepSeek 兼容端点：2 帧流式拼接、`mastery_topics` 工具双轮、401 → `auth_error`；3 次请求，不进测试，见 [verify/0025](verify/0025-manual-verification.md) |
 | LLM 客户端 | SSE 解析、非流式/流式请求、6 个 HTTP 错误分支、请求头、Fake 客户端 | `SseParserTest`、`OpenAiCompatibleClientTest`、`FakeLlmClientTest` | 通过 | 31 用例，见 [verify/0015](verify/0015-llm-client.md)；用 JDK `HttpServer` 起真实本地端点，非 mock 传输层 |
 | 工具 schema | `test_every_tool_has_a_schema`、`test_required_parameters_match_the_executors` | `ToolSchemasTest` | 通过 | 5 用例，见 [verify/0017](verify/0017-tool-layer.md) |
 | 工具层 | 23 个工具：门控、异常转换、条件挂载、状态快照、出题判分、来源、导航、捕获 | `MasteryToolsTest`、`SourceToolsTest`、`StatusAndQuizToolsTest` | 通过 | 46 用例，见 [verify/0017](verify/0017-tool-layer.md) |
 | 回合循环 | 提示词框定、事件顺序、预算（跨轮累计）、出题结束回合、轮数耗尽、工具失败三降级、OpenAI 工具历史、惰性流 | `AgentLoopTest` | 通过 | 19 用例，见 [verify/0016](verify/0016-agent-loop.md) |
 | 回合循环 × 真实工具 | `test_loop_builds_outline_then_finishes`（地图真的建出来）、`test_loop_refuses_tool_in_wrong_mode`（门控文案） | `MasteryToolsTest#unrecordedModeEnforcesNothing`、`#buildRefusedInStudy` | 通过 | 已结算，见 [verify/0017](verify/0017-tool-layer.md) |
-| 前端联调 | Next.js 对 Java 后端的端到端 | — | 阻塞 | 依赖 `0022`–`0024` 完成后进行 |
+| 前端联调 | Next.js 对 Java 后端的端到端 | 浏览器实测 | 通过 | 4 条主链路（路径/设置/探测/聊天/知识库），见 [verify/0024](verify/0024-acceptance.md) |

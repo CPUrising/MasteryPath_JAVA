@@ -28,3 +28,4 @@
 | 2026-11-05 | `0022-settings-task-model` | 835 | 0 | 0 | [verify/0022](verify/0022-settings-task-model.md) |
 | 2026-11-05 | `0023-outline-eval-cli` | 864 | 0 | 0 | [verify/0023](verify/0023-outline-eval-cli.md) |
 | 2026-11-05 | `0024-acceptance` | 864 | 0 | 0 | [verify/0024](verify/0024-acceptance.md) |
+| 2026-11-05 | `0025-manual-verification` | 864 | 0 | 0 | [verify/0025](verify/0025-manual-verification.md) |
