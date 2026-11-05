@@ -744,6 +744,13 @@ public class LearningStore implements AutoCloseable {
         }
     }
 
+    /**
+     * 会话消息列表（参考实现 {@code list_messages}）。
+     *
+     * <p>形状必须与参考实现一致：6 个键（不含 {@code session_id}），
+     * {@code data} 是<b>已解析的对象</b>而不是原始 JSON 字符串；空值给 {@code {}}。
+     * 验收（`0024`）用真实旧库对比时发现了这两处偏差。
+     */
     public List<Map<String, Object>> listMessages(String sessionId) {
         synchronized (lock) {
             try (PreparedStatement ps = connection.prepareStatement(
@@ -754,11 +761,10 @@ public class LearningStore implements AutoCloseable {
                     while (rs.next()) {
                         Map<String, Object> row = new LinkedHashMap<>();
                         row.put("id", rs.getLong("id"));
-                        row.put("session_id", rs.getString("session_id"));
                         row.put("turn_id", rs.getString("turn_id"));
                         row.put("role", rs.getString("role"));
                         row.put("content", rs.getString("content"));
-                        row.put("data", rs.getString("data"));
+                        row.put("data", parseMessageData(rs.getString("data")));
                         row.put("created_at", rs.getDouble("created_at"));
                         messages.add(row);
                     }
@@ -767,6 +773,19 @@ public class LearningStore implements AutoCloseable {
             } catch (SQLException e) {
                 throw new IllegalStateException("list messages failed", e);
             }
+        }
+    }
+
+    /** 消息 {@code data} 列 → 对象；空值等价于 {@code {}}（参考实现 {@code json.loads(x) if x else {}}）。 */
+    private Object parseMessageData(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return new LinkedHashMap<String, Object>();
+        }
+        try {
+            Object parsed = mapper.readValue(raw, Object.class);
+            return parsed == null ? new LinkedHashMap<String, Object>() : parsed;
+        } catch (IOException e) {
+            return new LinkedHashMap<String, Object>();
         }
     }
 

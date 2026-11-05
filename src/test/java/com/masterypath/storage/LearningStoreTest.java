@@ -251,7 +251,12 @@ class LearningStoreTest {
         assertThat(store.setSessionPath("s1", "p2").get("path_id")).isEqualTo("p2");
 
         store.appendMessage("s1", "user", "hi", "t1", Map.of("k", "v"));
-        assertThat(store.listMessages("s1")).hasSize(1);
+        List<Map<String, Object>> messages = store.listMessages("s1");
+        assertThat(messages).hasSize(1);
+        // 形状与参考实现 list_messages 一致：6 个键（不含 session_id），data 已解析为对象。
+        assertThat(messages.get(0)).containsOnlyKeys(
+                "id", "turn_id", "role", "content", "data", "created_at");
+        assertThat(messages.get(0).get("data")).isEqualTo(Map.of("k", "v"));
 
         assertThat(store.deleteSession("s1")).isNotNull();
         assertThat(store.getSession("s1")).isNull();

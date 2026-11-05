@@ -17,7 +17,7 @@
 | G4 | 回合与工具 | **通过**（2026-11-04） | [verify/0017](docs/verify/0017-tool-layer.md) · 601 用例 PASS |
 | G5 | 协议兼容 | **通过**（2026-11-05） | [verify/0019](docs/verify/0019-ws-turn.md) · 690 用例 PASS |
 | G6 | 知识库与设置 | **通过**（2026-11-05：聊天 + 知识库 + 设置落盘 + 提供方探测 + Task Model） | [verify/0022](docs/verify/0022-settings-task-model.md) · 835 用例 PASS |
-| G7 | 验收 | 未开始 | — |
+| G7 | 验收 | **通过**（2026-11-05：全量 864 · 旧库双向可读 · 前端联调 · 全部 change 归档） | [verify/0024](docs/verify/0024-acceptance.md) · 864 用例 PASS |
 
 ## 目录
 
