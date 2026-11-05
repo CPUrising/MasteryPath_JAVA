@@ -232,9 +232,11 @@
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
 | — | 分组读写 | `specs/settings-task-model` → `Read and write a settings section` | `SettingsApiTest#providersRoundtrip`、`SettingsStoreTest#writePersistsToDisk` | 通过（`0018` / `0020` 落盘） |
-| — | 探测失败结构化 | `specs/settings-task-model` → `Probe failure is structured` | `ProviderProbeTest#failureStructured` | 未实现 |
-| — | 无提供方回退 | `specs/settings-task-model` → `Fallback without provider` | `TaskModelTest#fallbackWithoutProvider` | 未实现 |
-| — | 报错回退 | `specs/settings-task-model` → `Fallback on provider error` | `TaskModelTest#fallbackOnError` | 未实现 |
+| — | 探测失败结构化 | `specs/settings-task-model` → `Probe failure is structured` | `ProviderProbeTest#probeStatusVocabulary`、`#probeInvalidUrlAndAnthropic` | 通过（`0022`） |
+| — | 探测不写配置 / 不回显凭据 | `providers.py` 文件头注释三条约束 | `ProviderProbeTest#probeConnectedAndClassifies`、`SettingsProbeApiTest#probeEndpointDoesNotWriteSettings` | 通过（`0022`） |
+| — | 掩码回退（用已保存凭据） | `api/app.py:409-433` `_probe_fields` | `SettingsProbeApiTest#probeEndpointUsesSavedCredentials`、`#probeEndpointPrefersSubmittedFields` | 通过（`0022`） |
+| — | 无提供方回退 | `specs/settings-task-model` → `Fallback without provider` | `TaskModelTest#fallbackWithoutClient`、`SettingsProbeApiTest#suggestQuestionReturnsDraft` | 通过（`0022`） |
+| — | 报错回退 | `specs/settings-task-model` → `Fallback on provider error` | `TaskModelTest#fallsBackWhenLlmRaises`、`#fallsBackWhenTextBlank` | 通过（`0022`） |
 
 ## 维护规则
 

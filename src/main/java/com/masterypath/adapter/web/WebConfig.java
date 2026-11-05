@@ -2,6 +2,7 @@ package com.masterypath.adapter.web;
 
 import com.masterypath.adapter.llm.ClientBuilder;
 import com.masterypath.adapter.llm.ModelResolution;
+import com.masterypath.adapter.llm.TaskModel;
 import com.masterypath.adapter.turn.TurnRunner;
 import com.masterypath.service.ChatService;
 import com.masterypath.service.KnowledgeService;
@@ -81,6 +82,19 @@ public class WebConfig {
                                    LearningService learningService,
                                    KnowledgeService knowledgeService) {
         return new ChatService(chatStore, settingsStore, knowledgeService, null, learningService);
+    }
+
+    /**
+     * 任务模型（「建议下一问」草稿）。
+     *
+     * <p>工厂直接调 {@link ModelResolution#resolveLlmConfig}：未配置模型时它抛
+     * {@code LlmError}，被 {@link TaskModel} 吞掉后回退到确定性文案——
+     * 这正是「没有提供方也要能给出草稿」的语义。
+     */
+    @Bean
+    public TaskModel taskModel(SettingsStore settingsStore) {
+        return new TaskModel(() -> ModelResolution.buildClient(
+                ModelResolution.resolveLlmConfig(settingsStore, null)));
     }
 
     /**

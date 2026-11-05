@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +40,16 @@ final class ApiTestSupport implements AutoCloseable {
     final KnowledgeService knowledgeService;
     final LearningService service;
     final MockMvc mvc;
+    /** 探测端点收到的字段（供「掩码回退」用例断言）。 */
+    final Map<String, Object> probeSeen = new LinkedHashMap<>();
+    /** 探测端点的返回值；用例可替换。 */
+    Map<String, Object> probeResult = Map.of("status", "connected", "models", List.of());
+    /** fetch-models 收到的字段与返回值。 */
+    final Map<String, Object> fetchSeen = new LinkedHashMap<>();
+    Map<String, Object> fetchResult = Map.of("status", "connected", "models", List.of());
+    /** 维度探测收到的字段与返回值。 */
+    final Map<String, Object> dimensionSeen = new LinkedHashMap<>();
+    Map<String, Object> dimensionResult = Map.of("status", "unavailable", "dimension", 0);
 
     ApiTestSupport() throws IOException {
         this.dir = Files.createTempDirectory("mp-api-");
@@ -48,6 +59,32 @@ final class ApiTestSupport implements AutoCloseable {
         this.knowledgeService = new KnowledgeService(knowledgeStore, settings,
                 config -> texts -> deterministicVectors(texts));
         this.service = new LearningService(store);
+        SettingsProbeController probeController = new SettingsProbeController(
+                settings,
+                (protocol, baseUrl, apiKey, service1) -> {
+                    probeSeen.clear();
+                    probeSeen.put("protocol", protocol);
+                    probeSeen.put("base_url", baseUrl);
+                    probeSeen.put("api_key", apiKey);
+                    probeSeen.put("service", service1);
+                    return probeResult;
+                },
+                (protocol, baseUrl, apiKey, service1) -> {
+                    fetchSeen.clear();
+                    fetchSeen.put("protocol", protocol);
+                    fetchSeen.put("base_url", baseUrl);
+                    fetchSeen.put("api_key", apiKey);
+                    fetchSeen.put("service", service1);
+                    return fetchResult;
+                },
+                (protocol, baseUrl, apiKey, model) -> {
+                    dimensionSeen.clear();
+                    dimensionSeen.put("protocol", protocol);
+                    dimensionSeen.put("base_url", baseUrl);
+                    dimensionSeen.put("api_key", apiKey);
+                    dimensionSeen.put("model", model);
+                    return dimensionResult;
+                });
         ObjectMapper mapper = JsonSupport.objectMapper();
         this.mvc = MockMvcBuilders.standaloneSetup(
                         new LearningController(service, store, knowledgeService),
@@ -55,7 +92,8 @@ final class ApiTestSupport implements AutoCloseable {
                         new SessionController(service, store),
                         new StudyController(service, store),
                         new SettingsController(settings),
-                        new KnowledgeController(knowledgeService))
+                        new KnowledgeController(knowledgeService),
+                        probeController)
                 .setControllerAdvice(new ApiExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(mapper))
                 .build();

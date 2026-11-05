@@ -56,8 +56,11 @@
 | 索引与检索 | 分块、进度、余弦 top-k、未建索引错误 | `VectorIndexerTest` | 通过 | 9 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
 | 知识库服务 | 嵌入解析、分块配置、后台索引、同 run 去重、检索三重短路、参考块 | `KnowledgeServiceTest` | 通过 | 17 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
 | 知识库 REST | 12 个端点 + 路径 sources 三端点 + 错误码分工 | `KnowledgeApiTest` | 通过 | 19 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
-| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0022-settings-task-model` 起；见 `docs/migration-plan.md` §5 |
-| 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭（已完成 `test_policy`/`test_mode`/`test_outline`/`test_eval`/`test_grading`/`test_study`/`test_interactions`/`test_assess`/`test_scheduler`/`test_review`/`test_question_bank`/`test_repair_profile`/`test_path_binding`/`test_mastery_nav`/`test_llm_client`/`test_loop`/`test_mastery_status`/`test_source_tools`/`test_api`/`test_f0_api`/`test_turn_runner`/`test_ws_runtime`/`test_turn_path_switch`/`test_chat_nav`/`test_preferences`/`test_knowledge`/`test_knowledge_chat`） |
+| 提供方探测 | URL 校验、端点推导、鉴权头三态、模型分类、探测/取列表/测维度、厂商目录 | `ProviderProbeTest` | 通过 | 13 用例，见 [verify/0022](verify/0022-settings-task-model.md)；用 JDK `HttpServer` 起真实本地端点 |
+| 探测端点 | catalog / probe / fetch-models / detect-dimension + 掩码回退 + 不写配置 | `SettingsProbeApiTest` | 通过 | 8 用例（含 `suggest-question` 两例），见 [verify/0022](verify/0022-settings-task-model.md) |
+| Task Model | LLM 优先 + 5 条确定性回退逐字复刻 + 会话名 | `TaskModelTest` | 通过 | 9 用例，见 [verify/0022](verify/0022-settings-task-model.md) |
+| 全部业务 | 剩余 change（`0023` 评测 CLI、`0024` 验收）尚未开始 | — | 未执行 | 见 `docs/migration-plan.md` §5 |
+| 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭（已完成 `test_policy`/`test_mode`/`test_outline`/`test_eval`/`test_grading`/`test_study`/`test_interactions`/`test_assess`/`test_scheduler`/`test_review`/`test_question_bank`/`test_repair_profile`/`test_path_binding`/`test_mastery_nav`/`test_llm_client`/`test_loop`/`test_mastery_status`/`test_source_tools`/`test_api`/`test_f0_api`/`test_turn_runner`/`test_ws_runtime`/`test_turn_path_switch`/`test_chat_nav`/`test_preferences`/`test_knowledge`/`test_knowledge_chat`/`test_settings_probe`/`test_task_model`） |
 | 参考实现行为瑕疵 | Q1–Q5（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握 / **`tag_question` 保留空白标签**） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；Q5 由 `0011` 实测确认并锁定，详见 `docs/migration-plan.md` §11 |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |
 | LLM 客户端 | SSE 解析、非流式/流式请求、6 个 HTTP 错误分支、请求头、Fake 客户端 | `SseParserTest`、`OpenAiCompatibleClientTest`、`FakeLlmClientTest` | 通过 | 31 用例，见 [verify/0015](verify/0015-llm-client.md)；用 JDK `HttpServer` 起真实本地端点，非 mock 传输层 |

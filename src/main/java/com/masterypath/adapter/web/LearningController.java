@@ -1,5 +1,6 @@
 package com.masterypath.adapter.web;
 
+import com.masterypath.adapter.llm.TaskModel;
 import com.masterypath.domain.mode.SessionMode;
 import com.masterypath.domain.model.CoverageReport;
 import com.masterypath.domain.model.LearningModule;
@@ -17,6 +18,7 @@ import com.masterypath.storage.KnowledgeStore;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -53,12 +55,23 @@ public class LearningController {
     private final LearningService service;
     private final LearningStore store;
     private final KnowledgeService knowledgeService;
+    private final TaskModel taskModel;
 
     public LearningController(LearningService service, LearningStore store,
                               KnowledgeService knowledgeService) {
+        this(service, store, knowledgeService, new TaskModel());
+    }
+
+    /**
+     * @param taskModel 「建议下一问」的草稿生成器；{@code null} 时用无模型版本（恒回退）
+     */
+    @Autowired
+    public LearningController(LearningService service, LearningStore store,
+                              KnowledgeService knowledgeService, TaskModel taskModel) {
         this.service = service;
         this.store = store;
         this.knowledgeService = knowledgeService;
+        this.taskModel = taskModel == null ? new TaskModel() : taskModel;
     }
 
     // -- 路径 ----------------------------------------------------------------
@@ -341,6 +354,21 @@ public class LearningController {
     public List<Map<String, Object>> events(@PathVariable String pathId,
                                             @RequestParam(name = "since", defaultValue = "0") int since) {
         return store.eventsSince(pathId, since);
+    }
+
+    /**
+     * 「建议下一问」草稿（参考实现 {@code suggest_question}）。
+     *
+     * <p>未知路径 → 404 {@code "unknown path"}。返回的是<b>草稿</b>，不会自动发送；
+     * 无可用模型或模型报错时由 {@link TaskModel} 回退到确定性文案，接口本身不失败。
+     */
+    @GetMapping("/paths/{pathId}/suggest-question")
+    public Map<String, Object> suggestQuestion(@PathVariable String pathId) {
+        Map<String, Object> state = service.getState(pathId);
+        if ("missing".equals(state.get("status"))) {
+            throw new ApiException(404, "unknown path");
+        }
+        return ApiSupport.payload("suggestion", taskModel.suggestQuestion(state));
     }
 
     @GetMapping("/paths/{pathId}/questions")
