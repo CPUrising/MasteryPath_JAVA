@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterypath.domain.model.JsonSupport;
 import com.masterypath.service.LearningService;
 import com.masterypath.storage.LearningStore;
+import com.masterypath.storage.SettingsStore;
 
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,12 +31,14 @@ final class ApiTestSupport implements AutoCloseable {
 
     final Path dir;
     final LearningStore store;
+    final SettingsStore settings;
     final LearningService service;
     final MockMvc mvc;
 
     ApiTestSupport() throws IOException {
         this.dir = Files.createTempDirectory("mp-api-");
         this.store = new LearningStore(dir);
+        this.settings = new SettingsStore(dir);
         this.service = new LearningService(store);
         ObjectMapper mapper = JsonSupport.objectMapper();
         this.mvc = MockMvcBuilders.standaloneSetup(
@@ -43,7 +46,7 @@ final class ApiTestSupport implements AutoCloseable {
                         new QuestionBankController(service, store),
                         new SessionController(service, store),
                         new StudyController(service, store),
-                        new SettingsController())
+                        new SettingsController(settings))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(mapper))
                 .build();

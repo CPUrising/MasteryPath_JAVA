@@ -13,6 +13,7 @@ import com.masterypath.adapter.tool.ToolResult;
 import com.masterypath.domain.mode.SessionMode;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.TopicSource;
+import com.masterypath.service.ChatService;
 import com.masterypath.service.LearningService;
 import com.masterypath.storage.LearningStore;
 
@@ -68,29 +69,78 @@ public final class TurnRunner {
     private final LearningStore store;
     private final ClientBuilder clientBuilder;
     private final Object knowledgeService;
+    private final ChatService chatService;
 
     /**
      * @param knowledgeService 知识库服务；{@code null} 表示没有知识库（{@code 0021} 落地真实实现）
      */
     public TurnRunner(LearningService learningService, LearningStore store,
                       ClientBuilder clientBuilder, Object knowledgeService) {
+        this(learningService, store, clientBuilder, knowledgeService, null);
+    }
+
+    /**
+     * @param chatService 普通聊天服务；{@code null} 表示未接入（{@code chat} 能力会明确失败）
+     */
+    public TurnRunner(LearningService learningService, LearningStore store,
+                      ClientBuilder clientBuilder, Object knowledgeService,
+                      ChatService chatService) {
         this.learningService = learningService;
         this.store = store;
         this.clientBuilder = clientBuilder;
         this.knowledgeService = knowledgeService;
+        this.chatService = chatService;
     }
 
     /**
      * 跑一个回合，惰性产出事件。
      *
-     * @throws UnsupportedOperationException {@code capability} 不是 {@code mastery_path}
+     * <p>按 {@code capability} 分派：{@code mastery_path} 走掌握式导师，其余走普通聊天
+     * （参考实现 `if request.capability == "mastery_path": ... else: chat_service.stream_turn`）。
+     *
+     * @throws UnsupportedOperationException {@code chat} 能力但未接入 {@link ChatService}
      */
     public Iterator<TurnEvent> run(TurnRequest request) {
         if (TurnRequest.CAPABILITY_MASTERY.equals(request.capability())) {
             return new MasteryTurn(request);
         }
-        throw new UnsupportedOperationException(
-                "capability '" + request.capability() + "' is implemented in 0020-chat-service");
+        if (chatService == null) {
+            throw new UnsupportedOperationException(
+                    "capability '" + request.capability() + "' needs a ChatService");
+        }
+        return new ChatTurnAdapter(chatService.streamTurn(
+                request.sessionId(), request.message(), request.attachments()));
+    }
+
+    /**
+     * 把 {@link ChatService} 的扁平事件字典包成 {@link TurnEvent}。
+     *
+     * <p>参考实现 `kind = str(event.get("type") or "text_delta")`：缺 {@code type} 时按
+     * {@code text_delta} 处理，其余键全部进 {@code data}。
+     */
+    private static final class ChatTurnAdapter implements Iterator<TurnEvent> {
+
+        private final Iterator<Map<String, Object>> events;
+
+        ChatTurnAdapter(Iterator<Map<String, Object>> events) {
+            this.events = events;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return events.hasNext();
+        }
+
+        @Override
+        public TurnEvent next() {
+            Map<String, Object> event = events.next();
+            Object rawType = event.get("type");
+            String type = rawType == null || String.valueOf(rawType).isEmpty()
+                    ? TurnEvent.TEXT_DELTA : String.valueOf(rawType);
+            Map<String, Object> data = new LinkedHashMap<>(event);
+            data.remove("type");
+            return new TurnEvent(type, data);
+        }
     }
 
     // -- 解析辅助 -------------------------------------------------------------

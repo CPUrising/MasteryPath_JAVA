@@ -185,6 +185,13 @@
 | — | 错误映射（`LlmError` / 其他异常） | `specs/agent-turn` → `error` | `TurnRunnerTest#mapsLlmError`、`#mapsUnexpectedException` | 通过（`0019`） |
 | — | 快照与参考块注入 | `specs/agent-turn` → `extra_context` | `TurnRunnerTest#injectsKnowledgeContextAndSnapshot`、`#snapshotFailureDoesNotSinkTheTurn` | 通过（`0019`） |
 | — | 增量正文多帧 | `specs/agent-turn` → `text_delta` | `TurnRunnerTest#forwardsIncrementalTextFrames`、`WsTurnTest#forwardsIncrementalTextFrames` | 通过（`0019`） |
+| TC-CN1 | 普通聊天调只读导航工具 + `metadata` 透出 | `../MasteryPath/tests/test_chat_nav.py` | `ChatServiceTest#navToolCallAndHandoffSurface` | 通过（`0020`） |
+| — | 聊天回合落库与标题填充 | `chat/service.py:85-188` | `ChatServiceTest#turnPersistsMessagesAndTitle`、`ChatApiTest#streamPersistsMessages` | 通过（`0020`） |
+| — | 聊天 SSE 帧格式 | `api/chat_routes.py:59-80` | `ChatApiTest#streamPersistsMessages`、`#streamSetsNoBufferingHeaders` | 通过（`0020`） |
+| — | 聊天空消息 / 未知会话短路 | `chat/service.py:93-101` | `ChatServiceTest#blankMessageReportsErrorWithoutPersisting`、`#unknownSessionReportsError` | 通过（`0020`） |
+| — | 无模型配置的结构化错误 | `model_resolution.py:72-75` | `ModelResolutionTest#noModelConfigured`、`ChatServiceTest#missingModelReportsStructuredError` | 通过（`0020`） |
+| — | 聊天会话偏好合并 + legacy `model_id` | `chat/store.py:155-184` | `ChatStoreTest#preferencesMergeAndMirrorModelId` | 通过（`0020`） |
+| — | 聊天库 DDL 与独立文件 | `chat/store.py:13-32` | `ChatStoreTest#schemaMatchesReference`、`#usesSeparateDatabaseFile` | 通过（`0020`） |
 | TC-LLM1 | SSE 解析（文本增量 / 分片拼装 / `[DONE]` / 坏参数） | `agents/llm.py:92-158` | `SseParserTest`（10 项） | 通过（`0015`） |
 | TC-LLM2 | 非流式客户端（tools / tool_choice / 错误映射） | `agents/llm.py:303-361` | `OpenAiCompatibleClientTest#chatSendsToolsAndParsesCalls`、`#chatMarksInvalidArguments`、`#authErrorIsStructuredAndSafe`、`#httpErrorBranches` | 通过（`0015`） |
 | TC-LLM3 | 请求头与端点拼接 | `agents/llm.py:245-295` | `OpenAiCompatibleClientTest#opencodeSessionHeader`、`#explicitHeadersWin`、`#bearerHeaderOnlyWithKey`、`#chatEndpointIdempotent` | 通过（`0015`） |
@@ -221,7 +228,7 @@
 
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
-| — | 分组读写 | `specs/settings-task-model` → `Read and write a settings section` | `SettingsApiTest#readWriteSection` | 未实现 |
+| — | 分组读写 | `specs/settings-task-model` → `Read and write a settings section` | `SettingsApiTest#providersRoundtrip`、`SettingsStoreTest#writePersistsToDisk` | 通过（`0018` / `0020` 落盘） |
 | — | 探测失败结构化 | `specs/settings-task-model` → `Probe failure is structured` | `ProviderProbeTest#failureStructured` | 未实现 |
 | — | 无提供方回退 | `specs/settings-task-model` → `Fallback without provider` | `TaskModelTest#fallbackWithoutProvider` | 未实现 |
 | — | 报错回退 | `specs/settings-task-model` → `Fallback on provider error` | `TaskModelTest#fallbackOnError` | 未实现 |

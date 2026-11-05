@@ -313,8 +313,8 @@ class TurnRunnerTest {
 
     // -- 分派 -----------------------------------------------------------------
     @Test
-    @DisplayName("chat 能力在本 change 未实现，明确抛 UnsupportedOperationException")
-    void chatCapabilityIsNotImplementedYet() {
+    @DisplayName("未接入 ChatService 时 chat 能力明确失败")
+    void chatCapabilityWithoutChatServiceFails() {
         TurnRunner runner = new TurnRunner(service, store,
                 (selection, sessionKey) -> new FakeLlmClient(List.of()), null);
         TurnRequest request = new TurnRequest();
@@ -322,7 +322,7 @@ class TurnRunnerTest {
 
         assertThatThrownBy(() -> runner.run(request))
                 .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("0020-chat-service");
+                .hasMessageContaining("needs a ChatService");
     }
 
     // -- 辅助 -----------------------------------------------------------------
