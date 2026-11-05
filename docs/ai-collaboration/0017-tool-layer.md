@@ -9,7 +9,7 @@
   `src/main/java/com/masterypath/domain/mode/ToolClassification.java`（+4 个共享工具）、
   `src/test/java/com/masterypath/adapter/tool/*Test.java`（新增 4 个）、
   `scripts/verify.ps1`、`openspec/changes/0017-tool-layer/**`、`docs/**`。
-- 明确不做的事：`TurnRunner` / WS（`0019`）、知识库服务本体（`0020`）、REST（`0018`）。
+- 明确不做的事：`TurnRunner` / WS（`0019`）、知识库服务本体（`0021`）、REST（`0018`）。
 - 出处：用户指令原文「提交后，继续0017」；`docs/migration-plan.md` §5 第 17 行（拆分后）。
 
 ## 2. AI 产出
@@ -59,5 +59,5 @@
 | `rag` 多库未指定 `kb_id` 是否默认取第一个 | **不默认，拒绝** | 参考实现 `if len(ctx.kb_ids) != 1: return failure` |
 | `read_source` 是否截断 | **截断 20000** | 参考实现 `[:20_000]` |
 | `mountedTools` 是否改全局表 | **不改，返回副本** | 参考实现 `out = dict(TOOLS)` |
-| 知识库服务如何调用 | **反射（鸭子类型）** | 服务本体属 `0020`；避免提前引入依赖 |
+| 知识库服务如何调用 | **反射（鸭子类型）** | 服务本体属 `0021`；避免提前引入依赖 |
 | `mastery_build` 的 `gaps` 是否全字段 | **只 4 个键** | 工具只消费 `id`/`kind`/`ref`/`reason`；已登记 D6 |

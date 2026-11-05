@@ -1123,6 +1123,66 @@ public final class LearningService {
         return true;
     }
 
+    /**
+     * 确保会话存在（参考实现 {@code ensure_session}）。
+     *
+     * <p><b>已存在时原样返回，不改任何字段</b>——包括 {@code mode}。
+     * 调用方（{@link #recordTurn}）随后单独写 {@code mode}。
+     *
+     * @param mode 仅在建档时使用
+     */
+    public Map<String, Object> ensureSession(String pathId, String sessionId,
+                                             String mode, String title) {
+        Map<String, Object> existing = store.getSession(sessionId);
+        if (existing != null) {
+            return existing;
+        }
+        Map<String, Object> created = new LinkedHashMap<>();
+        created.put("session_id", sessionId);
+        created.put("path_id", pathId);
+        created.put("title", title == null ? "" : title);
+        created.put("mode", mode == null || mode.isEmpty() ? "study" : mode);
+        created.put("status", "active");
+        created.put("message_count", 0);
+        created.put("last_message", "");
+        created.put("has_pending_question", false);
+        return store.upsertSession(created);
+    }
+
+    /**
+     * 记录一个完整回合（参考实现 {@code record_turn}）。
+     *
+     * <p>固定写两条消息（user + assistant），因此 {@code message_count} 加 <b>2</b>。
+     * {@code last_message} 取 assistant 优先（Python 真值语义：空串回退到 user）。
+     * {@code has_pending_question} 由 {@code card} 决定。
+     *
+     * @param card 题卡；非 {@code null} 时写入 assistant 消息的 {@code data.card}
+     */
+    public Map<String, Object> recordTurn(String pathId, String sessionId,
+                                          String userText, String assistantText,
+                                          String mode, String turnId,
+                                          Map<String, Object> card) {
+        String user = userText == null ? "" : userText;
+        String assistant = assistantText == null ? "" : assistantText;
+        Map<String, Object> session = ensureSession(pathId, sessionId, mode, "");
+        Object rawTitle = session.get("title");
+        if ((rawTitle == null || String.valueOf(rawTitle).isEmpty())
+                && !user.strip().isEmpty()) {
+            session.put("title", truncate(user.strip(), 40));
+        }
+        store.appendMessage(sessionId, "user", user, turnId, null);
+        store.appendMessage(sessionId, "assistant", assistant, turnId,
+                card == null ? null : payload("card", card));
+        session.put("mode", mode == null || mode.isEmpty() ? "study" : mode);
+        Object rawCount = session.get("message_count");
+        int count = rawCount instanceof Number number ? number.intValue() : 0;
+        session.put("message_count", count + 2);
+        String last = assistant.strip().isEmpty() ? user : assistant;
+        session.put("last_message", truncate(last.strip(), 200));
+        session.put("has_pending_question", card != null);
+        return store.upsertSession(session);
+    }
+
     /** 该路径的会话列表（存储层转发）。 */
     public List<Map<String, Object>> listSessions(String pathId) {
         return store.listSessions(pathId);

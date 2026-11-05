@@ -185,11 +185,12 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 | 16 | `0016-agent-loop` | `ToolContext` / `ToolResult` / `Tool` 契约 + `AgentLoop` + 回合预算 + 事件流 | `adapter/loop/*`、`adapter/tool/ToolContext.java` | `test_loop` 对照；TC-M6 | 0015 |
 | 17 | `0017-tool-layer` | `ToolRegistry` + 23 个工具（19 mastery + 4 导航）+ `ToolSchemas` + 条件挂载 | `adapter/tool/*` | `test_llm_client` 的 2 个 schema 用例；`test_repair_profile` 工具层 2 例；TC-M2；`test_mastery_nav` 工具层 2 例 | 0016 |
 | 18 | `0018-rest-api` | 全部 REST 端点、错误码、事件流端点 | `adapter/web/*` | TC-I1…I7、`test_api`/`test_f0_api` 对照 | 0017 |
-| 19 | `0019-ws-turn` | WS 回合、事件顺序、`session_meta`、部分文本保留 | `adapter/turn/*`、`adapter/web/WsTurnHandler` | `test_turn_runner`、`test_ws_runtime`、`test_chat_nav` 对照 | 0018 |
-| 20 | `0020-knowledge-base` | 文件夹扫描、知识库 CRUD、索引、检索、`rag`/`read_source` 条件挂载 | `service/source/*`、`service/knowledge/*`、`adapter/tool` | `test_knowledge`、`test_knowledge_chat`、`test_source_tools` 对照 | 0019 |
-| 21 | `0021-settings-task-model` | 设置存储/提供方目录/探测、Task Model 建议 + 回退 | `storage/SettingsStore`、`adapter/llm/TaskModel` | `test_settings_probe`、`test_task_model`、`test_preferences` 对照 | 0020 |
-| 22 | `0022-outline-eval-cli` | 大纲评测 CLI、确定性指标、基线对比 | `adapter/eval/*`、`cli/*` | `test_eval` 对照、TC-N5/N6 | 0021 |
-| 23 | `0023-acceptance` | 旧库双向读取、前端联调、全量回归、全部归档 | 无新增业务代码 | 全量 PASS；G7 清单全绿 | 0022 |
+| 19 | `0019-ws-turn` | WS 回合、事件顺序、`session_meta`、部分文本保留 | `adapter/turn/*`、`adapter/web/WsTurnHandler` | `test_turn_runner`、`test_ws_runtime` 对照 | 0018 |
+| 20 | `0020-chat-service` | 普通聊天：`ChatStore`（独立 `chat.db`）、`ChatService`、模型解析、SSE 端点、导航工具接入 | `storage/ChatStore`、`service/ChatService`、`adapter/llm/ModelResolution`、`adapter/web/ChatController` | `test_chat_nav` 对照 | 0019 |
+| 21 | `0021-knowledge-base` | 文件夹扫描、知识库 CRUD、索引、检索、`rag`/`read_source` 条件挂载、`knowledge_context` | `service/source/*`、`service/knowledge/*`、`adapter/tool` | `test_knowledge`、`test_knowledge_chat`、`test_source_tools` 对照 | 0020 |
+| 22 | `0022-settings-task-model` | 设置存储/提供方目录/探测、Task Model 建议 + 回退 | `storage/SettingsStore`、`adapter/llm/TaskModel` | `test_settings_probe`、`test_task_model`、`test_preferences` 对照 | 0021 |
+| 23 | `0023-outline-eval-cli` | 大纲评测 CLI、确定性指标、基线对比 | `adapter/eval/*`、`cli/*` | `test_eval` 对照、TC-N5/N6 | 0022 |
+| 24 | `0024-acceptance` | 旧库双向读取、前端联调、全量回归、全部归档 | 无新增业务代码 | 全量 PASS；G7 清单全绿 | 0023 |
 
 ### 5.1 依赖图
 
@@ -198,7 +199,7 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
              └→ 0004 ─┘                                                              ↓
              └→ 0005 ────────────────────────────────────────────────（0005 可与 0006 并行，但需在 0015 前完成）
                                                                                      ↓
-     0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023
+     0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024
 ```
 
 - `0004`、`0005` 是纯函数层，可与 `0003` 并行推进（不同文件、无共享状态）。
@@ -217,7 +218,7 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 
 拆分理由：写侧绑定与只读导航是两种行为增量，混在一起违反「一个 change 只含一个行为增量」；
 原 `0013`–`0019` 顺延为 `0015`–`0021`（仅改编号，无代码成本）。
-`test_chat_nav.py` 依赖 `ChatService` + `AgentLoop` + 假 LLM，挂到 `0017-ws-turn`。
+`test_chat_nav.py` 依赖 `ChatService` + `AgentLoop` + 假 LLM，挂到 `0020-chat-service`。
 
 ### 5.3 原 0015 的拆分记录（2026-11-04）
 
@@ -234,6 +235,22 @@ Gate 定义沿用规范第 13 节，但按「后端重写」重新映射语义�
 拆分理由：三者是三种行为增量——「协议适配」「回合编排」「工具语义」；
 且 `0015` 可完全离线单测（不依赖 `LearningService`），`0016` 只需一个假工具，
 `0017` 才需要全部服务层方法。原 `0016`–`0021` 顺延为 `0018`–`0023`（仅改编号，无代码成本）。
+
+### 5.4 原 0019 的拆分记录（2026-11-05）
+
+原计划把「WS 回合 + 普通聊天」合成一个 `0019-ws-turn`，验收含 `test_chat_nav`。
+实测普通聊天需新增约 700 行（`chat/store.py` 232 + `chat/service.py` 248 +
+`model_resolution.py` 113 + `chat_routes.py` 83），合计 13 个原子任务，
+超过 `AGENTS.md` §3 的 8 个上限，故拆为两个：
+
+| 新编号 | 内容 | 任务数 | 测试对照 |
+| --- | --- | --- | --- |
+| `0019-ws-turn` | `TurnRequest` / `TurnEvent` / `TurnRunner` + `/ws` 端点 + `ensureSession` / `recordTurn` | 7 | `test_turn_runner.py`（6 用例）、`test_ws_runtime.py`（1 用例） |
+| `0020-chat-service` | `ChatStore`（独立 `chat.db`）+ `ChatService` + 模型解析 + SSE 端点 + 导航工具接入 | 6 | `test_chat_nav.py`（1 用例） |
+
+拆分理由：WS 回合是「掌握式学习的传输层」，普通聊天是「另一种能力」——
+两者共用 `TurnRunner` 但数据源不同（`sessions` 表 vs `chat.db`）。
+原 `0020`–`0023` 顺延为 `0021`–`0024`（仅改编号，无代码成本）。
 
 ---
 

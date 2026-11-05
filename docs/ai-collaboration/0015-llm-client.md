@@ -7,7 +7,7 @@
   `scripts/verify.ps1`（`-Scope unit` 补 3 个测试类过滤）、
   `openspec/changes/0015-llm-client/**`、`docs/**`。
 - 明确不做的事：`AgentLoop` 与回合预算（`0016`）、工具层与 schema（`0017`）、
-  `ModelResolver` / `TaskModel`（`0021`）、真实 provider 联调（手工验证项）。
+  `ModelResolver` / `TaskModel`（`0022`）、真实 provider 联调（手工验证项）。
 - 出处：用户指令原文「可以，继续完成0015」；`docs/migration-plan.md` §5 第 15 行（拆分后）。
 
 ## 2. 人工决策点

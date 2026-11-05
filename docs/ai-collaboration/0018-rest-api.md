@@ -8,8 +8,8 @@
   `src/main/resources/application.properties`、`src/test/resources/application.properties`、
   `src/test/java/com/masterypath/adapter/web/*Test.java`（新增 5 个）、
   `scripts/verify.ps1`、`openspec/changes/0018-rest-api/**`、`docs/**`。
-- 明确不做的事：WS 回合（`0019`）、知识库端点（`0020`）、设置落盘与提供方探测（`0021`）、
-  `suggest-question` / `eval`（`0021` / `0022`）。
+- 明确不做的事：WS 回合（`0019`）、普通聊天（`0020`）、知识库端点（`0021`）、
+  设置落盘与提供方探测（`0022`）、`suggest-question` / `eval`（`0022` / `0023`）。
 - 出处：用户指令原文「0018继续」「继续」；`docs/migration-plan.md` §5 第 18 行。
 
 ## 2. AI 产出
@@ -60,5 +60,5 @@
 | REST 学习端点直调服务还是复用工具层 | **复用工具层** | 保证 REST 与 WS 行为一致（同样的门控与 metadata） |
 | CORS 用 `allowedOrigins("*")` 还是 `allowedOriginPatterns("*")` | **`allowedOrigins("*")`** | 后者回显来源，前端契约要求字面量 `*` |
 | `GET /learning/sessions/{id}` 返回扁平行还是 `{session, messages}` | **`{session, messages}`** | `app.py:479` 的 `return session` 里 `session` 就是 `service.get_session(...)` 的返回值，而它返回 `{session, messages}`（`service.py:1008-1012`）；`test_f0_api.py` 的断言与之一致 |
-| 设置分组是否落盘 | **不落盘（内存）** | 落盘与探测属 `0021`；本 change 只冻结分组语义与归一规则 |
+| 设置分组是否落盘 | **不落盘（内存）** | 落盘与探测属 `0022`；本 change 只冻结分组语义与归一规则 |
 | `LearningStore` 如何注入 | **`@Bean`** | 参考实现把 store 作为 `create_app` 参数；Spring 侧用 bean 表达同一件事 |

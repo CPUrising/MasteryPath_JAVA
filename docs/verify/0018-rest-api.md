@@ -171,21 +171,21 @@
 | 编号 | 偏差 | 等级 | 处理 |
 |---|---|---|---|
 | D1 | `GET /learning/paths` 用独立实现而非 `listPathOverviews` | 无（必要） | 两者跳过条件不同：REST 只跳过「有 owner 且无知识点」，`listPathOverviews` 跳过所有空 map。合并会让普通空路径消失 |
-| D2 | 设置分组为**内存实现** | 低 | 落盘（`settings.json`）与提供方探测属 `0021`；本 change 只冻结分组语义与归一规则 |
+| D2 | 设置分组为**内存实现** | 低 | 落盘（`settings.json`）与提供方探测属 `0022`；本 change 只冻结分组语义与归一规则 |
 | D3 | `WebConfig` 用 `@Bean` 装配 `LearningStore` | 无 | 参考实现把 store 作为 `create_app` 参数；Spring 侧用 bean 表达同一件事。工作目录由 `masterypath.data-dir` 指定 |
 | D4 | `ApiExceptionHandler` 只做兜底 | 无 | 需要非默认状态码的端点（412 / 404）在控制器内显式 `try/catch`，与参考实现逐端点 `HTTPException` 一致 |
-| D5 | `GET /learning/paths/{id}/suggest-question` 与 `POST /eval` 未实现 | 低 | 分别属 `0021`（Task Model）与 `0022`（评测 CLI），`design.md` Non-Goals 已声明 |
-| D6 | `POST /learning/paths/{id}/sources`（文件夹扫描）与 `PUT /knowledge-bases` 未实现 | 低 | 属 `0020-knowledge-base`，`design.md` Non-Goals 已声明 |
+| D5 | `GET /learning/paths/{id}/suggest-question` 与 `POST /eval` 未实现 | 低 | 分别属 `0022`（Task Model）与 `0023`（评测 CLI），`design.md` Non-Goals 已声明 |
+| D6 | `POST /learning/paths/{id}/sources`（文件夹扫描）与 `PUT /knowledge-bases` 未实现 | 低 | 属 `0021-knowledge-base`，`design.md` Non-Goals 已声明 |
 
 ## 5. 未覆盖项（已登记验证债）
 
 | 场景 | 归属 change | 原因 |
 |---|---|---|
 | WS 回合（`/ws`）与事件顺序 | `0019` | 需 WS 层 |
-| 文件夹来源扫描、知识库 CRUD | `0020` | 知识库服务本体 |
-| 设置落盘、提供方目录/探测、Task Model | `0021` | 设置与任务模型 |
-| `suggest-question`、`eval` 端点 | `0021` / `0022` | 依赖 Task Model / 评测 CLI |
-| 前端联调 | `0023` | 需全部端点就绪 |
+| 文件夹来源扫描、知识库 CRUD | `0021` | 知识库服务本体 |
+| 设置落盘、提供方目录/探测、Task Model | `0022` | 设置与任务模型 |
+| `suggest-question`、`eval` 端点 | `0022` / `0023` | 依赖 Task Model / 评测 CLI |
+| 前端联调 | `0024` | 需全部端点就绪 |
 
 ## 6. 结论
 

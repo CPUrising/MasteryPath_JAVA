@@ -146,7 +146,7 @@
 | 编号 | 偏差 | 等级 | 处理 |
 |---|---|---|---|
 | D1 | `ToolClassification.SHARED_TOOLS` 新增 4 个导航工具 | 无（必要） | 参考实现 `mode.py:44` 的注释写着「add the navigation/profile tools when they land」——导航工具本意就是共享。不补则 `assertClassificationComplete` 直接拒绝启动 |
-| D2 | `rag` 用反射调用知识库 `search` | 低 | 知识库服务属 `0020`；本 change 按鸭子类型调用，避免提前引入依赖。`0020` 落地后应改为接口调用 |
+| D2 | `rag` 用反射调用知识库 `search` | 低 | 知识库服务属 `0021`；本 change 按鸭子类型调用，避免提前引入依赖。`0021` 落地后应改为接口调用 |
 | D3 | `ToolContext.service` 仍是 `Object` | 低 | `0016` 遗留；本 change 用 `SharedTools.service(ctx)` 收窄为 `LearningService`，未改字段类型 |
 | D4 | `mastery_quiz` 的 `attempt` 用 `quizAttempts` 计数 | 无 | 与参考实现 `attempt_number` 同语义 |
 | D5 | 导航工具每次新建 `NavigationService` | 低 | 它只持有 `store` 引用，构造成本可忽略；避免在 `ToolContext` 里再加一个字段 |
@@ -156,7 +156,7 @@
 
 | 场景 | 归属 change | 原因 |
 |---|---|---|
-| `rag` 的真实检索（`KnowledgeService.search`） | `0020` | 知识库服务本体 |
+| `rag` 的真实检索（`KnowledgeService.search`） | `0021` | 知识库服务本体 |
 | 工具层的 REST 暴露 | `0018` | 需 REST 层 |
 | `TurnRunner` 驱动的完整回合 | `0019` | 需 WS 层 |
 | `mastery_build` 的 `gaps` 全字段序列化 | 无（D6） | 工具只消费 4 个键；如需全字段，另开 change |

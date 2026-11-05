@@ -135,7 +135,7 @@
 | `test_every_tool_has_a_schema` / `test_required_parameters_match_the_executors` | `0017` | schema 表在工具层 |
 | 真实 provider 流式与 function calling | 手工验证 | 需 API Key |
 | `AgentLoop` 的回合语义 | `0016` | 本 change 只做客户端 |
-| `ModelResolver` / `TaskModel` | `0021` | 需设置存储 |
+| `ModelResolver` / `TaskModel` | `0022` | 需设置存储 |
 
 ## 6. 结论
 

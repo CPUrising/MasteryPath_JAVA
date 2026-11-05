@@ -137,7 +137,7 @@
 | D1 | 首次用 `Set-Content` 改测试文件写入 UTF-8 BOM，javac 报 `非法字符: '\ufeff'` | 一般 | 改用 `[System.IO.File]::WriteAllText` + `UTF8Encoding(false)` 去 BOM。后续一律用 Write 工具 |
 | D2 | 初版 `gapIdsContinueFromExisting` 预期 `g2`，实际 `g1` | 一般 | **测试写错，非实现错**：`confirm` 重建会先 `resetLearningState` 清空 `sourceGaps`，续号起点变 0。改为两个用例分别验证「无 KP 时续号」与「重建时重置」 |
 | D3 | `OutlineBuilder` 使用 `KnowledgeType.fromValue` 解析类型，与参考实现 `KnowledgeType(...)` 语义一致 | 一般 | 无行为差异；`fromValue` 额外支持历史中文值（`0002` 的 `INV-16`），属超集但不影响合法输入 |
-| D4 | `eval_outline`（覆盖比/接地比/无环阈值判定与 CLI）未实现 | 一般 | 属 `0022-outline-eval-cli`；已登记验证债 |
+| D4 | `eval_outline`（覆盖比/接地比/无环阈值判定与 CLI）未实现 | 一般 | 属 `0023-outline-eval-cli`；已登记验证债 |
 | D5 | `propose_objective` / `note_gap`（候选与缺口写入）未实现 | 一般 | 服务层已在 `0017` 落地（`LearningService.proposeObjective` / `noteGap`）；本 change 只实现 `applyProposal` / `rejectProposal` 纯函数 |
 
 ## 5. 未覆盖项（已登记验证债）

@@ -146,7 +146,7 @@
 | TC-S2 | scratch 派生 / 认领 / 隐藏 | `service.py:99-130` | `PathBindingTest#scratchDerivedFromSession`、`#scratchSanitisesSessionId`、`#scratchFallsBackToDefault`、`#scratchClaimsOwnerWithoutEvent`、`#emptyScratchHiddenFromOverview` | 通过（`0013`） |
 | TC-S3 | 会话绑定 | `service.py:132-136` | `PathBindingTest#bindMovesSession`、`#bindEmptySessionIsNoop` | 通过（`0013` 服务层 + `0017` 工具层拒绝） |
 | TC-S4 | 删除会话与空 scratch 级联 | `service.py:1014-1029` | `PathBindingTest#deleteSessionRemovesOwnedEmptyScratch`、`#deleteSessionKeepsPathWithKnowledgePoints`、`#deleteSessionKeepsForeignPath`、`#deleteSessionKeepsPathWithOtherSessions` | 通过（`0013`） |
-| TC-S5 | 回合内切换路径持久化 | `../MasteryPath/tests/test_turn_path_switch.py` | `WebSocketTurnTest#switchPersistsBinding` | 未实现（`0017`） |
+| TC-S5 | 回合内切换路径持久化 | `../MasteryPath/tests/test_turn_path_switch.py` | `TurnRunnerTest#switchPathInsideTurnPersistsBinding` | 通过（`0019`） |
 | TC-NAV1 | 课程卡片（筛选 / 截断 / 条件键） | `learning/navigation.py:41-83` | `NavigationTest#listsBuiltTopics`、`#queryFiltersByHaystack`、`#haystackExcludesPathId`、`#queryKeyOnlyWhenTruthy`、`#modulesTruncated`、`#topicsTruncated` | 通过（`0014`） |
 | TC-NAV2 | 单条课程（空 map 视为不存在） | `navigation.py:86-104` | `NavigationTest#findTopicReturnsCard`、`#findTopicEmptyMapIsNull`、`#findTopicMissingIsNull`、`#findTopicStripsPathId` | 通过（`0014`） |
 | TC-NAV3 | 模块解析（id / 名称 / 1 基序号） | `navigation.py:107-122` | `NavigationTest#resolveModuleById`、`#resolveModuleByName`、`#resolveModuleByOrder`、`#resolveModuleNoMatch` | 通过（`0014`） |
@@ -178,8 +178,13 @@
 | TC-I7 | 声明有事件无证据 | `specs/agent-turn` → `TC-I7` | `MasteryOverrideServiceTest#overrideEmitsEvent`、`LearningApiTest#overrideKnownObjectiveSucceeds` | 通过（`0006` 服务层 + `0018` REST 侧） |
 | TC-E3 | 判分幂等（API） | `specs/learning-tools` → `TC-K3` | `GradeFlowTest#gradeIsIdempotent` | 通过（`0008`，服务层；REST 待 `0014`） |
 | TC-E4 | 公共投影 | `specs/agent-turn` → `TC-I3` | `QuestionCardProjectorTest#projectionHasExactlySevenKeys` | 通过（`0006`） |
-| — | WS 事件顺序 | `specs/agent-turn` → `WS event order` | `WebSocketTurnTest#eventOrder` | 未实现 |
-| — | 流失败保留文本 | `specs/agent-turn` → `Partial text survives stream failure` | `WebSocketTurnTest#partialTextOnError` | 未实现 |
+| — | WS 事件顺序 | `specs/agent-turn` → `WS event order` | `TurnRunnerTest#masteryTurnUsesSharedRunner`、`WsTurnTest#streamsMasteryTurnFrameByFrame` | 通过（`0019`） |
+| — | 流失败保留文本 | `specs/agent-turn` → `Partial text survives stream failure` | `TurnRunnerTest#keepsPartialTextWhenStreamFails` | 通过（`0019`） |
+| — | 题卡派生（`INV-07` 投影） | `specs/agent-turn` → `question_card` | `TurnRunnerTest#derivesQuestionCardFromToolResult` | 通过（`0019`） |
+| — | `session_meta` 时机（`turn_end` 之后） | `specs/agent-turn` → `session_meta` | `TurnRunnerTest#modeSwitchEmitsSessionMeta`、`#noSessionMetaWhenNothingChanged` | 通过（`0019`） |
+| — | 错误映射（`LlmError` / 其他异常） | `specs/agent-turn` → `error` | `TurnRunnerTest#mapsLlmError`、`#mapsUnexpectedException` | 通过（`0019`） |
+| — | 快照与参考块注入 | `specs/agent-turn` → `extra_context` | `TurnRunnerTest#injectsKnowledgeContextAndSnapshot`、`#snapshotFailureDoesNotSinkTheTurn` | 通过（`0019`） |
+| — | 增量正文多帧 | `specs/agent-turn` → `text_delta` | `TurnRunnerTest#forwardsIncrementalTextFrames`、`WsTurnTest#forwardsIncrementalTextFrames` | 通过（`0019`） |
 | TC-LLM1 | SSE 解析（文本增量 / 分片拼装 / `[DONE]` / 坏参数） | `agents/llm.py:92-158` | `SseParserTest`（10 项） | 通过（`0015`） |
 | TC-LLM2 | 非流式客户端（tools / tool_choice / 错误映射） | `agents/llm.py:303-361` | `OpenAiCompatibleClientTest#chatSendsToolsAndParsesCalls`、`#chatMarksInvalidArguments`、`#authErrorIsStructuredAndSafe`、`#httpErrorBranches` | 通过（`0015`） |
 | TC-LLM3 | 请求头与端点拼接 | `agents/llm.py:245-295` | `OpenAiCompatibleClientTest#opencodeSessionHeader`、`#explicitHeadersWin`、`#bearerHeaderOnlyWithKey`、`#chatEndpointIdempotent` | 通过（`0015`） |

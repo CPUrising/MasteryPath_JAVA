@@ -1,5 +1,8 @@
 package com.masterypath.adapter.web;
 
+import com.masterypath.adapter.llm.ClientBuilder;
+import com.masterypath.adapter.llm.LlmError;
+import com.masterypath.adapter.turn.TurnRunner;
 import com.masterypath.service.LearningService;
 import com.masterypath.service.NavigationService;
 import com.masterypath.storage.LearningStore;
@@ -35,5 +38,25 @@ public class WebConfig {
     @Bean
     public NavigationService navigationService(LearningStore store) {
         return new NavigationService(store);
+    }
+
+    /**
+     * 回合编排器。
+     *
+     * <p>{@code knowledgeService} 传 {@code null}：知识库检索属 {@code 0021}。
+     * 默认 {@link ClientBuilder} 直接报「未配置模型」——从设置解析模型属 {@code 0022}，
+     * 在此之前任何真实回合都应当明确失败，而不是静默用一个空客户端。
+     */
+    @Bean
+    public TurnRunner turnRunner(LearningService service, LearningStore store) {
+        return new TurnRunner(service, store, unconfiguredClientBuilder(), null);
+    }
+
+    private static ClientBuilder unconfiguredClientBuilder() {
+        return (selection, sessionKey) -> {
+            throw new LlmError(
+                    "No chat model is configured. Add one under Settings → Language models.",
+                    "bad_request", false);
+        };
     }
 }
