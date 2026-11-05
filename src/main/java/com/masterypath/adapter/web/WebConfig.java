@@ -4,9 +4,11 @@ import com.masterypath.adapter.llm.ClientBuilder;
 import com.masterypath.adapter.llm.ModelResolution;
 import com.masterypath.adapter.turn.TurnRunner;
 import com.masterypath.service.ChatService;
+import com.masterypath.service.KnowledgeService;
 import com.masterypath.service.LearningService;
 import com.masterypath.service.NavigationService;
 import com.masterypath.storage.ChatStore;
+import com.masterypath.storage.KnowledgeStore;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.SettingsStore;
 
@@ -56,16 +58,29 @@ public class WebConfig {
         return new SettingsStore(Path.of(dataDir));
     }
 
+    /** 知识库存储（{@code knowledge_bases/}）。 */
+    @Bean
+    public KnowledgeStore knowledgeStore(@Value("${masterypath.data-dir:data}") String dataDir) {
+        return new KnowledgeStore(Path.of(dataDir));
+    }
+
+    /** 知识库服务（索引、检索、参考块）。 */
+    @Bean
+    public KnowledgeService knowledgeService(KnowledgeStore knowledgeStore,
+                                             SettingsStore settingsStore) {
+        return new KnowledgeService(knowledgeStore, settingsStore);
+    }
+
     /**
      * 普通聊天服务。
      *
-     * <p>{@code knowledgeService} 传 {@code null}：知识库检索属 {@code 0021}，
-     * 在此之前参考块恒为空。
+     * <p>接上真实 {@link KnowledgeService}：命中时把「Reference material」块注入 system 消息。
      */
     @Bean
     public ChatService chatService(ChatStore chatStore, SettingsStore settingsStore,
-                                   LearningService learningService) {
-        return new ChatService(chatStore, settingsStore, null, null, learningService);
+                                   LearningService learningService,
+                                   KnowledgeService knowledgeService) {
+        return new ChatService(chatStore, settingsStore, knowledgeService, null, learningService);
     }
 
     /**
@@ -78,13 +93,13 @@ public class WebConfig {
      */
     @Bean
     public TurnRunner turnRunner(LearningService service, LearningStore store,
-                                 ChatService chatService, SettingsStore settingsStore) {
+                                 ChatService chatService, SettingsStore settingsStore,
+                                 KnowledgeService knowledgeService) {
         ClientBuilder builder = (selection, sessionKey) -> {
             Map<String, Object> config = ModelResolution.resolveLlmConfig(settingsStore, selection);
             config.put("session_key", sessionKey);
             return ModelResolution.buildClient(config);
         };
-        // knowledgeService 传 null：知识库检索属 0021。
-        return new TurnRunner(service, store, builder, null, chatService);
+        return new TurnRunner(service, store, builder, knowledgeService, chatService);
     }
 }

@@ -24,3 +24,4 @@
 | 2026-11-04 | `0018-rest-api` | 675 | 0 | 0 | [verify/0018](verify/0018-rest-api.md) |
 | 2026-11-05 | `0019-ws-turn` | 690 | 0 | 0 | [verify/0019](verify/0019-ws-turn.md) |
 | 2026-11-05 | `0020-chat-service` | 732 | 0 | 0 | [verify/0020](verify/0020-chat-service.md) |
+| 2026-11-05 | `0021-knowledge-base` | 805 | 0 | 0 | [verify/0021](verify/0021-knowledge-base.md) |

@@ -218,11 +218,14 @@
 
 | ID | 场景 | 规范位置 | Java 测试 | 状态 |
 | --- | --- | --- | --- | --- |
-| — | 文件夹扫描为来源 | `specs/knowledge-base` → `Attach folder then build` | `SourceLoaderTest#scanFolder` | 未实现 |
-| — | 引用解析 | `specs/knowledge-base` → `Attach folder then build` | `SourceLoaderTest#resolveByLabelAndBasename` | 未实现 |
-| — | 检索不调模型 | `specs/knowledge-base` → `Search returns located chunks` | `KnowledgeServiceTest#searchNoLlm` | 未实现 |
-| — | 旧来源回退摘要 | `specs/knowledge-base` → `Legacy source falls back to excerpt` | `ReadSourceTest#legacyExcerptFallback` | 未实现 |
-| — | 条件挂载 | `specs/knowledge-base` → `No knowledge base means no rag tool` | `ToolMountingTest#ragOnlyWithKb` | 未实现 |
+| — | 文件夹扫描为来源 | `specs/knowledge-base` → `Attach folder then build` | `FolderScannerTest#scanFindsSupportedFilesOnly`、`KnowledgeApiTest#attachFolderSources` | 通过（`0021`） |
+| — | 引用解析（标签 / 唯一基名） | `specs/knowledge-base` → `Attach folder then build` | `PathBindingTest`（`0013` 的 `SourceResolver`） | 通过（`0013`） |
+| — | 检索不调模型 | `specs/knowledge-base` → `Search returns located chunks` | `KnowledgeServiceTest#searchReturnsRankedHits`、`VectorIndexerTest#searchRanksBySimilarity` | 通过（`0021`） |
+| — | 旧来源回退摘要 | `specs/knowledge-base` → `Legacy source falls back to excerpt` | `TurnRunnerTest#snapshotFailureDoesNotSinkTheTurn`（文件读不到退回 excerpt） | 通过（`0019`） |
+| — | 条件挂载 | `specs/knowledge-base` → `No knowledge base means no rag tool` | `SourceToolsTest#mountedOnlyWhenInputsExist` | 通过（`0017`） |
+| — | 知识库 CRUD 与索引 | `knowledge/service.py:127-245` | `KnowledgeServiceTest`（17 项）、`KnowledgeApiTest`（19 项） | 通过（`0021`） |
+| — | 上传路径安全 | `knowledge/store.py:84-107` | `KnowledgeStoreTest#uploadTraversalRejected`、`KnowledgeApiTest#uploadTraversalIs422` | 通过（`0021`） |
+| — | 参考块注入 | `knowledge/context.py` | `KnowledgeServiceTest#knowledgeContextBuildsBlock` | 通过（`0021`） |
 
 ## 8. 设置与 Task Model（settings-task-model）
 

@@ -2,7 +2,9 @@ package com.masterypath.adapter.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterypath.domain.model.JsonSupport;
+import com.masterypath.service.KnowledgeService;
 import com.masterypath.service.LearningService;
+import com.masterypath.storage.KnowledgeStore;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.SettingsStore;
 
@@ -13,6 +15,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +35,8 @@ final class ApiTestSupport implements AutoCloseable {
     final Path dir;
     final LearningStore store;
     final SettingsStore settings;
+    final KnowledgeStore knowledgeStore;
+    final KnowledgeService knowledgeService;
     final LearningService service;
     final MockMvc mvc;
 
@@ -39,17 +44,45 @@ final class ApiTestSupport implements AutoCloseable {
         this.dir = Files.createTempDirectory("mp-api-");
         this.store = new LearningStore(dir);
         this.settings = new SettingsStore(dir);
+        this.knowledgeStore = new KnowledgeStore(dir);
+        this.knowledgeService = new KnowledgeService(knowledgeStore, settings,
+                config -> texts -> deterministicVectors(texts));
         this.service = new LearningService(store);
         ObjectMapper mapper = JsonSupport.objectMapper();
         this.mvc = MockMvcBuilders.standaloneSetup(
-                        new LearningController(service, store),
+                        new LearningController(service, store, knowledgeService),
                         new QuestionBankController(service, store),
                         new SessionController(service, store),
                         new StudyController(service, store),
-                        new SettingsController(settings))
+                        new SettingsController(settings),
+                        new KnowledgeController(knowledgeService))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(mapper))
                 .build();
+    }
+
+    /**
+     * 确定性向量：同一文本永远得到同一向量，且共享词越多相似度越高。
+     *
+     * <p>用词袋哈希而不是随机数，测试因此可复现（参考实现用 {@code _fake_embedder} 同理）。
+     */
+    static List<List<Double>> deterministicVectors(List<String> texts) {
+        List<List<Double>> vectors = new ArrayList<>();
+        for (String text : texts) {
+            double[] vector = new double[8];
+            for (String word : text.toLowerCase().split("\\s+")) {
+                if (word.isEmpty()) {
+                    continue;
+                }
+                vector[Math.floorMod(word.hashCode(), 8)] += 1.0;
+            }
+            List<Double> values = new ArrayList<>();
+            for (double value : vector) {
+                values.add(value);
+            }
+            vectors.add(values);
+        }
+        return vectors;
     }
 
     /** 建一条含单个 memory 知识点的路径（{@code k1}）。 */

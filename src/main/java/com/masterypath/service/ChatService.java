@@ -133,9 +133,21 @@ public class ChatService {
         return new ChatTurn(sessionId, message, attachments);
     }
 
-    /** 知识库参考块；本 change 恒为空串（属 {@code 0021}）。 */
+    /**
+     * 知识库参考块。
+     *
+     * <p>{@code knowledgeService} 为 {@code null}（未接入）或检索无命中时返回空串；
+     * 检索失败同样返回空串——参考材料缺失不能拖垮聊天。
+     */
     String knowledgeContext(List<String> kbIds, String query) {
-        return "";
+        if (!(knowledgeService instanceof KnowledgeService service)) {
+            return "";
+        }
+        try {
+            return service.knowledgeContext(kbIds, query);
+        } catch (RuntimeException e) {
+            return "";
+        }
     }
 
     // -- 回合状态机 -----------------------------------------------------------

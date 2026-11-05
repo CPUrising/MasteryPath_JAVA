@@ -51,8 +51,13 @@
 | 模型解析 | 选择归一、`active_id`、退回首条、三条失败文案 | `ModelResolutionTest` | 通过 | 8 用例，见 [verify/0020](verify/0020-chat-service.md) |
 | 聊天服务 | 导航工具回合、落库与标题、空消息/未知会话短路、无模型错误、部分文本、历史过滤、附件 | `ChatServiceTest` | 通过 | 11 用例，见 [verify/0020](verify/0020-chat-service.md) |
 | 聊天 REST + SSE | 会话 CRUD、SSE 帧、防缓冲头、错误帧 | `ChatApiTest` | 通过 | 7 用例，见 [verify/0020](verify/0020-chat-service.md) |
-| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0021-knowledge-base` 起；见 `docs/migration-plan.md` §5 |
-| 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭（已完成 `test_policy`/`test_mode`/`test_outline`/`test_eval`/`test_grading`/`test_study`/`test_interactions`/`test_assess`/`test_scheduler`/`test_review`/`test_question_bank`/`test_repair_profile`/`test_path_binding`/`test_mastery_nav`/`test_llm_client`/`test_loop`/`test_mastery_status`/`test_source_tools`/`test_api`/`test_f0_api`/`test_turn_runner`/`test_ws_runtime`/`test_turn_path_switch`/`test_chat_nav`/`test_preferences`） |
+| 文件夹扫描 | 扩展名过滤、隐藏项与构建目录跳过、坏字节替换、摘要折叠 | `FolderScannerTest` | 通过 | 8 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
+| 知识库存储 | 目录布局、名称清理、上传路径安全、链接文件夹、文档收集 | `KnowledgeStoreTest` | 通过 | 20 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
+| 索引与检索 | 分块、进度、余弦 top-k、未建索引错误 | `VectorIndexerTest` | 通过 | 9 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
+| 知识库服务 | 嵌入解析、分块配置、后台索引、同 run 去重、检索三重短路、参考块 | `KnowledgeServiceTest` | 通过 | 17 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
+| 知识库 REST | 12 个端点 + 路径 sources 三端点 + 错误码分工 | `KnowledgeApiTest` | 通过 | 19 用例，见 [verify/0021](verify/0021-knowledge-base.md) |
+| 全部业务 | Java 实现尚未开始 | — | 未执行 | 从 `0022-settings-task-model` 起；见 `docs/migration-plan.md` §5 |
+| 参考实现对照 | 237 个 Python 用例的等价性 | `../MasteryPath/tests` | 未执行 | 按 change 逐组对照后关闭（已完成 `test_policy`/`test_mode`/`test_outline`/`test_eval`/`test_grading`/`test_study`/`test_interactions`/`test_assess`/`test_scheduler`/`test_review`/`test_question_bank`/`test_repair_profile`/`test_path_binding`/`test_mastery_nav`/`test_llm_client`/`test_loop`/`test_mastery_status`/`test_source_tools`/`test_api`/`test_f0_api`/`test_turn_runner`/`test_ws_runtime`/`test_turn_path_switch`/`test_chat_nav`/`test_preferences`/`test_knowledge`/`test_knowledge_chat`） |
 | 参考实现行为瑕疵 | Q1–Q5（错误文案双套 / `objective.deferred` 缺 note / `require_type_unchanged` 无调用者 / review 下 grade 未校验掌握 / **`tag_question` 保留空白标签**） | — | 照抄不改 | 均为参考实现原样行为，已逐字锁定；Q5 由 `0011` 实测确认并锁定，详见 `docs/migration-plan.md` §11 |
 | LLM 适配层 | 真实 provider 流式与 function calling | `OpenAiCompatibleClientTest` | 阻塞 | 需要真实 Key，属手工验证项 |
 | LLM 客户端 | SSE 解析、非流式/流式请求、6 个 HTTP 错误分支、请求头、Fake 客户端 | `SseParserTest`、`OpenAiCompatibleClientTest`、`FakeLlmClientTest` | 通过 | 31 用例，见 [verify/0015](verify/0015-llm-client.md)；用 JDK `HttpServer` 起真实本地端点，非 mock 传输层 |
@@ -60,4 +65,4 @@
 | 工具层 | 23 个工具：门控、异常转换、条件挂载、状态快照、出题判分、来源、导航、捕获 | `MasteryToolsTest`、`SourceToolsTest`、`StatusAndQuizToolsTest` | 通过 | 46 用例，见 [verify/0017](verify/0017-tool-layer.md) |
 | 回合循环 | 提示词框定、事件顺序、预算（跨轮累计）、出题结束回合、轮数耗尽、工具失败三降级、OpenAI 工具历史、惰性流 | `AgentLoopTest` | 通过 | 19 用例，见 [verify/0016](verify/0016-agent-loop.md) |
 | 回合循环 × 真实工具 | `test_loop_builds_outline_then_finishes`（地图真的建出来）、`test_loop_refuses_tool_in_wrong_mode`（门控文案） | `MasteryToolsTest#unrecordedModeEnforcesNothing`、`#buildRefusedInStudy` | 通过 | 已结算，见 [verify/0017](verify/0017-tool-layer.md) |
-| 前端联调 | Next.js 对 Java 后端的端到端 | — | 阻塞 | 依赖 `0021`–`0024` 完成后进行 |
+| 前端联调 | Next.js 对 Java 后端的端到端 | — | 阻塞 | 依赖 `0022`–`0024` 完成后进行 |

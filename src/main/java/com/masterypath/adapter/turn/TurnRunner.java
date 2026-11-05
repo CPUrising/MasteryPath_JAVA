@@ -208,8 +208,8 @@ public final class TurnRunner {
     /**
      * {@code read_source} 用的「可读 id / 标签 → 正文」索引。
      *
-     * <p>文件来源读磁盘（失败则退回 {@code excerpt}）；知识库来源的正文拼装属 {@code 0021}，
-     * 本 change 只用 {@code excerpt}。
+     * <p>文件来源读磁盘（失败则退回 {@code excerpt}）；知识库来源优先拼装库内全部文档
+     * （参考实现 {@code store.collect_documents}），失败同样退回 {@code excerpt}。
      */
     Map<String, String> sourceIndex(String pathId) {
         if (pathId.isEmpty()) {
@@ -226,7 +226,18 @@ public final class TurnRunner {
             keys.add(source.getLabel());
             keys.add(source.getSourceId());
             String text = source.getExcerpt();
-            if (!"knowledge_base".equals(source.getKind())) {
+            if ("knowledge_base".equals(source.getKind())) {
+                String kbId = source.getSourceId() == null || source.getSourceId().isEmpty()
+                        ? source.getId() : source.getSourceId();
+                List<Map.Entry<String, String>> documents = collectDocuments(kbId);
+                if (!documents.isEmpty()) {
+                    List<String> blocks = new ArrayList<>();
+                    for (Map.Entry<String, String> document : documents) {
+                        blocks.add("[" + document.getKey() + "]\n" + document.getValue());
+                    }
+                    text = String.join("\n\n", blocks);
+                }
+            } else {
                 String filePath = source.getMetadata() == null
                         ? "" : str(source.getMetadata().get("path"));
                 if (!filePath.isEmpty()) {
@@ -244,6 +255,18 @@ public final class TurnRunner {
             }
         }
         return index;
+    }
+
+    /** 取知识库文档；未接入知识库服务或读取失败时返回空列表。 */
+    private List<Map.Entry<String, String>> collectDocuments(String kbId) {
+        if (!(knowledgeService instanceof com.masterypath.service.KnowledgeService service)) {
+            return List.of();
+        }
+        try {
+            return service.store().collectDocuments(kbId);
+        } catch (RuntimeException e) {
+            return List.of();
+        }
     }
 
     // -- 回合 -----------------------------------------------------------------

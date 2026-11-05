@@ -6,10 +6,14 @@ import com.masterypath.domain.model.LearningModule;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.domain.model.SourceGap;
+import com.masterypath.domain.model.TopicSource;
 import com.masterypath.domain.outline.BuildResult;
 import com.masterypath.domain.outline.OutlineException;
 import com.masterypath.domain.outline.ReviseResult;
+import com.masterypath.knowledge.FolderScanner;
+import com.masterypath.service.KnowledgeService;
 import com.masterypath.service.LearningService;
+import com.masterypath.storage.KnowledgeStore;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
 
@@ -26,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +52,13 @@ public class LearningController {
 
     private final LearningService service;
     private final LearningStore store;
+    private final KnowledgeService knowledgeService;
 
-    public LearningController(LearningService service, LearningStore store) {
+    public LearningController(LearningService service, LearningStore store,
+                              KnowledgeService knowledgeService) {
         this.service = service;
         this.store = store;
+        this.knowledgeService = knowledgeService;
     }
 
     // -- 路径 ----------------------------------------------------------------
@@ -242,6 +251,82 @@ public class LearningController {
             throw new ApiException(404, "unknown path");
         }
         return state.get("map");
+    }
+
+    // -- 来源与知识库 ---------------------------------------------------------
+
+    /**
+     * 扫描文件夹并作为来源附加（参考实现 {@code attach_sources}）。
+     *
+     * <p>缺 {@code folder} → <b>422</b>；文件夹不存在 / 不是目录 → <b>404</b>。
+     * 这个 404 映射不常见，但与参考实现一致。
+     */
+    @PostMapping("/paths/{pathId}/sources")
+    public List<Map<String, Object>> attachSources(
+            @PathVariable String pathId,
+            @RequestBody(required = false) Map<String, Object> payload) {
+        Map<String, Object> body = payload == null ? Map.of() : payload;
+        String folder = ApiSupport.str(body.get("folder"));
+        if (folder.isEmpty()) {
+            throw new ApiException(422, "folder required");
+        }
+        List<TopicSource> sources;
+        try {
+            sources = FolderScanner.scanFolder(Path.of(folder));
+        } catch (IOException e) {
+            throw new ApiException(404, e.getMessage());
+        }
+        return service.attachSources(pathId, sources);
+    }
+
+    /** 列出路径的来源；未知路径 → 404。 */
+    @GetMapping("/paths/{pathId}/sources")
+    public Object listSources(@PathVariable String pathId) {
+        Map<String, Object> state = service.getState(pathId);
+        if ("missing".equals(state.get("status"))) {
+            throw new ApiException(404, "unknown path");
+        }
+        return state.get("sources");
+    }
+
+    /**
+     * 设置路径的默认知识库（以 {@code knowledge_base} 来源表达）。
+     *
+     * <p>{@code kb_ids} 非数组 → 422；任一知识库不存在 → 404。
+     */
+    @PutMapping("/paths/{pathId}/knowledge-bases")
+    public Map<String, Object> setPathKnowledgeBases(
+            @PathVariable String pathId,
+            @RequestBody(required = false) Map<String, Object> payload) {
+        Map<String, Object> body = payload == null ? Map.of() : payload;
+        if (!(body.get("kb_ids") instanceof List<?> kbIds)) {
+            throw new ApiException(422, "kb_ids must be an array");
+        }
+        List<TopicSource> sources = new ArrayList<>();
+        int position = 0;
+        for (Object rawId : kbIds) {
+            String kbId = ApiSupport.str(rawId);
+            Map<String, Object> kb;
+            try {
+                kb = knowledgeService.get(kbId);
+            } catch (KnowledgeStore.UnknownKnowledgeBase e) {
+                throw new ApiException(404, "unknown knowledge base: " + kbId);
+            }
+            TopicSource source = new TopicSource();
+            source.setId("kb:" + ApiSupport.str(kb.get("id")));
+            source.setKind("knowledge_base");
+            source.setSourceId(ApiSupport.str(kb.get("id")));
+            source.setLabel(ApiSupport.str(kb.get("name")));
+            source.setExcerpt(ApiSupport.str(kb.get("description")));
+            source.setPosition(position++);
+            source.setAvailable("ready".equals(ApiSupport.str(kb.get("status"))));
+            sources.add(source);
+        }
+        service.setKnowledgeBaseSources(pathId, sources);
+        Map<String, Object> state = service.getState(pathId);
+        return ApiSupport.payload(
+                "knowledge_bases", state.getOrDefault("knowledge_bases", List.of()),
+                "sources", state.get("sources"));
     }
 
     // -- 事件与题库 -----------------------------------------------------------
