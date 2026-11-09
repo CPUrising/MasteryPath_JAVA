@@ -69,7 +69,9 @@ public final class ToolSchemas {
                         "options", arrayOf(optionSchema(), null),
                         "explanation", string(),
                         "difficulty", enumOf("string", QuizSpec.DIFFICULTIES),
-                        "accepted_answers", arrayOf(Map.of("type", "string"), null),
+                        "accepted_answers", arrayOf(Map.of("type", "string"),
+                                "Required for natural-language short answers; equivalent answers "
+                                        + "that count as correct."),
                         "required_keywords", arrayOf(Map.of("type", "string"), null),
                         "optional_keywords", arrayOf(Map.of("type", "string"), null)),
                 List.of("knowledge_point_id", "question", "expected_answer")));

@@ -12,10 +12,12 @@ export function QuestionCard({
   question,
   onAnswer,
   onSkip,
+  answered = false,
 }: {
   question: PendingQuestion;
   onAnswer: (text: string) => void;
   onSkip: () => void;
+  answered?: boolean;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
@@ -35,7 +37,9 @@ export function QuestionCard({
         </div>
       )}
       <MarkdownMessage content={question.prompt} className="text-sm font-medium" />
-      {question.options.length > 0 ? (
+      {answered ? (
+        <p className="mt-3 text-[12px] text-muted-foreground">{t("q.answered")}</p>
+      ) : question.options.length > 0 ? (
         <ul className="mt-3 space-y-1.5">
           {question.options.map((option) => (
             <li key={option.label}>
@@ -79,11 +83,13 @@ export function QuestionCard({
           </div>
         </div>
       )}
-      <div className="mt-3 text-right">
-        <button type="button" onClick={onSkip} className="text-[12px] text-muted-foreground hover:underline">
-          {t("q.skip")}
-        </button>
-      </div>
+      {!answered && (
+        <div className="mt-3 text-right">
+          <button type="button" onClick={onSkip} className="text-[12px] text-muted-foreground hover:underline">
+            {t("q.skip")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

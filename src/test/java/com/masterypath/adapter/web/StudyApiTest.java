@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -173,6 +174,138 @@ class StudyApiTest {
                 .andReturn());
 
         assertThat(quiz).containsEntry("status", "registered");
+    }
+
+    @Test
+    void gradeFeedbackPersistsInSessionMessages() throws Exception {
+        api.buildMixedOutline("p");
+        String questionId = registerNumericQuestion("s1");
+
+        Map<String, Object> graded = json(api.mvc.perform(post("/learning/paths/p/grade")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"4\","
+                                + "\"session_id\":\"s1\",\"turn_id\":\"t-1\"}"))
+                .andReturn());
+
+        assertThat(graded).containsEntry("status", "graded").containsEntry("result", "correct");
+        List<Map<String, Object>> messages = messages("s1");
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0)).containsEntry("role", "user").containsEntry("content", "4");
+        assertThat(messages.get(1)).containsEntry("role", "assistant");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> grade = (Map<String, Object>) data(messages.get(1)).get("grade");
+        assertThat(grade).containsEntry("status", "graded")
+                .containsEntry("result", "correct")
+                .containsEntry("question_id", questionId);
+    }
+
+    @Test
+    void ungradedGradePersistsWithoutMasteryChange() throws Exception {
+        api.buildMixedOutline("p");
+        String questionId = registerChoiceQuestion("s1");
+        var before = api.service.store().load("p");
+        int evidenceBefore = before.getLearningEvidence().size();
+        double masteryBefore = before.getMasteryLevels().getOrDefault("k1", 0.0);
+
+        MvcResult result = api.mvc.perform(post("/learning/paths/p/grade")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"Z\","
+                                + "\"session_id\":\"s1\"}"))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(422);
+        var after = api.service.store().load("p");
+        assertThat(after.getLearningEvidence()).hasSize(evidenceBefore);
+        assertThat(after.getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(masteryBefore);
+        List<Map<String, Object>> messages = messages("s1");
+        assertThat(messages).hasSize(2);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> grade = (Map<String, Object>) data(messages.get(1)).get("grade");
+        assertThat(grade).containsEntry("status", "ungraded");
+    }
+
+    @Test
+    void repeatedGradeDoesNotDuplicateMessages() throws Exception {
+        api.buildMixedOutline("p");
+        String questionId = registerNumericQuestion("s1");
+
+        json(api.mvc.perform(post("/learning/paths/p/grade")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"4\","
+                                + "\"session_id\":\"s1\"}"))
+                .andReturn());
+        Map<String, Object> replay = json(api.mvc.perform(post("/learning/paths/p/grade")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"4\","
+                                + "\"session_id\":\"s1\"}"))
+                .andReturn());
+
+        assertThat(replay).containsEntry("status", "already_graded");
+        assertThat(messages("s1")).hasSize(2);
+    }
+
+    @Test
+    void naturalLanguageShortNeedsAcceptedAnswers() throws Exception {
+        api.buildMixedOutline("p");
+        assertThat(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"what process?\","
+                                + "\"question_type\":\"short\","
+                                + "\"expected_answer\":\"the process of photosynthesis\"}"))
+                .andReturn().getResponse().getStatus()).isEqualTo(422);
+    }
+
+    @Test
+    void numericShortIsAllowedWithoutAcceptedAnswers() throws Exception {
+        api.buildMixedOutline("p");
+        Map<String, Object> quiz = json(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"2+2?\","
+                                + "\"question_type\":\"short\",\"expected_answer\":\"4\"}"))
+                .andReturn());
+        assertThat(quiz).containsEntry("status", "registered");
+    }
+
+    @Test
+    void shortWithAcceptedAnswersIsAllowed() throws Exception {
+        api.buildMixedOutline("p");
+        Map<String, Object> quiz = json(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"what process?\","
+                                + "\"question_type\":\"short\","
+                                + "\"expected_answer\":\"the process of photosynthesis\","
+                                + "\"accepted_answers\":[\"photosynthesis\"]}"))
+                .andReturn());
+        assertThat(quiz).containsEntry("status", "registered");
+    }
+
+    private String registerNumericQuestion(String sessionId) throws Exception {
+        return String.valueOf(json(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"2+2?\","
+                                + "\"expected_answer\":\"4\",\"session_id\":\"" + sessionId + "\"}"))
+                .andReturn()).get("question_id"));
+    }
+
+    private String registerChoiceQuestion(String sessionId) throws Exception {
+        return String.valueOf(json(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"pick one\","
+                                + "\"question_type\":\"choice\",\"expected_answer\":\"A\","
+                                + "\"options\":[{\"label\":\"A\",\"body\":\"one\"},"
+                                + "{\"label\":\"B\",\"body\":\"two\"}],"
+                                + "\"session_id\":\"" + sessionId + "\"}"))
+                .andReturn()).get("question_id"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> messages(String sessionId) {
+        return (List<Map<String, Object>>) api.service.getSessionDetail(sessionId).get("messages");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> data(Map<String, Object> message) {
+        return (Map<String, Object>) message.get("data");
     }
 
     private static Map<String, Object> json(MvcResult result) throws Exception {

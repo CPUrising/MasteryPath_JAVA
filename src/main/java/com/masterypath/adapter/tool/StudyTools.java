@@ -87,8 +87,9 @@ public final class StudyTools {
             // 单槽位：重放已有卡片，忽略新参数（INV-02）。
             MasteryInteraction existing = service.store().getOpenInteraction(ctx.pathId());
             if (existing != null) {
-                Map<String, Object> card = questionCard(
-                        existing.getQuestion(), kp.getName(), attemptNumber(progress, kp.getId()));
+                PendingQuestion open = existing.getQuestion();
+                Map<String, Object> card = questionCardFor(
+                        progress, open, kp.getName(), ctx.turnId());
                 ctx.endTurn();
                 return ToolResult.ok(
                         "No new question: an open question already exists; re-presenting it.",
@@ -107,6 +108,15 @@ public final class StudyTools {
                     spec.questionType(), spec.requiredKeywords(), spec.expectedAnswer());
             List<String> optional = "open".equals(spec.questionType())
                     ? spec.optionalKeywords() : List.of();
+            List<String> accepted = ToolSupport.stringList(params.get("accepted_answers"));
+
+            if ("short".equals(spec.questionType()) && accepted.isEmpty()
+                    && !isSelfGradingShort(spec.expectedAnswer())) {
+                return ToolResult.failure(
+                        "short questions need accepted_answers so equivalent wording is not marked "
+                                + "wrong; add at least one accepted answer, or use question_type=open "
+                                + "for keyword-based grading.");
+            }
 
             PendingQuestion pending = QuizSpec.toPending(
                     new QuizSpec.Normalized(spec.questionType(), spec.options(),
@@ -118,7 +128,7 @@ public final class StudyTools {
                     ToolSupport.stripped(params.get("explanation")),
                     QuizSpec.DIFFICULTIES.contains(ToolSupport.str(params.get("difficulty")))
                             ? ToolSupport.str(params.get("difficulty")) : "",
-                    ToolSupport.stringList(params.get("accepted_answers")));
+                    accepted);
 
             MasteryInteraction interaction = service.registerQuestion(
                     ctx.pathId(), pending, ctx.sessionId(), ctx.turnId());
@@ -131,8 +141,8 @@ public final class StudyTools {
                 }
             }
             PendingQuestion shown = interaction == null ? pending : interaction.getQuestion();
-            Map<String, Object> card = questionCard(
-                    shown, kp.getName(), attemptNumber(progress, kp.getId()));
+            Map<String, Object> card = questionCardFor(
+                    progress, shown, kp.getName(), ctx.turnId());
             StringBuilder notice = new StringBuilder(
                     "The question is on the learner's card and this turn ends here; grade "
                             + "their answer next turn with mastery_grade.");
@@ -176,17 +186,19 @@ public final class StudyTools {
             LearningService service = SharedTools.service(ctx);
             Map<String, Object> result;
             try {
-                result = service.grade(
+                result = new LinkedHashMap<>(service.grade(
                         ctx.pathId(),
                         ToolSupport.str(params.get("question_id")),
                         ToolSupport.str(params.get("answer")),
                         ToolSupport.intOf(params.get("hints_used")),
                         SessionMode.enforced(ctx.sessionMode()) == SessionMode.REVIEW,
                         ctx.sessionId(),
-                        ctx.turnId());
+                        ctx.turnId()));
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
             }
+            // 判分结果回指题目：前端据此把已作答的卡片标记为不可再答。
+            result.putIfAbsent("question_id", ToolSupport.str(params.get("question_id")));
             if ("ungraded".equals(result.get("status"))) {
                 return new ToolResult(false,
                         "Not graded: " + result.get("reason") + ". Ask the learner to clarify.",
@@ -312,14 +324,46 @@ public final class StudyTools {
 
     // -- 辅助 -----------------------------------------------------------------
 
-    /** 构造题目卡片：公共投影 + 目标名 + 第几次尝试（{@code INV-07}）。 */
-    static Map<String, Object> questionCard(PendingQuestion pending, String objectiveName,
-                                            int attempt) {
+    /** 按题目自身的知识点构造卡片；找不到时退回调用方给的目标名。 */
+    static Map<String, Object> questionCardFor(LearningProgress progress, PendingQuestion pending,
+                                               String fallbackObjectiveName, String turnId) {
+        String kpId = pending.getKnowledgePointId() == null ? "" : pending.getKnowledgePointId();
+        var location = progress.findKnowledgePoint(kpId);
+        String name = location.found() ? location.knowledgePoint().getName() : fallbackObjectiveName;
+        return questionCard(pending, kpId, name,
+                attemptNumber(progress, kpId), turnId);
+    }
+
+    /** 构造题目卡片：公共投影 + 目标名 + 第几次尝试 + 回合上下文（{@code INV-07}）。 */
+    static Map<String, Object> questionCard(PendingQuestion pending, String knowledgePointId,
+                                            String objectiveName, int attempt, String turnId) {
         Map<String, Object> card = new LinkedHashMap<>(
                 QuestionCardProjector.publicPendingQuestion(pending));
+        card.put("card_kind", "mastery");
+        card.put("turn_id", turnId == null ? "" : turnId);
+        card.put("objective", Map.of(
+                "id", knowledgePointId == null ? "" : knowledgePointId,
+                "name", objectiveName == null ? "" : objectiveName));
         card.put("objective_name", objectiveName);
         card.put("attempt", attempt);
         return card;
+    }
+
+    /**
+     * short 题是否可仅靠期望答案判定。
+     *
+     * <p>纯数值与 ASCII 单 token（如 {@code 42}、{@code HTTP}、{@code A/B}）没有同义表述问题；
+     * 自然语言短语则必须有 {@code accepted_answers}，否则等价作答会被判错。
+     */
+    static boolean isSelfGradingShort(String expectedAnswer) {
+        String value = expectedAnswer == null ? "" : expectedAnswer.trim();
+        if (value.isEmpty()) {
+            return true;
+        }
+        if (value.matches("[+-]?\\d+(?:\\.\\d+)?")) {
+            return true;
+        }
+        return value.matches("[A-Za-z0-9_./:+-]+") && !value.contains(" ");
     }
 
     /** 该知识点已尝试次数 + 1（参考实现 {@code attempt_number}）。 */

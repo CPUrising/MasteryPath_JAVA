@@ -94,7 +94,9 @@ class TurnRunnerTest {
                         "question", "What is one?",
                         "expected_answer", "1"), "q-1", false))));
 
-        List<TurnEvent> events = run(fake, request("s1", "p", "study", "quiz me"));
+        TurnRequest request = request("s1", "p", "study", "quiz me");
+        request.setTurnId("t-1");
+        List<TurnEvent> events = run(fake, request);
 
         assertThat(types(events))
                 .containsExactly("tool_call", "tool_result", "question_card", "turn_end");
@@ -102,6 +104,23 @@ class TurnRunnerTest {
         assertThat(events.get(2).data()).containsKey("question_id");
         // 题卡不得含答案（INV-07）。
         assertThat(events.get(2).data()).doesNotContainKeys("expected_answer", "explanation");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> card = (Map<String, Object>) events.get(2).data();
+        assertThat(card).containsEntry("card_kind", "mastery")
+                .containsEntry("turn_id", "t-1");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> objective = (Map<String, Object>) card.get("objective");
+        assertThat(objective).containsEntry("id", "k1").containsEntry("name", "fact one");
+
+        // 题卡同时写入 assistant 消息的 data.card，刷新后无需 pending_question 也能恢复。
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> messages = (List<Map<String, Object>>)
+                service.getSessionDetail("s1").get("messages");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> persisted = (Map<String, Object>)
+                ((Map<String, Object>) messages.get(1).get("data")).get("card");
+        assertThat(persisted).containsEntry("question_id", card.get("question_id"))
+                .containsEntry("card_kind", "mastery");
     }
 
     @Test

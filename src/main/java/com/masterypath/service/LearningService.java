@@ -1233,6 +1233,37 @@ public final class LearningService {
         return store.upsertSession(session);
     }
 
+    /**
+     * 记录一次题卡作答：user 答案 + assistant 判分数据。
+     *
+     * <p>只由 REST 题卡路径调用，避免与 WS 回合的 {@link #recordTurn} 重复写消息。
+     * {@code sessionId} 为空时不落库；调用方负责按 {@code status} 去重。
+     *
+     * @param outcome 工具返回的判分元数据（含 {@code status/result/is_correct/...}）
+     */
+    public Map<String, Object> recordGradeInteraction(String pathId, String sessionId,
+                                                      String answer, Map<String, Object> outcome,
+                                                      String turnId) {
+        if (sessionId == null || sessionId.isEmpty()) {
+            return null;
+        }
+        String user = answer == null ? "" : answer;
+        String assistant = outcome == null ? ""
+                : String.valueOf(outcome.getOrDefault("result",
+                        outcome.getOrDefault("status", "")));
+        Map<String, Object> session = ensureSession(pathId, sessionId, null, "");
+        store.appendMessage(sessionId, "user", user, turnId, null);
+        store.appendMessage(sessionId, "assistant", assistant, turnId,
+                payload("grade", outcome));
+        Object rawCount = session.get("message_count");
+        int count = rawCount instanceof Number number ? number.intValue() : 0;
+        session.put("message_count", count + 2);
+        String last = assistant.strip().isEmpty() ? user : assistant;
+        session.put("last_message", truncate(last.strip(), 200));
+        session.put("has_pending_question", false);
+        return store.upsertSession(session);
+    }
+
     /** 该路径的会话列表（存储层转发）。 */
     public List<Map<String, Object>> listSessions(String pathId) {
         return store.listSessions(pathId);

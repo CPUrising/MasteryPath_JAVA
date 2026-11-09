@@ -34,3 +34,5 @@
 | 2026-11-09 | `0028-quiz-answer-parity` | 868 | 0 | 0 | [verify/0028](verify/0028-quiz-answer-parity.md) |
 | 2026-11-09 | `0029-mock-llm-dev-server` | 868 | 0 | 0 | [verify/0029](verify/0029-mock-llm-dev-server.md) |
 | 2026-11-09 | `0030-test-hygiene` | 868 | 0 | 0 | [verify/0030](verify/0030-test-hygiene.md) |
+| 2026-11-09 | `0031-quiz-card-event-authority` | 874 | 0 | 0 | [verify/0031](verify/0031-quiz-card-event-authority.md) |
+| 2026-11-09 | `0032-app-shell-scroll` | 874 | 0 | 0 | [verify/0032](verify/0032-app-shell-scroll.md) |

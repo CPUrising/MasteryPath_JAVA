@@ -255,6 +255,23 @@
 | — | Unknown session | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatApiTest#withdrawTruncatesTail` | 通过（`0026`） |
 | — | Repeated withdrawal is idempotent | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatApiTest#withdrawTruncatesTail` | 通过（`0026`） |
 
+## 10. 题卡事件与作答反馈（0031）
+
+> 本能力由 `0031` 新增/细化；场景名取自
+> `openspec/changes/0031-quiz-card-event-authority/specs/`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Card event carries turn context | `changes/0031-quiz-card-event-authority/specs/agent-turn` | `TurnRunnerTest#derivesQuestionCardFromToolResult` | 通过（`0031`） |
+| TC-I3 | Event projection hides answers | `changes/0031-quiz-card-event-authority/specs/agent-turn` | `TurnRunnerTest#derivesQuestionCardFromToolResult`、`QuestionCardProjectorTest` | 通过（`0031`） |
+| — | Reload restores card from history | `changes/0031-quiz-card-event-authority/specs/agent-turn` | `TurnRunnerTest#derivesQuestionCardFromToolResult` + 前端手测 | 通过（`0031`） |
+| — | Reload does not duplicate card | `changes/0031-quiz-card-event-authority/specs/agent-turn` | 前端手测（browser_use） | 通过（`0031`） |
+| — | Natural-language short needs accepted answers | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#naturalLanguageShortNeedsAcceptedAnswers` | 通过（`0031`） |
+| — | Numeric short is exempt | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#numericShortIsAllowedWithoutAcceptedAnswers` | 通过（`0031`） |
+| — | Graded feedback persists | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#gradeFeedbackPersistsInSessionMessages` | 通过（`0031`） |
+| — | Ungraded persists with zero change | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#ungradedGradePersistsWithoutMasteryChange` | 通过（`0031`） |
+| — | Repeated grade does not duplicate messages | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#repeatedGradeDoesNotDuplicateMessages` | 通过（`0031`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

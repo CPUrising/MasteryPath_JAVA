@@ -36,6 +36,24 @@ export interface PendingQuestion {
   options: { label: string; body: string }[];
   objective_name?: string;
   attempt?: number;
+  card_kind?: "mastery";
+  turn_id?: string;
+  objective?: { id: string; name: string };
+}
+
+/** `POST /learning/paths/{pathId}/grade` 与 `messages.data.grade` 的判分结果。 */
+export interface GradeOutcome {
+  ok: boolean;
+  content: string;
+  status: string;
+  result: string;
+  question_id?: string;
+  is_correct?: boolean;
+  explanation?: string;
+  reason?: string;
+  mastery_before?: number;
+  mastery_after?: number;
+  gate_cleared?: boolean;
 }
 
 export interface ReviewItem {
@@ -107,7 +125,7 @@ export interface SessionMessage {
   turn_id: string;
   role: "user" | "assistant";
   content: string;
-  data: { card?: PendingQuestion };
+  data: { card?: PendingQuestion; grade?: GradeOutcome };
   created_at: number;
 }
 

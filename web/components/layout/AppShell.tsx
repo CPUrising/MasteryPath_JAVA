@@ -38,7 +38,7 @@ export default function AppShell({
           </button>
           <span className="font-semibold">{t("app.name")}</span>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </main>
     </div>
   );

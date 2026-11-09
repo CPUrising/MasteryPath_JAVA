@@ -70,6 +70,9 @@
   "q.verdict.unknown": "已记录本次作答。",
   "q.mastered": "这个知识点已达成掌握。",
   "q.gradeFailed": "判分失败",
+  "q.answered": "已作答",
+  "q.ungraded": "我没听懂这个作答，请换种说法或直接点选项。",
+  "q.retry": "可以重新作答",
 
   "settings.title": "设置",
   "settings.search": "搜索设置",

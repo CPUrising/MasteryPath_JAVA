@@ -1,6 +1,7 @@
 import type {
   CatalogProvider,
   DetectedModel,
+  GradeOutcome,
   Mode,
   ModelService,
   PathState,
@@ -9,6 +10,8 @@ import type {
   ProviderProtocol,
   TopicSession,
 } from "./types";
+
+export type { GradeOutcome } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8001";
 export const WS_BASE = API_BASE.replace(/^http/, "ws");
@@ -21,20 +24,6 @@ export interface ProbeInput {
   api_key?: string;
   service?: ModelService | "";
 }
-
-/** `POST /learning/paths/{pathId}/grade` 的摊平响应（工具元数据 + ok/content）。 */
-export interface GradeOutcome {
-  ok: boolean;
-  content: string;
-  status: string;
-  result: string;
-  is_correct?: boolean;
-  explanation?: string;
-  mastery_before?: number;
-  mastery_after?: number;
-  gate_cleared?: boolean;
-}
-
 
 async function json<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`${response.status}: ${await response.text()}`);

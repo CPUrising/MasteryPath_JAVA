@@ -70,6 +70,9 @@
   "q.verdict.unknown": "Answer recorded.",
   "q.mastered": "This knowledge point is now mastered.",
   "q.gradeFailed": "Could not grade the answer",
+  "q.answered": "Answered",
+  "q.ungraded": "I couldn't parse that answer. Try rephrasing or pick an option.",
+  "q.retry": "You can try again",
 
   "settings.title": "Settings",
   "settings.search": "Search settings",

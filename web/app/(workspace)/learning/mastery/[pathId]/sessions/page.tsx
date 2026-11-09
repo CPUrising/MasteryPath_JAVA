@@ -35,6 +35,8 @@ import { runTurn } from "@/lib/ws";
 interface Item {
   role: "user" | "assistant";
   text: string;
+  card?: PendingQuestion;
+  grade?: GradeOutcome;
 }
 
 function masteredIds(state: PathState): Set<string> {
@@ -106,8 +108,13 @@ function StudyRoute() {
         }
         if (detail.session?.mode) setMode(normalizeMode(detail.session.mode));
         const history = (detail.messages as SessionMessage[])
-          .filter((message) => message.content)
-          .map((message) => ({ role: message.role, text: message.content }));
+          .filter((message) => message.content || message.data?.card || message.data?.grade)
+          .map<Item>((message) => ({
+            role: message.role,
+            text: message.content,
+            ...(message.data?.card ? { card: message.data.card } : {}),
+            ...(message.data?.grade ? { grade: message.data.grade } : {}),
+          }));
         if (history.length) setItems(history);
       })
       .catch(() => undefined);
@@ -183,24 +190,46 @@ function StudyRoute() {
 
   const answerQuestion = useCallback(
     async (question: PendingQuestion, answer: string) => {
+      setItems((previous) => [...previous, { role: "user", text: answer }]);
       try {
         const outcome = await api.grade(pathId, {
           question_id: question.question_id,
           answer,
+          session_id: sessionId,
+          turn_id: "",
         });
         setItems((previous) => [
           ...previous,
-          { role: "assistant", text: describeGrade(outcome) },
+          { role: "assistant", text: "", grade: outcome },
         ]);
       } catch (reason) {
-        setItems((previous) => [
-          ...previous,
-          { role: "assistant", text: `${t("q.gradeFailed")} (${String(reason)})` },
-        ]);
+        const message = String(reason);
+        if (message.includes("ungraded")) {
+          // 未判定不是答错：保留题卡与输入区，允许换一种说法重答。
+          setItems((previous) => [
+            ...previous,
+            {
+              role: "assistant",
+              text: "",
+              grade: {
+                ok: false,
+                content: message,
+                status: "ungraded",
+                result: "ungraded",
+                question_id: question.question_id,
+              },
+            },
+          ]);
+        } else {
+          setItems((previous) => [
+            ...previous,
+            { role: "assistant", text: `${t("q.gradeFailed")} (${message})` },
+          ]);
+        }
       }
       await load().catch(() => undefined);
     },
-    [describeGrade, load, pathId, t],
+    [load, pathId, sessionId, t],
   );
 
   useEffect(() => {
@@ -265,6 +294,16 @@ function StudyRoute() {
           (event) => {
             if (event.type === "text_delta") {
               appendAssistant(String(event.data.text ?? ""));
+            }
+            if (event.type === "question_card") {
+              const card = event.data as unknown as PendingQuestion;
+              if (card?.question_id) {
+                setItems((previous) =>
+                  previous.some((item) => item.card?.question_id === card.question_id)
+                    ? previous
+                    : [...previous, { role: "assistant", text: "", card }],
+                );
+              }
             }
             if (event.type === "session_meta") {
               const next = event.data.mastery_session_mode;
@@ -333,6 +372,14 @@ function StudyRoute() {
   const { counts, next, pending_question } = state;
   const progress = counts.total ? counts.mastered / counts.total : 0;
   const note = MODE_NOTES[mode];
+  const answeredCardIds = new Set(
+    items
+      .filter((item) => item.grade?.question_id && item.grade.status !== "ungraded")
+      .map((item) => item.grade!.question_id as string),
+  );
+  const inlineCardIds = new Set(
+    items.filter((item) => item.card).map((item) => item.card!.question_id),
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -380,18 +427,49 @@ function StudyRoute() {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {items.map((item, index) => (
-                    <MessageBubble
-                      key={index}
-                      role={item.role}
-                      content={item.text}
-                      streaming={busy && index === items.length - 1 && item.role === "assistant"}
-                    />
-                  ))}
+                  {items.map((item, index) => {
+                    if (item.card) {
+                      const card = item.card;
+                      return (
+                        <QuestionCard
+                          key={`card-${card.question_id}`}
+                          question={card}
+                          answered={answeredCardIds.has(card.question_id)}
+                          onAnswer={(answer) => void answerQuestion(card, answer)}
+                          onSkip={async () => {
+                            await api.skipQuestion(pathId, card.question_id);
+                            await load();
+                          }}
+                        />
+                      );
+                    }
+                    if (item.grade) {
+                      const content = item.grade.status === "ungraded"
+                        ? `${t("q.ungraded")}${item.grade.reason ? ` (${item.grade.reason})` : ""}`
+                        : describeGrade(item.grade);
+                      return (
+                        <MessageBubble
+                          key={`grade-${index}`}
+                          role="assistant"
+                          content={content}
+                          streaming={false}
+                        />
+                      );
+                    }
+                    return (
+                      <MessageBubble
+                        key={`message-${index}`}
+                        role={item.role}
+                        content={item.text}
+                        streaming={busy && index === items.length - 1 && item.role === "assistant"}
+                      />
+                    );
+                  })}
                   {handoffs.length > 0 && <MasteryHandoffCards handoffs={handoffs} />}
-                  {pending_question && (
+                  {pending_question && !inlineCardIds.has(pending_question.question_id) && (
                     <QuestionCard
                       question={pending_question}
+                      answered={answeredCardIds.has(pending_question.question_id)}
                       onAnswer={(answer) => void answerQuestion(pending_question, answer)}
                       onSkip={async () => {
                         await api.skipQuestion(pathId, pending_question.question_id);

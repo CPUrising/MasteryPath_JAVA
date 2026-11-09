@@ -46,7 +46,24 @@ public class StudyController {
     @PostMapping("/grade")
     public Map<String, Object> grade(@PathVariable String pathId,
                                      @RequestBody(required = false) Map<String, Object> payload) {
-        return runTool("mastery_grade", pathId, payload);
+        Map<String, Object> params = payload == null ? Map.of() : payload;
+        String sessionId = ApiSupport.str(params.get("session_id"));
+        String turnId = ApiSupport.str(params.get("turn_id"));
+        ToolContext ctx = context(pathId, sessionId);
+        ctx.setTurnId(turnId);
+        ToolResult result = MasteryTools.all().get("mastery_grade").execute(params, ctx);
+        // 判分反馈只在 REST 题卡路径落库；WS 工具调用由 recordTurn 统一写，避免重复。
+        // 只有真正拿到判分结果（graded/ungraded）才写；precondition 失败没有 metadata。
+        Object status = result.metadata().get("status");
+        if (!sessionId.isEmpty() && status != null
+                && !"already_graded".equals(ApiSupport.str(status))) {
+            service.recordGradeInteraction(pathId, sessionId,
+                    ApiSupport.str(params.get("answer")), result.metadata(), turnId);
+        }
+        if (!result.ok()) {
+            throw new ApiException(422, result.content());
+        }
+        return flatten(result);
     }
 
     @PostMapping("/assess")
@@ -72,6 +89,11 @@ public class StudyController {
         if (!result.ok()) {
             throw new ApiException(422, result.content());
         }
+        return flatten(result);
+    }
+
+    /** 参考实现 {@code _run_tool} 的响应体：{@code ok/content} + 工具元数据。 */
+    private static Map<String, Object> flatten(ToolResult result) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ok", true);
         body.put("content", result.content());
