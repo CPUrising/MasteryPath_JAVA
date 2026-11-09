@@ -4,6 +4,8 @@ import com.masterypath.adapter.llm.ClientBuilder;
 import com.masterypath.adapter.llm.LlmClient;
 import com.masterypath.adapter.llm.LlmError;
 import com.masterypath.domain.mode.SessionMode;
+import com.masterypath.domain.model.KnowledgePoint;
+import com.masterypath.domain.model.LearningModule;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.QuizItem;
 import com.masterypath.domain.model.QuizSet;
@@ -82,7 +84,8 @@ final class QuizSetTurn implements Iterator<TurnEvent> {
         String setId = UUID.randomUUID().toString().replace("-", "");
         try {
             LlmClient client = clientBuilder.build(request.llmSelection(), request.sessionId());
-            List<QuizItem> items = new QuizSetGenerator(client).generate(spec, setId);
+            List<QuizItem> items = new QuizSetGenerator(client)
+                    .generate(spec, setId, generationContext(progress));
 
             QuizSet set = new QuizSet();
             set.setSetId(setId);
@@ -139,6 +142,46 @@ final class QuizSetTurn implements Iterator<TurnEvent> {
         }
         payload.put("templates", templates);
         return payload;
+    }
+
+    /**
+     * 从路径状态构造生成上下文（{@code 0035}）。
+     *
+     * <p>只含路径名、目标与知识点名称/类型；不含答案、掌握度或证据。知识点最多 12 个，
+     * 避免提示随大纲膨胀。
+     */
+    private String generationContext(LearningProgress progress) {
+        StringBuilder context = new StringBuilder();
+        String name = progress.getName() == null ? "" : progress.getName().strip();
+        String goal = progress.getGoal() == null ? "" : progress.getGoal().strip();
+        if (!name.isEmpty()) {
+            context.append("Path: ").append(name).append('\n');
+        }
+        if (!goal.isEmpty()) {
+            context.append("Goal: ").append(goal).append('\n');
+        }
+        int remaining = 12;
+        for (LearningModule module : progress.getModules()) {
+            if (remaining <= 0) {
+                break;
+            }
+            StringBuilder line = new StringBuilder();
+            for (KnowledgePoint point : module.getKnowledgePoints()) {
+                if (remaining <= 0) {
+                    break;
+                }
+                if (line.length() > 0) {
+                    line.append(", ");
+                }
+                line.append(point.getName()).append(" [").append(point.getType().value()).append("]");
+                remaining--;
+            }
+            if (line.length() > 0) {
+                context.append("- ").append(module.getName()).append(": ")
+                        .append(line).append('\n');
+            }
+        }
+        return context.toString().strip();
     }
 
     private String resolvePathId() {

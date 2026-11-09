@@ -38,3 +38,4 @@
 | 2026-11-09 | `0032-app-shell-scroll` | 874 | 0 | 0 | [verify/0032](verify/0032-app-shell-scroll.md) |
 | 2026-11-09 | `0033-quiz-set-generation` | 893 | 0 | 0 | [verify/0033](verify/0033-quiz-set-generation.md) |
 | 2026-11-09 | `0034-quiz-viewer-ui` | 893 | 0 | 0 | [verify/0034](verify/0034-quiz-viewer-ui.md) |
+| 2026-11-10 | `0035-quiz-generation-context` | 894 | 0 | 0 | [verify/0035](verify/0035-quiz-generation-context.md) |

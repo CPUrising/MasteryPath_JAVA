@@ -309,6 +309,17 @@
 | — | Reload restores an open quiz | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（刷新后恢复题卷与作答入口） | 通过（`0034`） |
 | — | Reload restores a submitted quiz | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（刷新后复盘与得分保留） | 通过（`0034`） |
 
+## 13. 练习题生成上下文（0035）
+
+> 本能力由 `0035` 新增；场景名取自
+> `openspec/changes/0035-quiz-generation-context/specs/quiz-set/spec.md`。
+
+| ID | 场景 | 规范位置 | 验证 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Prompt carries path and knowledge points | `changes/0035-quiz-generation-context/specs/quiz-set` | `QuizSetTurnTest#promptIncludesPathContext` | 通过（`0035`） |
+| — | Requests without an explicit topic still stay on-path | `changes/0035-quiz-generation-context/specs/quiz-set` | 真实模型复验（模糊请求生成线程状态题） | 通过（`0035`） |
+| — | Context never leaks grading data | `changes/0035-quiz-generation-context/specs/quiz-set` | `QuizSetTurnTest#promptIncludesPathContext`（断言无 `expected_answer` / `mastery`） | 通过（`0035`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

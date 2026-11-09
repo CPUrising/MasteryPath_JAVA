@@ -27,6 +27,8 @@ final class QuizSetGenerator {
 
     private static final String SYSTEM = """
             You generate practice quizzes for a learner.
+            Questions MUST target the knowledge points in the provided learning context;
+            the learner's request only sets the practice topic.
             Return ONLY one valid JSON object, no markdown fences, no prose outside JSON.
             Shape:
             {"questions":[
@@ -56,13 +58,14 @@ final class QuizSetGenerator {
     /**
      * 生成并校验题卷的题目。
      *
+     * @param context 路径上下文（路径名/目标/知识点）；为空时退回只按用户消息生成
      * @return 恰好 {@code spec.count()} 道通过校验的题目
      * @throws QuizGenerationException 解析/校验失败且修复一次后仍失败
      */
-    List<QuizItem> generate(QuizSetSpec spec, String setId) {
+    List<QuizItem> generate(QuizSetSpec spec, String setId, String context) {
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", SYSTEM));
-        messages.add(Map.of("role", "user", "content", userPrompt(spec)));
+        messages.add(Map.of("role", "user", "content", userPrompt(spec, context)));
         String raw = ask(messages);
         try {
             return parse(raw, spec, setId);
@@ -82,12 +85,17 @@ final class QuizSetGenerator {
         }
     }
 
-    private String userPrompt(QuizSetSpec spec) {
-        return "Topic: " + spec.topic()
-                + "\nNumber of questions: " + spec.count()
-                + "\nAllowed question types: " + String.join(", ", spec.questionTypes())
-                + "\nDifficulty: " + spec.difficulty()
-                + "\nReturn exactly " + spec.count() + " questions.";
+    private String userPrompt(QuizSetSpec spec, String context) {
+        StringBuilder prompt = new StringBuilder()
+                .append("Topic: ").append(spec.topic())
+                .append("\nNumber of questions: ").append(spec.count())
+                .append("\nAllowed question types: ").append(String.join(", ", spec.questionTypes()))
+                .append("\nDifficulty: ").append(spec.difficulty());
+        if (context != null && !context.isBlank()) {
+            prompt.append("\nLearning context:\n").append(context.strip());
+        }
+        prompt.append("\nReturn exactly ").append(spec.count()).append(" questions.");
+        return prompt.toString();
     }
 
     private String ask(List<Map<String, Object>> messages) {

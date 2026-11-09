@@ -105,6 +105,30 @@ class QuizSetTurnTest {
     }
 
     @Test
+    @DisplayName("生成提示注入路径名、目标与知识点上下文")
+    void promptIncludesPathContext() {
+        service.build("p", Map.of("modules", List.of(Map.of(
+                "name", "Java 线程",
+                "knowledge_points", List.of(Map.of(
+                        "name", "六种状态名称", "type", "memory"))))), true);
+        FakeLlmClient fake = new FakeLlmClient(List.of(LlmResponse.text(VALID)));
+
+        run(fake, request());
+
+        String prompt = fake.calls().get(0).stream()
+                .filter(message -> "user".equals(message.get("role")))
+                .findFirst()
+                .map(message -> String.valueOf(message.get("content")))
+                .orElse("");
+        assertThat(prompt).contains(
+                "Path: Caching",
+                "Goal: learn caching",
+                "Java 线程",
+                "六种状态名称 [memory]");
+        assertThat(prompt).doesNotContain("expected_answer", "mastery");
+    }
+
+    @Test
     @DisplayName("未知 capability 明确失败")
     void unknownCapabilityThrows() {
         TurnRunner runner = new TurnRunner(service, store,
