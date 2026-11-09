@@ -19,6 +19,7 @@ artifacts/
 .idea/
 *.iml
 .vscode/
+.trae/
 
 # OS
 Thumbs.db
