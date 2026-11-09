@@ -127,6 +127,37 @@ class ChatApiTest {
                 .andReturn().getResponse().getStatus()).isEqualTo(404);
     }
 
+    @Test
+    @DisplayName("撤回消息：删除该条及其之后的消息；未知会话 404")
+    void withdrawTruncatesTail() throws Exception {
+        configureModels();
+        client.set(new FakeLlmClient(List.of(LlmResponse.text("Hello"))));
+        String sessionId = createSession();
+        streamTurn(sessionId, "first");
+        streamTurn(sessionId, "second");
+
+        Map<String, Object> detail = json(
+                mvc.perform(get("/chat/sessions/" + sessionId)).andReturn());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> messages = (List<Map<String, Object>>) detail.get("messages");
+        assertThat(messages).hasSize(4);
+        long firstUserId = ((Number) messages.get(0).get("id")).longValue();
+
+        assertThat(mvc.perform(delete("/chat/sessions/" + sessionId + "/messages/" + firstUserId))
+                .andReturn().getResponse().getStatus()).isEqualTo(204);
+
+        Map<String, Object> after = json(
+                mvc.perform(get("/chat/sessions/" + sessionId)).andReturn());
+        assertThat((List<?>) after.get("messages")).isEmpty();
+
+        // 幂等：同一条消息重复撤回仍返回 204。
+        assertThat(mvc.perform(delete("/chat/sessions/" + sessionId + "/messages/" + firstUserId))
+                .andReturn().getResponse().getStatus()).isEqualTo(204);
+
+        assertThat(mvc.perform(delete("/chat/sessions/ghost/messages/" + firstUserId))
+                .andReturn().getResponse().getStatus()).isEqualTo(404);
+    }
+
     // -- SSE 回合 -------------------------------------------------------------
 
     @Test

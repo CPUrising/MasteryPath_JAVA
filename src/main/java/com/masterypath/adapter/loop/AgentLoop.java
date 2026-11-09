@@ -144,8 +144,8 @@ public final class AgentLoop {
         private StreamEvent next;
 
         private StringBuilder roundText = new StringBuilder();
-        private List<StreamChunk> chunks = List.of();
-        private int chunkIndex;
+        /** 惰性 chunk 源：取一片才会读上游下一片，保证文本增量即时透传。 */
+        private Iterator<StreamChunk> chunks;
         private List<ToolCall> calls = new ArrayList<>();
         private int callIndex;
         private ToolCall pendingCall;
@@ -189,13 +189,12 @@ public final class AgentLoop {
                         roundText = new StringBuilder();
                         calls = new ArrayList<>();
                         callIndex = 0;
-                        chunks = client.streamChatEvents(history, toolDefs);
-                        chunkIndex = 0;
+                        chunks = client.streamChat(history, toolDefs);
                         state = State.CONSUME_CHUNKS;
                     }
                     case CONSUME_CHUNKS -> {
-                        if (chunkIndex < chunks.size()) {
-                            StreamChunk chunk = chunks.get(chunkIndex++);
+                        if (chunks.hasNext()) {
+                            StreamChunk chunk = chunks.next();
                             if (!chunk.toolCalls().isEmpty()) {
                                 calls.addAll(chunk.toolCalls());
                             }

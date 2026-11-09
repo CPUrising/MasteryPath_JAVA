@@ -11,9 +11,12 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -260,6 +263,48 @@ class OpenAiCompatibleClientTest {
         assertThat(chunks).hasSize(2);
         assertThat(chunks.get(0).text()).isEqualTo("hi");
         assertThat(chunks.get(1).toolCalls().get(0).name()).isEqualTo("mastery_status");
+    }
+
+    @Test
+    @DisplayName("streamChat 惰性：上游未结束时也能取到第一片")
+    void streamChatIsLazy() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        HttpServer lazyServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        lazyServer.createContext("/v1/chat/completions", exchange -> {
+            exchange.getRequestBody().readAllBytes();
+            exchange.getResponseHeaders().add("content-type", "text/event-stream");
+            exchange.sendResponseHeaders(200, 0);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(("data: {\"choices\":[{\"delta\":{\"content\":\"first\"}}]}\n\n")
+                        .getBytes(StandardCharsets.UTF_8));
+                out.flush();
+                // 等到消费方取走第一片后才继续写：攒批实现会在这里卡住直到超时。
+                release.await(5, TimeUnit.SECONDS);
+                out.write("data: [DONE]\n\n".getBytes(StandardCharsets.UTF_8));
+                out.flush();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        lazyServer.start();
+        try {
+            String url = "http://127.0.0.1:" + lazyServer.getAddress().getPort() + "/v1";
+            Iterator<StreamChunk> chunks =
+                    new OpenAiCompatibleClient(url, "k", "m").streamChat(messages(), List.of());
+
+            long startedAt = System.nanoTime();
+            assertThat(chunks.hasNext()).isTrue();
+            StreamChunk first = chunks.next();
+            long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
+
+            assertThat(first.text()).isEqualTo("first");
+            assertThat(elapsedMs).isLessThan(2_000);
+            release.countDown();
+            assertThat(chunks.hasNext()).isFalse();
+        } finally {
+            release.countDown();
+            lazyServer.stop(0);
+        }
     }
 
     @Test

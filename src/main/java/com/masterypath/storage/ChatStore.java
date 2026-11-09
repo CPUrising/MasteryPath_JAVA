@@ -342,6 +342,39 @@ public class ChatStore implements AutoCloseable {
         }
     }
 
+    /**
+     * 撤回：删除指定消息及其之后的所有消息。
+     *
+     * <p>聊天是追加式的，撤回一条用户消息意味着它之后的所有对话都失去上下文，
+     * 因此按 {@code id >= messageId} 整体截断。
+     *
+     * @return 被删除的消息条数
+     * @throws UnknownSession 会话不存在
+     */
+    public int deleteMessagesFrom(String sessionId, long messageId) {
+        getSession(sessionId);
+        synchronized (lock) {
+            int deleted;
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM messages WHERE session_id=? AND id>=?")) {
+                ps.setString(1, sessionId);
+                ps.setLong(2, messageId);
+                deleted = ps.executeUpdate();
+            } catch (SQLException e) {
+                throw new IllegalStateException("delete chat messages failed", e);
+            }
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE sessions SET updated_at=? WHERE session_id=?")) {
+                ps.setDouble(1, TimeSupport.nowSeconds());
+                ps.setString(2, sessionId);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                throw new IllegalStateException("touch chat session failed", e);
+            }
+            return deleted;
+        }
+    }
+
     // -- 内部 -----------------------------------------------------------------
 
     private Map<String, Object> sessionRow(ResultSet rs) throws SQLException {

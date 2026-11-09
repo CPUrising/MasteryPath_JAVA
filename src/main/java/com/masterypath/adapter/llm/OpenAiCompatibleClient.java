@@ -10,11 +10,15 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -139,8 +143,8 @@ public class OpenAiCompatibleClient implements LlmClient {
     // -- 流式 -----------------------------------------------------------------
 
     @Override
-    public List<StreamChunk> streamChatEvents(List<Map<String, Object>> messages,
-                                              List<Map<String, Object>> tools) {
+    public Iterator<StreamChunk> streamChat(List<Map<String, Object>> messages,
+                                            List<Map<String, Object>> tools) {
         requireConfig();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
@@ -163,14 +167,21 @@ public class OpenAiCompatibleClient implements LlmClient {
             throw new LlmError("Could not reach the model provider.", "upstream_error", false);
         }
         if (response.statusCode() != 200) {
+            response.body().close();
             throw LlmError.httpError(response.statusCode());
         }
-        SseParser parser = new SseParser();
+        // 惰性迭代：每行到达才解析，文本片立即交给调用方，不被攒批。
+        return new SseChunkIterator(response.body());
+    }
+
+    @Override
+    public List<StreamChunk> streamChatEvents(List<Map<String, Object>> messages,
+                                              List<Map<String, Object>> tools) {
         List<StreamChunk> chunks = new ArrayList<>();
-        try (Stream<String> lines = response.body()) {
-            lines.forEach(line -> chunks.addAll(parser.feed(line)));
+        Iterator<StreamChunk> iterator = streamChat(messages, tools);
+        while (iterator.hasNext()) {
+            chunks.add(iterator.next());
         }
-        chunks.addAll(parser.finish());
         return chunks;
     }
 
@@ -208,6 +219,62 @@ public class OpenAiCompatibleClient implements LlmClient {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new LlmError("Could not reach the model provider.", "upstream_error", false);
+        }
+    }
+
+    /**
+     * 把上游 SSE 行流包装成惰性 chunk 迭代器。
+     *
+     * <p>每取一片才读一行；流结束或抛错时关闭底层连接，避免连接泄漏。
+     * 文本片即时产出，工具调用在 {@link SseParser#finish()} 时一次性产出。
+     */
+    private static final class SseChunkIterator implements Iterator<StreamChunk> {
+
+        private final Stream<String> lines;
+        private final Iterator<String> source;
+        private final SseParser parser = new SseParser();
+        private final Deque<StreamChunk> queue = new ArrayDeque<>();
+        private boolean finished;
+
+        SseChunkIterator(Stream<String> lines) {
+            this.lines = lines;
+            this.source = lines.iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (queue.isEmpty() && !finished) {
+                advance();
+            }
+            return !queue.isEmpty();
+        }
+
+        @Override
+        public StreamChunk next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("stream already ended");
+            }
+            return queue.removeFirst();
+        }
+
+        private void advance() {
+            try {
+                while (source.hasNext()) {
+                    queue.addAll(parser.feed(source.next()));
+                    if (!queue.isEmpty()) {
+                        return;
+                    }
+                }
+                queue.addAll(parser.finish());
+                finished = true;
+            } catch (RuntimeException e) {
+                finished = true;
+                throw e;
+            } finally {
+                if (finished) {
+                    lines.close();
+                }
+            }
         }
     }
 

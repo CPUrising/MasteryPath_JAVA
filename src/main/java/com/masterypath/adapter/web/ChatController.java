@@ -99,6 +99,22 @@ public class ChatController {
     }
 
     /**
+     * 撤回一条消息：删除它及其之后的所有消息。
+     *
+     * <p>前端「撤回我的消息」使用；删除后对话回到发送前的状态。
+     */
+    @DeleteMapping("/{sessionId}/messages/{messageId}")
+    public ResponseEntity<Void> withdraw(@PathVariable String sessionId,
+                                         @PathVariable long messageId) {
+        try {
+            service.withdrawFrom(sessionId, messageId);
+        } catch (ChatStore.UnknownSession e) {
+            throw new ApiException(404, sessionId);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * 一个聊天回合的 SSE 流。
      *
      * <p>响应头带 {@code X-Accel-Buffering: no}：反向代理默认会缓冲 SSE，前端就收不到增量。

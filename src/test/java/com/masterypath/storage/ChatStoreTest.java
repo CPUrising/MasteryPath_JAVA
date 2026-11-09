@@ -134,6 +134,42 @@ class ChatStoreTest {
     }
 
     @Test
+    @DisplayName("撤回按 id 截断：删除该条及其之后的所有消息")
+    void deleteMessagesFromTruncatesTail() {
+        Map<String, Object> session = store.createSession("", "", List.of(), Map.of());
+        String sessionId = String.valueOf(session.get("session_id"));
+        long first = ((Number) store.addMessage(sessionId, "user", "q1", List.of()).get("id")).longValue();
+        store.addMessage(sessionId, "assistant", "a1", List.of());
+        store.addMessage(sessionId, "user", "q2", List.of());
+        store.addMessage(sessionId, "assistant", "a2", List.of());
+
+        int deleted = store.deleteMessagesFrom(sessionId, first);
+
+        assertThat(deleted).isEqualTo(4);
+        assertThat(store.listMessages(sessionId)).isEmpty();
+        assertThatThrownBy(() -> store.deleteMessagesFrom("ghost", first))
+                .isInstanceOf(ChatStore.UnknownSession.class);
+    }
+
+    @Test
+    @DisplayName("撤回保留更早的消息，只截断目标及其之后")
+    void deleteMessagesFromKeepsEarlier() {
+        Map<String, Object> session = store.createSession("", "", List.of(), Map.of());
+        String sessionId = String.valueOf(session.get("session_id"));
+        store.addMessage(sessionId, "user", "q1", List.of());
+        store.addMessage(sessionId, "assistant", "a1", List.of());
+        long third = ((Number) store.addMessage(sessionId, "user", "q2", List.of()).get("id")).longValue();
+        store.addMessage(sessionId, "assistant", "a2", List.of());
+
+        int deleted = store.deleteMessagesFrom(sessionId, third);
+
+        assertThat(deleted).isEqualTo(2);
+        assertThat(store.listMessages(sessionId))
+                .extracting(row -> row.get("content"))
+                .containsExactly("q1", "a1");
+    }
+
+    @Test
     @DisplayName("addMessage 刷新会话 updated_at")
     void addMessageTouchesSession() throws Exception {
         Map<String, Object> session = store.createSession("", "", List.of(), Map.of());

@@ -120,6 +120,15 @@ public class ChatService {
         store.deleteSession(sessionId);
     }
 
+    /**
+     * 撤回消息：删除该消息及其之后的所有消息，使对话回到发送前的状态。
+     *
+     * @return 被删除的消息条数
+     */
+    public int withdrawFrom(String sessionId, long messageId) {
+        return store.deleteMessagesFrom(sessionId, messageId);
+    }
+
     // -- 回合 -----------------------------------------------------------------
 
     /**
@@ -313,20 +322,43 @@ public class ChatService {
             return true;
         }
 
-        /** 无导航工具时只取正文（等价参考实现的 {@code client.stream_chat}）。 */
+        /**
+         * 无导航工具时只取正文（等价参考实现的 {@code client.stream_chat}）。
+         *
+         * <p>惰性映射：上游产出一片正文才产出一个 {@code text_delta}，不预先收整段。
+         */
         private Iterator<StreamEvent> plainStream(LlmClient client,
                                                   List<Map<String, Object>> messages) {
-            List<StreamEvent> events = new ArrayList<>();
-            try {
-                for (StreamChunk chunk : client.streamChatEvents(messages, List.of())) {
-                    if (!chunk.text().isEmpty()) {
-                        events.add(StreamEvent.textDelta(chunk.text()));
+            Iterator<StreamChunk> chunks = client.streamChat(messages, List.of());
+            return new Iterator<>() {
+                private StreamEvent next;
+                private boolean done;
+
+                @Override
+                public boolean hasNext() {
+                    while (next == null && !done) {
+                        if (!chunks.hasNext()) {
+                            done = true;
+                            break;
+                        }
+                        String text = chunks.next().text();
+                        if (!text.isEmpty()) {
+                            next = StreamEvent.textDelta(text);
+                        }
                     }
+                    return next != null;
                 }
-            } catch (LlmError e) {
-                throw e;
-            }
-            return events.iterator();
+
+                @Override
+                public StreamEvent next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException("turn already ended");
+                    }
+                    StreamEvent event = next;
+                    next = null;
+                    return event;
+                }
+            };
         }
 
         /** 转发一条 {@code AgentLoop} 事件；只透传四类，丢弃它的 {@code turn_end}。 */

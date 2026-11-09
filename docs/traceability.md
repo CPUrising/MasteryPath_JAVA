@@ -240,6 +240,21 @@
 | — | 无提供方回退 | `specs/settings-task-model` → `Fallback without provider` | `TaskModelTest#fallbackWithoutClient`、`SettingsProbeApiTest#suggestQuestionReturnsDraft` | 通过（`0022`） |
 | — | 报错回退 | `specs/settings-task-model` → `Fallback on provider error` | `TaskModelTest#fallsBackWhenLlmRaises`、`#fallsBackWhenTextBlank` | 通过（`0022`） |
 
+## 9. 普通聊天会话（chat-session）
+
+> 本能力由 `0026` 新增，参考实现没有对应 `TC-*`；场景名直接取自
+> `openspec/changes/0026-chat-stream-withdraw/specs/chat-session/spec.md`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Incremental delta delivery | `changes/0026-chat-stream-withdraw/specs/chat-session` | `OpenAiCompatibleClientTest#streamChatIsLazy` | 通过（`0026`） |
+| — | Turn persists transcript and ends | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatApiTest#streamPersistsMessages` | 通过（`0026`） |
+| — | Partial text survives upstream failure | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatServiceTest#keepsPartialTextOnError` | 通过（`0026`） |
+| — | Withdraw truncates tail | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatApiTest#withdrawTruncatesTail`、`ChatStoreTest#deleteMessagesFromTruncatesTail` | 通过（`0026`） |
+| — | Withdraw keeps earlier history | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatStoreTest#deleteMessagesFromKeepsEarlier` | 通过（`0026`） |
+| — | Unknown session | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatApiTest#withdrawTruncatesTail` | 通过（`0026`） |
+| — | Repeated withdrawal is idempotent | `changes/0026-chat-stream-withdraw/specs/chat-session` | `ChatApiTest#withdrawTruncatesTail` | 通过（`0026`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。
