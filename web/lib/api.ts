@@ -22,6 +22,19 @@ export interface ProbeInput {
   service?: ModelService | "";
 }
 
+/** `POST /learning/paths/{pathId}/grade` 的摊平响应（工具元数据 + ok/content）。 */
+export interface GradeOutcome {
+  ok: boolean;
+  content: string;
+  status: string;
+  result: string;
+  is_correct?: boolean;
+  explanation?: string;
+  mastery_before?: number;
+  mastery_after?: number;
+  gate_cleared?: boolean;
+}
+
 
 async function json<T>(response: Response): Promise<T> {
   if (!response.ok) throw new Error(`${response.status}: ${await response.text()}`);
@@ -134,10 +147,7 @@ export const api = {
   quiz: (pathId: string, body: unknown) =>
     post<{ question_id: string; question_card: unknown }>(`${API_BASE}/learning/paths/${pathId}/quiz`, body),
   grade: (pathId: string, body: unknown) =>
-    post<{ status: string; result: string; gate_cleared: boolean }>(
-      `${API_BASE}/learning/paths/${pathId}/grade`,
-      body,
-    ),
+    post<GradeOutcome>(`${API_BASE}/learning/paths/${pathId}/grade`, body),
   assess: (pathId: string, body: unknown) =>
     post<{ passed: boolean }>(`${API_BASE}/learning/paths/${pathId}/assess`, body),
   skipQuestion: (pathId: string, questionId: string) =>

@@ -14,7 +14,7 @@ import { ModeSwitch } from "@/components/learning/ModeSwitch";
 import { ProgressRing } from "@/components/learning/ProgressRing";
 import { QuestionCard } from "@/components/learning/QuestionCard";
 import { StudyOutline } from "@/components/learning/StudyOutline";
-import { api } from "@/lib/api";
+import { api, type GradeOutcome } from "@/lib/api";
 import { knowledgeApi } from "@/lib/knowledge-api";
 import { masteryHandoffFrom, type MasteryHandoffPayload } from "@/lib/mastery-handoff";
 import { masterySessionRoute, masteryTopicRoute } from "@/lib/learning-routes";
@@ -27,6 +27,7 @@ import type {
   ModelEntry,
   ModelSection,
   PathState,
+  PendingQuestion,
   SessionMessage,
 } from "@/lib/types";
 import { runTurn } from "@/lib/ws";
@@ -164,6 +165,43 @@ function StudyRoute() {
       /* suggestion is best-effort */
     }
   }, [pathId]);
+
+  const describeGrade = useCallback(
+    (outcome: GradeOutcome) => {
+      const lines: string[] = [];
+      if (outcome.result === "correct") lines.push(t("q.verdict.correct"));
+      else if (outcome.result === "partial") lines.push(t("q.verdict.partial"));
+      else if (outcome.result === "incorrect") lines.push(t("q.verdict.incorrect"));
+      else lines.push(t("q.verdict.unknown"));
+      const explanation = (outcome.explanation ?? "").trim();
+      if (explanation) lines.push(explanation);
+      if (outcome.gate_cleared) lines.push(t("q.mastered"));
+      return lines.join("\n\n");
+    },
+    [t],
+  );
+
+  const answerQuestion = useCallback(
+    async (question: PendingQuestion, answer: string) => {
+      try {
+        const outcome = await api.grade(pathId, {
+          question_id: question.question_id,
+          answer,
+        });
+        setItems((previous) => [
+          ...previous,
+          { role: "assistant", text: describeGrade(outcome) },
+        ]);
+      } catch (reason) {
+        setItems((previous) => [
+          ...previous,
+          { role: "assistant", text: `${t("q.gradeFailed")} (${String(reason)})` },
+        ]);
+      }
+      await load().catch(() => undefined);
+    },
+    [describeGrade, load, pathId, t],
+  );
 
   useEffect(() => {
     void load();
@@ -354,10 +392,7 @@ function StudyRoute() {
                   {pending_question && (
                     <QuestionCard
                       question={pending_question}
-                      onAnswer={async (answer) => {
-                        await api.grade(pathId, { question_id: pending_question.question_id, answer });
-                        await load();
-                      }}
+                      onAnswer={(answer) => void answerQuestion(pending_question, answer)}
                       onSkip={async () => {
                         await api.skipQuestion(pathId, pending_question.question_id);
                         await load();

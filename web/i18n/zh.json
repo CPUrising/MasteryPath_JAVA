@@ -64,6 +64,12 @@
   "q.skip": "跳过",
   "q.submit": "提交",
   "q.placeholder": "输入你的答案",
+  "q.verdict.correct": "回答正确。",
+  "q.verdict.partial": "部分正确。",
+  "q.verdict.incorrect": "回答错误。",
+  "q.verdict.unknown": "已记录本次作答。",
+  "q.mastered": "这个知识点已达成掌握。",
+  "q.gradeFailed": "判分失败",
 
   "settings.title": "设置",
   "settings.search": "搜索设置",

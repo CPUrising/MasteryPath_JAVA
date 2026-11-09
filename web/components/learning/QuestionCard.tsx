@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { MarkdownMessage } from "@/components/common/MarkdownMessage";
 import type { PendingQuestion } from "@/lib/types";
 
 /** A posed question card. Answering starts the next turn. */
@@ -18,6 +20,13 @@ export function QuestionCard({
   const { t } = useTranslation();
   const [text, setText] = useState("");
 
+  const submit = () => {
+    const value = text.trim();
+    if (!value) return;
+    onAnswer(value);
+    setText("");
+  };
+
   return (
     <div className="rounded-xl border border-primary/25 bg-primary/[0.05] p-4">
       {question.objective_name && (
@@ -25,7 +34,7 @@ export function QuestionCard({
           {question.objective_name}
         </div>
       )}
-      <p className="text-sm font-medium">{question.prompt}</p>
+      <MarkdownMessage content={question.prompt} className="text-sm font-medium" />
       {question.options.length > 0 ? (
         <ul className="mt-3 space-y-1.5">
           {question.options.map((option) => (
@@ -36,37 +45,38 @@ export function QuestionCard({
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-left text-[13px] hover:border-primary/40"
               >
                 <strong className="mr-2">{option.label}.</strong>
-                {option.body}
+                <MarkdownMessage content={option.body} inline className="text-[13px]" />
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <div className="mt-3 flex gap-2">
-          <input
+        <div className="mt-3 rounded-2xl border border-border bg-card p-2 shadow-sm transition focus-within:border-primary/40">
+          <textarea
+            rows={1}
             value={text}
             placeholder={t("q.placeholder")}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && text.trim()) {
+              if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                onAnswer(text.trim());
-                setText("");
+                submit();
               }
             }}
-            className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+            className="max-h-32 w-full resize-none bg-transparent px-2 py-1.5 text-[14px] text-foreground outline-none placeholder:text-muted-foreground"
           />
-          <button
-            type="button"
-            disabled={!text.trim()}
-            onClick={() => {
-              onAnswer(text.trim());
-              setText("");
-            }}
-            className="rounded-lg bg-primary px-3.5 text-sm font-medium text-primary-foreground disabled:opacity-40"
-          >
-            {t("q.submit")}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              aria-label={t("q.submit")}
+              title={t("q.submit")}
+              disabled={!text.trim()}
+              onClick={submit}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+            >
+              <ArrowUp size={16} />
+            </button>
+          </div>
         </div>
       )}
       <div className="mt-3 text-right">

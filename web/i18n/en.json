@@ -64,6 +64,12 @@
   "q.skip": "Skip",
   "q.submit": "Submit",
   "q.placeholder": "Type your answer",
+  "q.verdict.correct": "Correct.",
+  "q.verdict.partial": "Partially correct.",
+  "q.verdict.incorrect": "Incorrect.",
+  "q.verdict.unknown": "Answer recorded.",
+  "q.mastered": "This knowledge point is now mastered.",
+  "q.gradeFailed": "Could not grade the answer",
 
   "settings.title": "Settings",
   "settings.search": "Search settings",
