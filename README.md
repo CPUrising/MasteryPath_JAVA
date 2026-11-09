@@ -92,6 +92,37 @@ curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:8080/learning/paths
 
 > `data/settings.json` 里的 Key 是明文，已在 `.gitignore` 中，不要提交。
 
+#### 不配 Key：本地 Mock LLM（仅开发）
+
+`scripts/mock-llm/` 是一个 OpenAI 兼容的假模型服务（Node 内置模块，零依赖），
+用来不花钱、可重复地体验 agent：流式回答、建大纲、出题都能跑通。
+
+```powershell
+# 终端 A：假模型服务（默认 127.0.0.1:9099）
+node scripts/mock-llm/mock-llm.mjs
+
+# 终端 B：后端
+.\mvnw.cmd spring-boot:run
+```
+
+然后在 `/settings/connections` 新增提供方：`base_url = http://127.0.0.1:9099/v1`、
+`api_key = mock`（任意非空字符串）、协议 `openai`；测试连接后可拉到模型 `mock-tutor`，
+在 `/settings/llm` 设为 active。
+
+剧本是确定性的：
+
+| 你说 | 结果 |
+| --- | --- |
+| `outline` 模式下「帮我规划大纲」 | 调用 `mastery_build`，生成 2 模块 4 知识点 |
+| `study` 模式下「出题」 | 调用 `mastery_quiz`，弹出一道选择题卡片 |
+| 「列出我的主题」 | 调用 `mastery_topics`（普通聊天链路） |
+| 其他任何话 | 固定的 Markdown 流式回复 |
+
+每次请求会在终端 A 打印一行 `[mock-llm] ... mode=... -> tool:mastery_build`，便于观察 agent 到底做了什么。
+它只在 `tools` 里真实存在该工具时才调用，所以模式门控的拒绝行为仍然是真实的。
+
+> 该服务只用于本地开发：自动化测试继续使用离线的 `FakeLlmClient`，不依赖它。
+
 ### 3. 启动前端（Next.js 14，位于本仓库 `web/`）
 
 ```powershell
@@ -169,6 +200,7 @@ docs/
   verify/                  每个 change 的验证证据
   ai-collaboration/        AI 协作留痕
 scripts/verify.ps1         唯一验证入口
+scripts/mock-llm/          本地假模型服务（开发联调，零依赖）
 src/main/java/com/masterypath/
   domain/                  模型 + 纯策略 + 判分 + 调度 + 门控（零 I/O）
   storage/                 SQLite + CAS + 事件
