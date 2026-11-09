@@ -17,6 +17,8 @@ public class TurnRequest {
     public static final String CAPABILITY_MASTERY = "mastery_path";
     /** 能力名：普通聊天（属 {@code 0020}）。 */
     public static final String CAPABILITY_CHAT = "chat";
+    /** 能力名：生成型练习题卷（{@code 0033}）。 */
+    public static final String CAPABILITY_DEEP_QUESTION = "deep_question";
 
     private String capability = CAPABILITY_CHAT;
     private String sessionId = "";
@@ -26,6 +28,9 @@ public class TurnRequest {
     private String turnId = "";
     private Object llmSelection;
     private List<Map<String, Object>> attachments = new ArrayList<>();
+    private int numQuestions = 3;
+    private String difficulty = "";
+    private List<String> questionTypes = new ArrayList<>();
 
     public String capability() {
         return capability;
@@ -89,5 +94,29 @@ public class TurnRequest {
 
     public void setAttachments(List<Map<String, Object>> attachments) {
         this.attachments = attachments == null ? new ArrayList<>() : new ArrayList<>(attachments);
+    }
+
+    public int numQuestions() {
+        return numQuestions;
+    }
+
+    public void setNumQuestions(int numQuestions) {
+        this.numQuestions = numQuestions;
+    }
+
+    public String difficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty == null ? "" : difficulty;
+    }
+
+    public List<String> questionTypes() {
+        return questionTypes;
+    }
+
+    public void setQuestionTypes(List<String> questionTypes) {
+        this.questionTypes = questionTypes == null ? new ArrayList<>() : new ArrayList<>(questionTypes);
     }
 }

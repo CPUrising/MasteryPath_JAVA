@@ -111,7 +111,7 @@ public final class StudyTools {
             List<String> accepted = ToolSupport.stringList(params.get("accepted_answers"));
 
             if ("short".equals(spec.questionType()) && accepted.isEmpty()
-                    && !isSelfGradingShort(spec.expectedAnswer())) {
+                    && !QuizSpec.isSelfGradingShort(spec.expectedAnswer())) {
                 return ToolResult.failure(
                         "short questions need accepted_answers so equivalent wording is not marked "
                                 + "wrong; add at least one accepted answer, or use question_type=open "
@@ -347,23 +347,6 @@ public final class StudyTools {
         card.put("objective_name", objectiveName);
         card.put("attempt", attempt);
         return card;
-    }
-
-    /**
-     * short 题是否可仅靠期望答案判定。
-     *
-     * <p>纯数值与 ASCII 单 token（如 {@code 42}、{@code HTTP}、{@code A/B}）没有同义表述问题；
-     * 自然语言短语则必须有 {@code accepted_answers}，否则等价作答会被判错。
-     */
-    static boolean isSelfGradingShort(String expectedAnswer) {
-        String value = expectedAnswer == null ? "" : expectedAnswer.trim();
-        if (value.isEmpty()) {
-            return true;
-        }
-        if (value.matches("[+-]?\\d+(?:\\.\\d+)?")) {
-            return true;
-        }
-        return value.matches("[A-Za-z0-9_./:+-]+") && !value.contains(" ");
     }
 
     /** 该知识点已尝试次数 + 1（参考实现 {@code attempt_number}）。 */

@@ -5,6 +5,8 @@ import com.masterypath.domain.model.JsonSupport;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.MasteryInteraction;
 import com.masterypath.domain.model.QuestionBankEntry;
+import com.masterypath.domain.model.QuizItem;
+import com.masterypath.domain.model.QuizSet;
 import com.masterypath.domain.model.TimeSupport;
 
 import java.io.IOException;
@@ -642,10 +644,115 @@ public class LearningStore implements AutoCloseable {
     }
 
     /**
+     * 保存题卷与题目（新增或覆盖结果）。
+     *
+     * <p>{@code quiz_sets} / {@code quiz_items} 是独立聚合，不走 path 的 CAS；
+     * 题卷生成时一次写入整套题，提交时再次写入判分结果。
+     */
+    public void saveQuizSet(QuizSet set, List<QuizItem> items) {
+        if (set == null) {
+            throw new IllegalArgumentException("quiz set is required");
+        }
+        synchronized (lock) {
+            try {
+                beginImmediate();
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "INSERT INTO quiz_sets(set_id,path_id,session_id,turn_id,status,data,"
+                                + "created_at,updated_at) VALUES(?,?,?,?,?,?,?,?) "
+                                + "ON CONFLICT(set_id) DO UPDATE SET "
+                                + "status=excluded.status, data=excluded.data, updated_at=excluded.updated_at")) {
+                    ps.setString(1, set.getSetId());
+                    ps.setString(2, set.getPathId());
+                    ps.setString(3, set.getSessionId());
+                    ps.setString(4, set.getTurnId());
+                    ps.setString(5, set.getStatus());
+                    ps.setString(6, mapper.writeValueAsString(set));
+                    ps.setDouble(7, set.getCreatedAt());
+                    ps.setDouble(8, set.getSubmittedAt() > 0
+                            ? set.getSubmittedAt() : TimeSupport.nowSeconds());
+                    ps.executeUpdate();
+                }
+                for (QuizItem item : items == null ? List.<QuizItem>of() : items) {
+                    try (PreparedStatement ps = connection.prepareStatement(
+                            "INSERT INTO quiz_items(item_id,set_id,seq,data,created_at,updated_at) "
+                                    + "VALUES(?,?,?,?,?,?) ON CONFLICT(item_id) DO UPDATE SET "
+                                    + "seq=excluded.seq, data=excluded.data, updated_at=excluded.updated_at")) {
+                        ps.setString(1, item.getItemId());
+                        ps.setString(2, item.getSetId());
+                        ps.setInt(3, item.getSeq());
+                        ps.setString(4, mapper.writeValueAsString(item));
+                        ps.setDouble(5, item.getUpdatedAt());
+                        ps.setDouble(6, item.getUpdatedAt());
+                        ps.executeUpdate();
+                    }
+                }
+                endTransaction(true);
+            } catch (RuntimeException | SQLException | IOException e) {
+                rollbackQuietly();
+                throw wrap(e);
+            }
+        }
+    }
+
+    /** 读取题卷元数据；不存在返回 {@code null}。 */
+    public QuizSet getQuizSet(String setId) {
+        synchronized (lock) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT data FROM quiz_sets WHERE set_id=?")) {
+                ps.setString(1, setId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? mapper.readValue(rs.getString("data"), QuizSet.class) : null;
+                }
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException("read quiz set failed", e);
+            }
+        }
+    }
+
+    /** 某条路径的题卷列表（新→旧）。 */
+    public List<QuizSet> listQuizSets(String pathId) {
+        synchronized (lock) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT data FROM quiz_sets WHERE path_id=? ORDER BY created_at DESC")) {
+                ps.setString(1, pathId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<QuizSet> sets = new ArrayList<>();
+                    while (rs.next()) {
+                        sets.add(mapper.readValue(rs.getString("data"), QuizSet.class));
+                    }
+                    return sets;
+                }
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException("list quiz sets failed", e);
+            }
+        }
+    }
+
+    /** 读取题卷的全部题目，按 {@code seq} 升序。 */
+    public List<QuizItem> listQuizItems(String setId) {
+        synchronized (lock) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT data FROM quiz_items WHERE set_id=? ORDER BY seq")) {
+                ps.setString(1, setId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<QuizItem> items = new ArrayList<>();
+                    while (rs.next()) {
+                        items.add(mapper.readValue(rs.getString("data"), QuizItem.class));
+                    }
+                    return items;
+                }
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException("list quiz items failed", e);
+            }
+        }
+    }
+
+    /**
      * 级联删除一个路径及其从属数据。
      *
      * <p>顺序固定：{@code messages}（按该路径的会话子查询）→ {@code sessions} →
-     * {@code question_bank} → {@code interactions} → {@code paths}，全部在同一事务内。
+     * {@code quiz_items} → {@code quiz_sets} → {@code question_bank} → {@code interactions}
+     * → {@code paths}，全部在同一事务内。
      *
      * <p><b>不删除 {@code events}</b>：事件表是 append-only 审计日志（{@code INV-38}），
      * 删路径后其历史事件仍可通过 {@link #eventsSince} 读到。
@@ -664,6 +771,17 @@ public class LearningStore implements AutoCloseable {
                 }
                 try (PreparedStatement ps = connection.prepareStatement(
                         "DELETE FROM sessions WHERE path_id=?")) {
+                    ps.setString(1, pathId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM quiz_items WHERE set_id IN "
+                                + "(SELECT set_id FROM quiz_sets WHERE path_id=?)")) {
+                    ps.setString(1, pathId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "DELETE FROM quiz_sets WHERE path_id=?")) {
                     ps.setString(1, pathId);
                     ps.executeUpdate();
                 }

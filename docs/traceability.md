@@ -272,6 +272,26 @@
 | — | Ungraded persists with zero change | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#ungradedGradePersistsWithoutMasteryChange` | 通过（`0031`） |
 | — | Repeated grade does not duplicate messages | `changes/0031-quiz-card-event-authority/specs/learning-tools` | `StudyApiTest#repeatedGradeDoesNotDuplicateMessages` | 通过（`0031`） |
 
+## 11. 生成型练习题卷（0033）
+
+> 本能力由 `0033` 新增；场景名取自
+> `openspec/changes/0033-quiz-set-generation/specs/`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Quiz set persists with items | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetStoreTest#savesAndReadsQuizSet` | 通过（`0033`） |
+| — | Deleting a path cascades quiz sets | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetStoreTest#deletePathCascadesQuizSets` | 通过（`0033`） |
+| — | Unsubmitted set hides answers | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetProjectorTest`、`QuizSetApiTest#getHidesAnswersBeforeSubmit` | 通过（`0033`） |
+| — | Submit releases answers and is idempotent | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetApiTest#submitReleasesAnswersAndIsIdempotent` | 通过（`0033`） |
+| — | Ungraded submit leaves no trace | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetServiceTest#ungradedLeavesNoTrace` | 通过（`0033`） |
+| — | Practice does not change mastery | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetServiceTest#submitGradesAndLeavesMasteryUntouched` | 通过（`0033`） |
+| — | Empty answers rejected | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetApiTest#emptyAnswersIs422` | 通过（`0033`） |
+| — | Unknown set or wrong path is 404 | `changes/0033-quiz-set-generation/specs/quiz-set` | `QuizSetApiTest#unknownSetOrWrongPathIs404` | 通过（`0033`） |
+| — | Deep question turn emits plan/questions/set | `changes/0033-quiz-set-generation/specs/agent-turn` | `QuizSetTurnTest#generatesQuizSetWithEvents` | 通过（`0033`） |
+| — | Invalid generation fails closed | `changes/0033-quiz-set-generation/specs/agent-turn` | `QuizSetTurnTest#invalidGenerationFailsClosed` | 通过（`0033`） |
+| — | Generation repairs once | `changes/0033-quiz-set-generation/specs/agent-turn` | `QuizSetTurnTest#repairsOnce` | 通过（`0033`） |
+| — | Unknown capability throws | `changes/0033-quiz-set-generation/specs/agent-turn` | `QuizSetTurnTest#unknownCapabilityThrows` | 通过（`0033`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

@@ -137,6 +137,23 @@ public final class QuizSpec {
                 : List.of(expectedAnswer);
     }
 
+    /**
+     * short 题是否可仅靠期望答案判定。
+     *
+     * <p>纯数值与 ASCII 单 token（如 {@code 42}、{@code HTTP}、{@code A/B}）没有同义表述问题；
+     * 自然语言短语建议提供 {@code accepted_answers}，否则等价作答容易被判错。
+     */
+    public static boolean isSelfGradingShort(String expectedAnswer) {
+        String value = expectedAnswer == null ? "" : expectedAnswer.trim();
+        if (value.isEmpty()) {
+            return true;
+        }
+        if (value.matches("[+-]?\\d+(?:\\.\\d+)?")) {
+            return true;
+        }
+        return value.matches("[A-Za-z0-9_./:+-]+") && !value.contains(" ");
+    }
+
     /** 构造服务端完整题目（补齐 id、类型、关键词）。 */
     public static PendingQuestion toPending(Normalized spec,
                                            String questionId,

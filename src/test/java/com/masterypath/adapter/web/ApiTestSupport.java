@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterypath.domain.model.JsonSupport;
 import com.masterypath.service.KnowledgeService;
 import com.masterypath.service.LearningService;
+import com.masterypath.service.QuizSetService;
 import com.masterypath.storage.KnowledgeStore;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.SettingsStore;
@@ -91,6 +92,7 @@ final class ApiTestSupport implements AutoCloseable {
                         new QuestionBankController(service, store),
                         new SessionController(service, store),
                         new StudyController(service, store),
+                        new QuizSetController(new QuizSetService(store)),
                         new SettingsController(settings),
                         new KnowledgeController(knowledgeService),
                         probeController)

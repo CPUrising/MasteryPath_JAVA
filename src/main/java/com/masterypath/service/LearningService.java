@@ -1264,6 +1264,39 @@ public final class LearningService {
         return store.upsertSession(session);
     }
 
+    /**
+     * 记录一次题卷生成回合：user 消息 + assistant 的 {@code data.quiz_set}。
+     *
+     * <p>题卷是练习，不改变 {@code has_pending_question}（保持 false）与掌握聚合。
+     */
+    public Map<String, Object> recordQuizSetTurn(String pathId, String sessionId,
+                                                 String userText, String assistantText,
+                                                 String mode, String turnId,
+                                                 Map<String, Object> quizSet) {
+        if (sessionId == null || sessionId.isEmpty()) {
+            return null;
+        }
+        String user = userText == null ? "" : userText;
+        String assistant = assistantText == null ? "" : assistantText;
+        Map<String, Object> session = ensureSession(pathId, sessionId, mode, "");
+        Object rawTitle = session.get("title");
+        if ((rawTitle == null || String.valueOf(rawTitle).isEmpty())
+                && !user.strip().isEmpty()) {
+            session.put("title", truncate(user.strip(), 40));
+        }
+        store.appendMessage(sessionId, "user", user, turnId, null);
+        store.appendMessage(sessionId, "assistant", assistant, turnId,
+                payload("quiz_set", quizSet));
+        Object rawCount = session.get("message_count");
+        int count = rawCount instanceof Number number ? number.intValue() : 0;
+        session.put("message_count", count + 2);
+        String last = assistant.strip().isEmpty() ? user : assistant;
+        session.put("last_message", truncate(last.strip(), 200));
+        session.put("has_pending_question", false);
+        session.put("mode", mode == null || mode.isEmpty() ? "study" : mode);
+        return store.upsertSession(session);
+    }
+
     /** 该路径的会话列表（存储层转发）。 */
     public List<Map<String, Object>> listSessions(String pathId) {
         return store.listSessions(pathId);

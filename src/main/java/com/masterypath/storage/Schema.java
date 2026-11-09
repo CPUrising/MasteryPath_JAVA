@@ -6,6 +6,9 @@ package com.masterypath.storage;
  * <p><b>逐字对齐参考实现</b> {@code masterypath/learning/storage.py} 的 {@code _SCHEMA}：
  * 表名、列名、类型、默认值、索引都必须一致，否则 Java 版无法直接打开旧库
  * （这是「数据等价」维度的前提）。修改本文件即为行为变化，必须走增量规范。
+ *
+ * <p>{@code 0033} 追加 {@code quiz_sets} / {@code quiz_items}：纯增量表，
+ * 参考实现的既有表结构保持不变。
  */
 final class Schema {
 
@@ -71,6 +74,26 @@ final class Schema {
                 created_at REAL NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, id);
+            CREATE TABLE IF NOT EXISTS quiz_sets (
+                set_id     TEXT PRIMARY KEY,
+                path_id    TEXT NOT NULL,
+                session_id TEXT NOT NULL DEFAULT '',
+                turn_id    TEXT NOT NULL DEFAULT '',
+                status     TEXT NOT NULL DEFAULT 'open',
+                data       TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_quiz_sets_path ON quiz_sets(path_id);
+            CREATE TABLE IF NOT EXISTS quiz_items (
+                item_id    TEXT PRIMARY KEY,
+                set_id     TEXT NOT NULL,
+                seq        INTEGER NOT NULL,
+                data       TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_quiz_items_set ON quiz_items(set_id, seq);
             """;
 
     static final String UPSERT_INTERACTION = """

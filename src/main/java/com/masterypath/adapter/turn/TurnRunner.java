@@ -104,12 +104,19 @@ public final class TurnRunner {
         if (TurnRequest.CAPABILITY_MASTERY.equals(request.capability())) {
             return new MasteryTurn(request);
         }
-        if (chatService == null) {
-            throw new UnsupportedOperationException(
-                    "capability '" + request.capability() + "' needs a ChatService");
+        if (TurnRequest.CAPABILITY_DEEP_QUESTION.equals(request.capability())) {
+            return new QuizSetTurn(request, learningService, store, clientBuilder);
         }
-        return new ChatTurnAdapter(chatService.streamTurn(
-                request.sessionId(), request.message(), request.attachments()));
+        if (TurnRequest.CAPABILITY_CHAT.equals(request.capability())) {
+            if (chatService == null) {
+                throw new UnsupportedOperationException(
+                        "capability '" + request.capability() + "' needs a ChatService");
+            }
+            return new ChatTurnAdapter(chatService.streamTurn(
+                    request.sessionId(), request.message(), request.attachments()));
+        }
+        throw new UnsupportedOperationException(
+                "unknown capability '" + request.capability() + "'");
     }
 
     /**
