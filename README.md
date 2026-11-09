@@ -92,11 +92,11 @@ curl.exe -s -o NUL -w "%{http_code}`n" http://127.0.0.1:8080/learning/paths
 
 > `data/settings.json` 里的 Key 是明文，已在 `.gitignore` 中，不要提交。
 
-### 3. 启动前端（Next.js，复用现有仓库，不改代码）
+### 3. 启动前端（Next.js 14，位于本仓库 `web/`）
 
 ```powershell
-cd ..\MasteryPath\web
-npm install
+cd web
+npm ci
 $env:NEXT_PUBLIC_API_BASE='http://127.0.0.1:8080'
 npm run dev
 ```
@@ -104,8 +104,8 @@ npm run dev
 若在 **cmd.exe**（提示符 `D:\...>`）里，同样的步骤换个写法，值不加引号：
 
 ```bat
-cd /d ..\MasteryPath\web
-npm install
+cd /d web
+npm ci
 set NEXT_PUBLIC_API_BASE=http://127.0.0.1:8080
 npm run dev
 ```
@@ -125,7 +125,7 @@ npm run dev
 | 知识库 | `/knowledge-bases` | `/knowledge-bases/**` |
 | 学习空间 | `/space` | `GET /questions` |
 
-前端不复制进本仓库：它作为「契约消费者」反向验证后端协议等价，一旦需要改前端才能跑通，就说明协议不等价，应记为缺陷。
+前端已由 `0027-web-into-repo` 并入本仓库 `web/`（源码来自 `../MasteryPath/web`）。它仍作为「契约消费者」反向验证后端协议等价：一旦需要改前端才能跑通，就说明协议不等价，应记为缺陷。
 
 ### 4. 数据落在哪
 

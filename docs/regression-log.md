@@ -30,3 +30,4 @@
 | 2026-11-05 | `0024-acceptance` | 864 | 0 | 0 | [verify/0024](verify/0024-acceptance.md) |
 | 2026-11-05 | `0025-manual-verification` | 864 | 0 | 0 | [verify/0025](verify/0025-manual-verification.md) |
 | 2026-11-09 | `0026-chat-stream-withdraw` | 868 | 0 | 0 | [verify/0026](verify/0026-chat-stream-withdraw.md) |
+| 2026-11-09 | `0027-web-into-repo` | 868 | 0 | 0 | [verify/0027](verify/0027-web-into-repo.md) |

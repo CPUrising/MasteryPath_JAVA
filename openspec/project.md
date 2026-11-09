@@ -9,19 +9,20 @@
 MasteryPath（精通之路）是一个「以知识地图为中心的掌握式学习智能体」：学习者与导师在 `outline` 模式共创模块/知识点（KP）地图，在 `study` 模式讲与考，在 `review` 模式只重测已掌握点；掌握与否由**引擎的门槛**判定（`memory/procedure` 量化 ≥0.9，`concept/design` 定性通过），并配合 SM-2 间隔复习。
 
 本次工作是把该系统的**后端**从 Python 重写为 Java，行为与对外契约**保持不变**。
+自 `0027-web-into-repo` 起，Next.js 前端源码也随本仓库 `web/` 管理（源码来自 `../MasteryPath/web`，行为不变）。
 
 ## 2. 边界
 
 ### In scope
 
 - Python 包 `masterypath/` 的全部后端职责：领域模型、存储（SQLite + CAS）、掌握策略、模式门控、大纲生成/编辑、出题与判分、定性评估、题目修复、题库、SM-2 调度、Agent Loop 与工具层、REST/WS 接口、知识库（来源加载/索引/检索）、大纲质量评测、设置中心后端、Task Model。
-- 与现有前端 `../MasteryPath/web/` 的接口兼容（REST 路径、WS 事件、JSON 字段名）。
+- 与现有前端 `web/` 的接口兼容（REST 路径、WS 事件、JSON 字段名）。
 - 与现有数据文件的兼容：Java 版可直接打开参考实现的 `data/learning.db`。
 - 验收测试的 1:1 移植：参考实现 `tests/` 的 237 个用例是本次重写的判定标准。
 
 ### Out of scope
 
-- **不改写前端**（`web/` 保持 Next.js 现状，见 `docs/migration-plan.md` §1.3 的策略论证）。
+- **不重写前端**（`web/` 保持 Next.js 14 现状与交互契约，见 `docs/migration-plan.md` §1.3 的策略论证；源码已随 `0027-web-into-repo` 并入本仓库）。
 - 不新增产品功能、不调整阈值/默认值、不引入新的领域实体。
 - 不做多用户/鉴权/部署编排（与参考实现一致，单工作区单进程）。
 - 不做 FSRS 迁移（`INV-31`：SM-2 与 FSRS 二选一，本项目继续 SM-2）。
@@ -37,7 +38,7 @@ MasteryPath（精通之路）是一个「以知识地图为中心的掌握式学
 | 持久化 | SQLite（`org.xerial:sqlite-jdbc`）+ 手写 JDBC DAO | 表结构与参考实现 DDL **逐字一致**；path 聚合以 JSON 文本存储 + `version` 做 CAS |
 | JSON | Jackson（`ObjectMapper`，`FAIL_ON_UNKNOWN_PROPERTIES=false`） | 对齐 Pydantic `extra="ignore"` |
 | 测试 | JUnit 5 + AssertJ + `spring-boot-starter-test` | 纯函数层不启动 Spring 上下文 |
-| 前端 | 保留 Next.js 14（不重写） | 契约由 `openspec/specs/agent-turn` 冻结 |
+| 前端 | 保留 Next.js 14（不重写），源码在本仓库 `web/` | 契约由 `openspec/specs/agent-turn` 冻结 |
 | LLM 适配 | `java.net.http.HttpClient` + SSE 解析 | 只实现 OpenAI 兼容协议；测试用 Fake 客户端 |
 | 日志 | SLF4J + Logback | 验证日志落 `artifacts/` |
 

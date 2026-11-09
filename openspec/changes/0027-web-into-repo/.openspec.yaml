@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-11-09
+skip_specs: true   # 仓库拓扑与前端渲染重构：不改变后端行为合同
