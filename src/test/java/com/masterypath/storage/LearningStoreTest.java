@@ -9,10 +9,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /** TC-B1…B8、B14、B15、B16：存储、CAS、事件（spec 03 §B）。 */
+@Tag("storage")
 class LearningStoreTest {
 
     @TempDir

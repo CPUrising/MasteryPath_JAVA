@@ -11,6 +11,7 @@ import com.masterypath.domain.model.JsonSupport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,6 +24,7 @@ import java.util.Map;
  *
  * <p>模式写入的三级校验顺序是本类的核心断言：422（模式值）→ 404（路径）→ 409（准入）。
  */
+@Tag("api")
 class SessionApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

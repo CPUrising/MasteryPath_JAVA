@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>用 JDK {@link HttpServer} 起真实本地端点：请求路径、鉴权头、状态码映射都被真实执行，
  * 不 mock 传输层（参考实现用 {@code httpx.MockTransport}，意图相同）。
  */
+@Tag("api")
 class ProviderProbeTest {
 
     private HttpServer server;

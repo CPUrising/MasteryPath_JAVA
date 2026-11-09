@@ -2,10 +2,13 @@ package com.masterypath;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * G0 冒烟：Spring 上下文能装配起来。
@@ -13,7 +16,13 @@ import org.springframework.context.ApplicationContext;
  * <p>只验证「工程骨架可用」，不覆盖任何业务需求（业务用例从 0002 开始）。
  */
 @SpringBootTest
+@Tag("api")
 class AppContextTest {
+
+    @DynamicPropertySource
+    static void dataDir(DynamicPropertyRegistry registry) {
+        TempWorkspace.registerDataDir(registry);
+    }
 
     @Autowired
     private ApplicationContext context;

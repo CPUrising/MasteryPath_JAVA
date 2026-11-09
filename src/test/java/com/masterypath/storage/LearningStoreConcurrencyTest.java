@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>这些用例断言的是「最终状态」与「异常类型」，不断言具体时序——
  * 时序依赖会让用例在慢机器上偶发失败，从而变成假阴性。
  */
+@Tag("storage")
 class LearningStoreConcurrencyTest {
 
     @TempDir

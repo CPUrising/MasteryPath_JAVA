@@ -32,3 +32,5 @@
 | 2026-11-09 | `0026-chat-stream-withdraw` | 868 | 0 | 0 | [verify/0026](verify/0026-chat-stream-withdraw.md) |
 | 2026-11-09 | `0027-web-into-repo` | 868 | 0 | 0 | [verify/0027](verify/0027-web-into-repo.md) |
 | 2026-11-09 | `0028-quiz-answer-parity` | 868 | 0 | 0 | [verify/0028](verify/0028-quiz-answer-parity.md) |
+| 2026-11-09 | `0029-mock-llm-dev-server` | 868 | 0 | 0 | [verify/0029](verify/0029-mock-llm-dev-server.md) |
+| 2026-11-09 | `0030-test-hygiene` | 868 | 0 | 0 | [verify/0030](verify/0030-test-hygiene.md) |

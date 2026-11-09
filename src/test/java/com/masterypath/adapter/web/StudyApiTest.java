@@ -8,6 +8,7 @@ import com.masterypath.domain.model.JsonSupport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -20,6 +21,7 @@ import java.util.Map;
  * <p>核心断言：这些端点<b>复用工具层</b>，因此返回体里带 {@code question_card} 等
  * 工具 metadata，而不是服务层的裸返回值。
  */
+@Tag("api")
 class StudyApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

@@ -13,6 +13,7 @@ import com.masterypath.storage.LearningStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <p>断言的是<b>可观察行为</b>：事件类型与顺序、题卡派生、{@code session_meta} 时机、
  * 错误映射、部分文本保留、快照与参考块注入。
  */
+@Tag("api")
 class TurnRunnerTest {
 
     @TempDir

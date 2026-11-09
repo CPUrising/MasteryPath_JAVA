@@ -11,9 +11,11 @@ import com.masterypath.domain.model.JsonSupport;
 import com.masterypath.service.LearningService;
 import com.masterypath.storage.LearningStore;
 
+import com.masterypath.TempWorkspace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +24,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -52,12 +56,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(WsTurnTest.FakeClientConfig.class)
+@Tag("api")
 class WsTurnTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();
 
     /** 每个用例替换一次脚本化客户端。 */
     private static final AtomicReference<LlmClient> CLIENT = new AtomicReference<>();
+
+    @DynamicPropertySource
+    static void dataDir(DynamicPropertyRegistry registry) {
+        TempWorkspace.registerDataDir(registry);
+    }
 
     @LocalServerPort
     private int port;
@@ -68,8 +78,8 @@ class WsTurnTest {
     /**
      * 本次运行的唯一后缀。
      *
-     * <p>本类走完整 Spring 上下文，工作目录是 {@code target/test-workspace}（跨运行保留），
-     * 因此固定 id 会让上一次运行的会话残留、{@code message_count} 累加。
+     * <p>工作目录由 {@link TempWorkspace} 每次运行新建，跨运行不会残留；后缀仍然保留，
+     * 用于同一上下文内多个用例之间互不干扰（同一上下文共享一个库）。
      */
     private String run;
 

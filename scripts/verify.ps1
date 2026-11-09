@@ -10,6 +10,9 @@
 .PARAMETER scope
     all | unit | storage | api
 
+    分类由 JUnit 5 @Tag 决定：storage / api 有标签，未打标签的用例属于 unit。
+    新增测试类默认进入 unit，不会像手写白名单那样被静默跳过。
+
 .PARAMETER change
     绑定到某个 change id（用于命名日志与提示回填的报告）
 
@@ -105,15 +108,19 @@ if (-not (Test-Path $mvnw)) {
 
 $goals = @('-B', '-ntp', 'test')
 
+# 用标签而不是类名通配符：忘记打标签最多让 unit 变慢，不会让用例消失。
 switch ($Scope) {
-    'unit'    { $goals += @('-Dtest=*PolicyTest,*OrderingTest,*ScoreTest,*GradingTest,*SchedulerTest,*SchedulingTest,*RepairTest,*ProfileTest,*PathStateTest,*PathBindingTest,*NavigationTest,*LlmClientTest,*SseParserTest,*CompatibleClientTest,*AgentLoopTest,*ToolSchemasTest,*MasteryToolsTest,*SourceToolsTest,*StatusAndQuizToolsTest,*ModelTest,*JsonTest,*ProjectionTest,*ProjectorTest,*ClassificationTest,*ModeTest,*ModeGateTest,*BudgetTest,*CoverageTest,*GapTest,*OutlineBuildTest,*OutlineReviseTest,*QuizSpecTest,*QuizRegistrationTest,*GradeFlowTest,*QuestionBankTest,*AssessTest,*BuildReviseTest,*QuizGradeTest,*CaptureTest,*OutlineEvalTest,*OutlineEvalCliTest,*LifecycleTest,*AttachmentTest,*OverrideServiceTest,*ObjectiveStateTest,*ProviderProbeTest,*TaskModelTest,*SettingsStoreTest,*ModelResolutionTest') }
-    'storage' { $goals += @('-Dtest=*StoreTest,*StoreConcurrencyTest,*CompatibilityTest,*PreservationTest,*DeletionTest') }
-    'api'     { $goals += @('-Dtest=*ApiTest,*WebSocketTurnTest,*TurnRunnerTest,*WsTurnTest,*ChatServiceTest,*KnowledgeServiceTest,*RestTest,*ProbeTest,*TaskModelTest') }
+    'unit'    { $goals += @('-DexcludedGroups=storage,api') }
+    'storage' { $goals += @('-Dgroups=storage') }
+    'api'     { $goals += @('-Dgroups=api') }
     'all'     { }
 }
 
 Write-Log "command: mvnw.cmd $($goals -join ' ')"
 Write-Log ''
+
+$reportDir = Join-Path $root 'target\surefire-reports'
+$startedAt = Get-Date
 
 # 构建工具把进度与警告写到 stderr。若沿用 ErrorActionPreference=Stop，
 # 这些行会被当成终止错误，导致「测试全绿但脚本判失败」。此处只按退出码判定。
@@ -130,7 +137,21 @@ if ($code -eq 0) {
     Write-Log "[FAIL] 测试失败，退出码 $code。先读日志定位；最多自愈 3 轮；禁止放宽断言。"
 }
 
-$reportDir = Join-Path $root 'target\surefire-reports'
+# 零用例守卫：分范围运行时若一个报告都没产出，说明标签/筛选配置有问题。
+# 不能因为「没跑测试」而打印 PASS。
+if ($code -eq 0 -and $Scope -ne 'all') {
+    $fresh = @()
+    if (Test-Path $reportDir) {
+        $fresh = @(Get-ChildItem $reportDir -Filter 'TEST-*.xml' -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -ge $startedAt })
+    }
+    if ($fresh.Count -eq 0) {
+        Write-Log "[FAIL] scope=$Scope 没有产出任何新的测试报告，疑似标签或筛选条件配置错误。"
+        exit 3
+    }
+    Write-Log "[INFO] scope=$Scope 实际执行 $($fresh.Count) 个测试类。"
+}
+
 if (Test-Path $reportDir) {
     Write-Log "结果包: $reportDir"
 }

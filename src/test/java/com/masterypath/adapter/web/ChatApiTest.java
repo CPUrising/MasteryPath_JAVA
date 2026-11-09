@@ -14,6 +14,7 @@ import com.masterypath.storage.SettingsStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.MediaType;
@@ -38,6 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *
  * <p>用 {@code standaloneSetup}：控制器只依赖 {@link ChatService}，手工装配即可隔离。
  */
+@Tag("api")
 class ChatApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

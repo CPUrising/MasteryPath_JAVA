@@ -5,6 +5,7 @@ import com.masterypath.domain.model.QuestionBankEntry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>核心：删除路径 MUST 连带清掉 messages / sessions / question_bank / interactions / paths，
  * 但 MUST NOT 删除 events（append-only 审计日志）。
  */
+@Tag("storage")
 class PathDeletionTest {
 
     @TempDir

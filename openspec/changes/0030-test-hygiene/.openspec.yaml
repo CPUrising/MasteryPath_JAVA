@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-11-09
+skip_specs: true   # 只改测试基建：不改变任何生产代码与对外契约

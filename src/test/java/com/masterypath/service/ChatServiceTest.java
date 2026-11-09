@@ -12,6 +12,7 @@ import com.masterypath.storage.SettingsStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 普通聊天服务（{@code ../MasteryPath/tests/test_chat_nav.py} +
  * {@code test_knowledge_chat.py} 的 chat 部分 + {@code test_preferences.py}）。
  */
+@Tag("api")
 class ChatServiceTest {
 
     @TempDir

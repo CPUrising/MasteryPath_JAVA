@@ -2,6 +2,7 @@ package com.masterypath.storage;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * <p>重点：路径安全（id 白名单 / 上传穿越）、链接文件夹、文档收集。
  */
+@Tag("storage")
 class KnowledgeStoreTest {
 
     @TempDir

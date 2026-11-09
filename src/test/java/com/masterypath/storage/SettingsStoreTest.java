@@ -2,6 +2,7 @@ package com.masterypath.storage;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <p>本 change 把 `0018` 的内存实现换成落盘；分组语义与归一规则不变
  * （{@code SettingsApiTest} 的断言可原样通过）。
  */
+@Tag("storage")
 class SettingsStoreTest {
 
     @TempDir

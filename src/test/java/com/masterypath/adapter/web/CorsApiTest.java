@@ -3,11 +3,16 @@ package com.masterypath.adapter.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+
+import com.masterypath.TempWorkspace;
 
 /**
  * CORS 契约（{@code test_f0_api.py#test_cors_allows_frontend_origin}）。
@@ -19,7 +24,13 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@Tag("api")
 class CorsApiTest {
+
+    @DynamicPropertySource
+    static void dataDir(DynamicPropertyRegistry registry) {
+        TempWorkspace.registerDataDir(registry);
+    }
 
     @Autowired
     private MockMvc mvc;

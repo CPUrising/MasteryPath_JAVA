@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 未经任何手工修改。这条用例是「数据等价」维度里关于<b>表结构</b>的实证：
  * 只要 DDL 有一个列名或类型不一致，这里就会失败。
  */
+@Tag("storage")
 class ReferenceWorkspaceCompatibilityTest {
 
     @TempDir

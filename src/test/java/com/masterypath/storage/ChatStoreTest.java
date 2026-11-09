@@ -3,6 +3,7 @@ package com.masterypath.storage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <p>重点断言三件事：DDL 与参考实现逐字一致、独立于 {@code learning.db}、
  * {@code updateSession} 的三条归一（kb_ids 保留 / preferences 合并 / model_id 回写）。
  */
+@Tag("storage")
 class ChatStoreTest {
 
     @TempDir

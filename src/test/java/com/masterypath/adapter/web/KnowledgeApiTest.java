@@ -9,6 +9,7 @@ import com.masterypath.storage.SettingsStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.MediaType;
@@ -38,6 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *
  * <p>逐端点断言 404 / 422 的分工：未知库 404，参数非法 422。
  */
+@Tag("api")
 class KnowledgeApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

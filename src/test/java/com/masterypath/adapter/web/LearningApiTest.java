@@ -13,6 +13,7 @@ import com.masterypath.domain.model.LearningProgress;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -25,6 +26,7 @@ import java.util.Map;
  *
  * <p>对应参考实现 {@code tests/test_api.py} 与 {@code tests/test_f0_api.py} 的 REST 部分。
  */
+@Tag("api")
 class LearningApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

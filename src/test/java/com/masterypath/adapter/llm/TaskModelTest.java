@@ -1,6 +1,7 @@
 package com.masterypath.adapter.llm;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -14,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>核心约束：<b>永不抛异常</b>。任何模型侧失败都必须退到确定性草稿。
  */
+@Tag("api")
 class TaskModelTest {
 
     @Test

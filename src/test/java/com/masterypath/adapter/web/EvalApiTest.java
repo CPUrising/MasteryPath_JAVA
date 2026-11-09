@@ -7,6 +7,7 @@ import com.masterypath.domain.model.TopicSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *
  * <p>三条硬性语义：重算而非读存库报告、只读、确定性。
  */
+@Tag("api")
 class EvalApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

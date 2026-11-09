@@ -9,6 +9,7 @@ import com.masterypath.domain.model.JsonSupport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -22,6 +23,7 @@ import java.util.Map;
  *
  * <p>本 change 只做内存实现，落盘与提供方探测属 {@code 0021}。
  */
+@Tag("api")
 class SettingsApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

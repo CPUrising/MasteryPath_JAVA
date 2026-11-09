@@ -7,6 +7,7 @@ import com.masterypath.domain.model.LearningProgress;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>放在存储层是因为「保留」这件事由「读-改-写」的往返决定：
  * 只要序列化丢了 {@code goal}，这里就会失败。它同时守护 {@code 0002} 的 JSON 映射。
  */
+@Tag("storage")
 class GoalPreservationTest {
 
     @TempDir

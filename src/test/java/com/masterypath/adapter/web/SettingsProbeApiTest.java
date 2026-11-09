@@ -6,6 +6,7 @@ import com.masterypath.domain.model.JsonSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *
  * <p>两个关键约束：探测<b>不写配置</b>、<b>不回显凭据</b>。
  */
+@Tag("api")
 class SettingsProbeApiTest {
 
     private static final ObjectMapper MAPPER = JsonSupport.objectMapper();

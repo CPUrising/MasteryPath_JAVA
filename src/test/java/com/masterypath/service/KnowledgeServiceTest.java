@@ -6,6 +6,7 @@ import com.masterypath.storage.SettingsStore;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * <p>重点：分块配置校验、嵌入缺失时的降级状态、索引进度、检索三重短路、参考块拼装。
  */
+@Tag("api")
 class KnowledgeServiceTest {
 
     @TempDir
