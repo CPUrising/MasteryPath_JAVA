@@ -292,6 +292,23 @@
 | — | Generation repairs once | `changes/0033-quiz-set-generation/specs/agent-turn` | `QuizSetTurnTest#repairsOnce` | 通过（`0033`） |
 | — | Unknown capability throws | `changes/0033-quiz-set-generation/specs/agent-turn` | `QuizSetTurnTest#unknownCapabilityThrows` | 通过（`0033`） |
 
+## 12. 练习题卷前端（0034）
+
+> 本能力由 `0034` 新增；场景名取自
+> `openspec/changes/0034-quiz-viewer-ui/specs/quiz-viewer/spec.md`。
+> 前端场景以 browser_use 与真实模型 E2E 作为验证证据，见 `docs/verify/0034-quiz-viewer-ui.md`。
+
+| ID | 场景 | 规范位置 | 验证 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Learner starts a practice turn | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use + 真实模型 E2E（`capability=deep_question`、3 题） | 通过（`0034`） |
+| — | Capability resets after the turn | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（回合结束后回到「掌握辅导」） | 通过（`0034`） |
+| — | Quiz set renders inline | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（3 题单卷）+ 真实模型 E2E | 通过（`0034`） |
+| — | Generation failure leaves no quiz | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | `QuizSetTurnTest#invalidGenerationFailsClosed` + 前端 error 分支 | 通过（`0034`） |
+| — | Successful submit reveals answers | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（得分 100%）+ 真实模型 E2E（得分 0.667） | 通过（`0034`） |
+| — | Ungraded keeps answers editable | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | 真实模型 E2E（`ungraded` 响应）+ `QuizViewer` 分支 | 通过（`0034`） |
+| — | Reload restores an open quiz | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（刷新后恢复题卷与作答入口） | 通过（`0034`） |
+| — | Reload restores a submitted quiz | `changes/0034-quiz-viewer-ui/specs/quiz-viewer` | browser_use（刷新后复盘与得分保留） | 通过（`0034`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

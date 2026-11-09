@@ -13,6 +13,7 @@ import { MasteryHandoffCards } from "@/components/chat/MasteryHandoffCard";
 import { ModeSwitch } from "@/components/learning/ModeSwitch";
 import { ProgressRing } from "@/components/learning/ProgressRing";
 import { QuestionCard } from "@/components/learning/QuestionCard";
+import { QuizViewer } from "@/components/learning/QuizViewer";
 import { StudyOutline } from "@/components/learning/StudyOutline";
 import { api, type GradeOutcome } from "@/lib/api";
 import { knowledgeApi } from "@/lib/knowledge-api";
@@ -28,15 +29,22 @@ import type {
   ModelSection,
   PathState,
   PendingQuestion,
+  QuizPlan,
+  QuizQuestion,
+  QuizSet,
   SessionMessage,
 } from "@/lib/types";
-import { runTurn } from "@/lib/ws";
+import { runTurn, type TurnCapability } from "@/lib/ws";
 
 interface Item {
   role: "user" | "assistant";
   text: string;
   card?: PendingQuestion;
   grade?: GradeOutcome;
+  quiz?: QuizSet;
+  /** 生成进度条所属题卷；`quiz_set` 到达后移除。 */
+  planSetId?: string;
+  planCount?: number;
 }
 
 function masteredIds(state: PathState): Set<string> {
@@ -61,7 +69,9 @@ function StudyRoute() {
 
   const [state, setState] = useState<PathState | null>(null);
   const [mode, setMode] = useState<Mode>(normalizeMode(search.get("mode")));
+  const [capability, setCapability] = useState<TurnCapability>("mastery_path");
   const [items, setItems] = useState<Item[]>([]);
+  const questionDrafts = useRef(new Map<string, QuizQuestion[]>());
   const [handoffs, setHandoffs] = useState<MasteryHandoffPayload[]>([]);
   const pendingSent = useRef(false);
   const [askHint, setAskHint] = useState("");
@@ -108,12 +118,16 @@ function StudyRoute() {
         }
         if (detail.session?.mode) setMode(normalizeMode(detail.session.mode));
         const history = (detail.messages as SessionMessage[])
-          .filter((message) => message.content || message.data?.card || message.data?.grade)
+          .filter(
+            (message) =>
+              message.content || message.data?.card || message.data?.grade || message.data?.quiz_set,
+          )
           .map<Item>((message) => ({
             role: message.role,
             text: message.content,
             ...(message.data?.card ? { card: message.data.card } : {}),
             ...(message.data?.grade ? { grade: message.data.grade } : {}),
+            ...(message.data?.quiz_set ? { quiz: message.data.quiz_set } : {}),
           }));
         if (history.length) setItems(history);
       })
@@ -283,6 +297,7 @@ function StudyRoute() {
         });
       };
       try {
+        const practice = capability === "deep_question";
         await runTurn(
           {
             session_id: sessionId,
@@ -290,10 +305,58 @@ function StudyRoute() {
             mode,
             message: text,
             llm_selection: selection ?? undefined,
+            capability: practice ? "deep_question" : undefined,
+            num_questions: practice ? 3 : undefined,
           },
           (event) => {
             if (event.type === "text_delta") {
               appendAssistant(String(event.data.text ?? ""));
+            }
+            if (event.type === "quiz_plan") {
+              const plan = event.data as unknown as QuizPlan;
+              if (plan?.set_id) {
+                setItems((previous) => {
+                  const next = [...previous];
+                  const last = next[next.length - 1];
+                  const placeholder =
+                    last?.role === "assistant" && !last.text && !last.card && !last.grade && !last.quiz;
+                  const row: Item = {
+                    role: "assistant",
+                    text: "",
+                    planSetId: plan.set_id,
+                    planCount: plan.count,
+                  };
+                  if (placeholder) next[next.length - 1] = row;
+                  else next.push(row);
+                  return next;
+                });
+              }
+            }
+            if (event.type === "quiz_question") {
+              const question = event.data as unknown as QuizQuestion & { set_id: string };
+              if (question?.question_id && question.set_id) {
+                const draft = questionDrafts.current.get(question.set_id) ?? [];
+                if (!draft.some((item) => item.question_id === question.question_id)) {
+                  draft.push(question);
+                }
+                questionDrafts.current.set(question.set_id, draft);
+              }
+            }
+            if (event.type === "quiz_set") {
+              const quiz = event.data as unknown as QuizSet;
+              if (quiz?.set_id) {
+                const draft = questionDrafts.current.get(quiz.set_id);
+                const merged =
+                  draft?.length === quiz.questions?.length
+                    ? { ...quiz, questions: draft }
+                    : quiz;
+                setItems((previous) => [
+                  ...previous.filter(
+                    (item) => item.planSetId !== quiz.set_id && item.quiz?.set_id !== quiz.set_id,
+                  ),
+                  { role: "assistant", text: "", quiz: merged },
+                ]);
+              }
             }
             if (event.type === "question_card") {
               const card = event.data as unknown as PendingQuestion;
@@ -348,14 +411,17 @@ function StudyRoute() {
         setItems((previous) => {
           const next = [...previous];
           const last = next[next.length - 1];
-          if (last?.role === "assistant" && !last.text) next.pop();
+          if (last?.role === "assistant" && !last.text && !last.quiz && !last.card && !last.grade) {
+            next.pop();
+          }
           return next;
         });
       }
+      if (capability === "deep_question") setCapability("mastery_path");
       await load().catch(() => undefined);
       setBusy(false);
     },
-    [pathId, sessionId, mode, load, t, selection],
+    [pathId, sessionId, mode, load, t, selection, capability],
   );
 
   useEffect(() => {
@@ -428,6 +494,25 @@ function StudyRoute() {
               ) : (
                 <div className="space-y-5">
                   {items.map((item, index) => {
+                    if (item.planSetId && !item.text) {
+                      return (
+                        <div
+                          key={`plan-${item.planSetId}`}
+                          className="rounded-lg border border-border bg-secondary px-3.5 py-2.5 text-[12px] text-muted-foreground"
+                        >
+                          {t("quiz.plan", { count: item.planCount ?? 0 })}
+                        </div>
+                      );
+                    }
+                    if (item.quiz) {
+                      return (
+                        <QuizViewer
+                          key={`quiz-${item.quiz.set_id}`}
+                          pathId={pathId}
+                          quizSet={item.quiz}
+                        />
+                      );
+                    }
                     if (item.card) {
                       const card = item.card;
                       return (
@@ -493,6 +578,14 @@ function StudyRoute() {
             onSend={(text) => void send(text)}
             placeholder={t("study.placeholder")}
             askHint={askHint}
+            capabilities={[
+              { id: "mastery_path", label: t("quiz.capability.mastery") },
+              { id: "deep_question", label: t("quiz.capability.practice") },
+            ]}
+            capabilityId={capability}
+            onCapabilityChange={(id) =>
+              setCapability(id === "deep_question" ? "deep_question" : "mastery_path")
+            }
           />
         </section>
       </div>

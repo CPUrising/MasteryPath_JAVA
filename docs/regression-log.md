@@ -37,3 +37,4 @@
 | 2026-11-09 | `0031-quiz-card-event-authority` | 874 | 0 | 0 | [verify/0031](verify/0031-quiz-card-event-authority.md) |
 | 2026-11-09 | `0032-app-shell-scroll` | 874 | 0 | 0 | [verify/0032](verify/0032-app-shell-scroll.md) |
 | 2026-11-09 | `0033-quiz-set-generation` | 893 | 0 | 0 | [verify/0033](verify/0033-quiz-set-generation.md) |
+| 2026-11-09 | `0034-quiz-viewer-ui` | 893 | 0 | 0 | [verify/0034](verify/0034-quiz-viewer-ui.md) |

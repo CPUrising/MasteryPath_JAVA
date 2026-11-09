@@ -78,6 +78,56 @@ const QUIZ_ARGS = {
   difficulty: "easy",
 };
 
+// -- 练习题卷剧本（deep_question） ------------------------------------------
+
+function practiceQuizText(userText) {
+  const countMatch = /Number of questions:\s*(\d+)/i.exec(userText);
+  const count = Math.min(10, Math.max(1, Number(countMatch ? countMatch[1] : 3)));
+  const topicMatch = /Topic:\s*(.+)/i.exec(userText);
+  const topic = (topicMatch ? topicMatch[1] : "当前主题").trim();
+  const templates = [
+    {
+      question_type: "choice",
+      question: `关于「${topic}」，下面哪一项描述最准确？`,
+      options: [
+        { label: "A", body: "它与该主题完全无关" },
+        { label: "B", body: `它解释了「${topic}」的核心机制` },
+        { label: "C", body: "它只适用于旧版本" },
+        { label: "D", body: "它无法被验证" },
+      ],
+      expected_answer: "B",
+      explanation: "Mock LLM 的固定选择题：正确项是 B。",
+      difficulty: "medium",
+      knowledge_point_id: "",
+    },
+    {
+      question_type: "short",
+      question: `用一句话概括「${topic}」的核心思想。`,
+      expected_answer: "核心思想",
+      accepted_answers: ["核心思想", "核心是", "本质"],
+      explanation: "Mock LLM 的固定短答题：包含「核心思想」即可判定正确。",
+      difficulty: "medium",
+      knowledge_point_id: "",
+    },
+    {
+      question_type: "open",
+      question: `简述「${topic}」的一个实际应用。`,
+      expected_answer: "给出一个具体应用场景，并说明它解决的问题。",
+      required_keywords: ["应用"],
+      optional_keywords: ["场景"],
+      explanation: "Mock LLM 的固定开放题：答案中包含「应用」即可判定通过。",
+      difficulty: "medium",
+      knowledge_point_id: "",
+    },
+  ];
+  const questions = [];
+  for (let index = 0; index < count; index += 1) {
+    const template = templates[index % templates.length];
+    questions.push({ ...template, question: `（第 ${index + 1} 题）${template.question}` });
+  }
+  return JSON.stringify({ questions });
+}
+
 // -- 请求解析 ---------------------------------------------------------------
 
 function readJson(request) {
@@ -158,6 +208,16 @@ function decide(body) {
       .filter((name) => typeof name === "string" && name.length > 0),
   );
   const toolName = lastToolNameOf(messages);
+
+  if (/You generate practice quizzes/i.test(systemPromptOf(messages))) {
+    return {
+      kind: "text",
+      mode,
+      userText,
+      toolName: "",
+      text: practiceQuizText(userText),
+    };
+  }
 
   if (lastMessage.role === "tool") {
     return {

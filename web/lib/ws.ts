@@ -1,6 +1,8 @@
 import { WS_BASE } from "./api";
 import type { LLMSelection, Mode, TurnEvent } from "./types";
 
+export type TurnCapability = "mastery_path" | "deep_question";
+
 export interface TurnRequest {
   session_id: string;
   path_id: string;
@@ -8,6 +10,9 @@ export interface TurnRequest {
   message: string;
   turn_id?: string;
   llm_selection?: LLMSelection;
+  capability?: TurnCapability;
+  num_questions?: number;
+  difficulty?: string;
 }
 
 /** Run one tutor turn over the WebSocket and stream events back. */

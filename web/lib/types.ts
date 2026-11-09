@@ -120,12 +120,58 @@ export interface TopicSession {
   updated_at: number;
 }
 
+export type QuizQuestionType = "choice" | "short" | "open";
+
+/** 练习题卷的单题投影；答案字段只在提交后出现。 */
+export interface QuizQuestion {
+  question_id: string;
+  seq: number;
+  prompt: string;
+  question_type: QuizQuestionType;
+  options: { label: string; body: string }[];
+  difficulty?: string;
+  learner_answer?: string;
+  is_correct?: boolean;
+  result?: string;
+  correct_answer?: string;
+  explanation?: string;
+}
+
+/** `quiz_set` 事件与 `GET /quiz-sets/{setId}` 的题卷投影。 */
+export interface QuizSet {
+  set_id: string;
+  path_id?: string;
+  title?: string;
+  topic?: string;
+  status: "open" | "submitted" | string;
+  question_count: number;
+  score?: number | null;
+  created_at?: number;
+  submitted_at?: number | null;
+  questions: QuizQuestion[];
+}
+
+/** `deep_question` 回合开始时的生成计划。 */
+export interface QuizPlan {
+  set_id: string;
+  path_id?: string;
+  topic: string;
+  count: number;
+  templates: { question_type: QuizQuestionType; difficulty?: string }[];
+}
+
+/** `POST /quiz-sets/{setId}/submit` 的结果。 */
+export interface QuizSetSubmitOutcome extends QuizSet {
+  /** 后端返回 `"<question_id>: <reason>"` 形式的字符串列表。 */
+  ungraded_reasons?: string[];
+}
+
 export interface SessionMessage {
   id: number;
   turn_id: string;
   role: "user" | "assistant";
   content: string;
-  data: { card?: PendingQuestion; grade?: GradeOutcome };
+  data: { card?: PendingQuestion; grade?: GradeOutcome; quiz_set?: QuizSet };
   created_at: number;
 }
 

@@ -33,6 +33,9 @@ export function MessageComposer({
   placeholder,
   askHint,
   capabilityLabel,
+  capabilities,
+  capabilityId,
+  onCapabilityChange,
   draft,
 }: {
   models: ModelEntry[];
@@ -46,6 +49,10 @@ export function MessageComposer({
   placeholder?: string;
   askHint?: string;
   capabilityLabel?: string;
+  /** Selectable capabilities; when set, the chip row becomes a toggle. */
+  capabilities?: { id: string; label: string }[];
+  capabilityId?: string;
+  onCapabilityChange?: (id: string) => void;
   /** Externally injected text (e.g. a withdrawn message); `nonce` forces a new injection. */
   draft?: { text: string; nonce: number };
 }) {
@@ -142,11 +149,35 @@ export function MessageComposer({
         )}
 
         <div className="flex items-center gap-1.5 px-1">
-          {capabilityLabel && (
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-muted-foreground">
-              <MessageSquare size={15} />
-              {capabilityLabel}
-            </span>
+          {capabilities && capabilities.length > 0 ? (
+            <div className="flex items-center gap-1">
+              {capabilities.map((capability) => {
+                const active = capability.id === capabilityId;
+                return (
+                  <button
+                    key={capability.id}
+                    type="button"
+                    disabled={streaming}
+                    onClick={() => onCapabilityChange?.(capability.id)}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] disabled:opacity-50 ${
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    <MessageSquare size={14} />
+                    {capability.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            capabilityLabel && (
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-muted-foreground">
+                <MessageSquare size={15} />
+                {capabilityLabel}
+              </span>
+            )
           )}
           <button
             type="button"

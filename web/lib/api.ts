@@ -8,6 +8,8 @@ import type {
   Provider,
   ProviderDetection,
   ProviderProtocol,
+  QuizSet,
+  QuizSetSubmitOutcome,
   TopicSession,
 } from "./types";
 
@@ -143,6 +145,17 @@ export const api = {
     post<{ status: string }>(`${API_BASE}/learning/paths/${pathId}/skip-question`, {
       question_id: questionId,
     }),
+  getQuizSet: (pathId: string, setId: string) =>
+    fetch(`${API_BASE}/learning/paths/${pathId}/quiz-sets/${setId}`).then(json<QuizSet>),
+  submitQuizSet: (
+    pathId: string,
+    setId: string,
+    answers: { question_id: string; answer: string }[],
+  ) =>
+    post<QuizSetSubmitOutcome>(
+      `${API_BASE}/learning/paths/${pathId}/quiz-sets/${setId}/submit`,
+      { answers },
+    ),
 
   // settings
   getSettings: (section: string) => fetch(`${API_BASE}/settings/${section}`).then(json<unknown>),
