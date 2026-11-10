@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
-import { masterySessionsRoute } from "@/lib/learning-routes";
+import { masterySessionRoute } from "@/lib/learning-routes";
 import type { TopicSession } from "@/lib/types";
 
 export function SessionCamp({
@@ -25,7 +25,7 @@ export function SessionCamp({
         <div className="mt-3">
           <p className="text-[12px] text-muted-foreground">{t("sessions.none")}</p>
           <Link
-            href={masterySessionsRoute(pathId)}
+            href={masterySessionRoute(pathId, "study")}
             className="mt-2 inline-block text-[12px] text-primary hover:underline"
           >
             {t("study.start")}
@@ -37,7 +37,10 @@ export function SessionCamp({
             <li key={session.session_id} className="flex items-center gap-2 text-[12px]">
               <span className="min-w-0 flex-1 truncate">{session.title || session.session_id}</span>
               <code className="text-[10px] text-muted-foreground">{session.mode}</code>
-              <Link href={masterySessionsRoute(pathId)} className="text-[11px] text-primary hover:underline">
+              <Link
+                href={masterySessionRoute(pathId, session.mode, session.session_id)}
+                className="text-[11px] text-primary hover:underline"
+              >
                 {t("sessions.open")}
               </Link>
             </li>

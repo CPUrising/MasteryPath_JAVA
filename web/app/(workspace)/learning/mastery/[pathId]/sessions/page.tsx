@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -62,10 +62,7 @@ function StudyRoute() {
   const router = useRouter();
   const { t } = useTranslation();
   const existingSession = search.get("session") || "";
-  const sessionId = useMemo(
-    () => existingSession || Math.random().toString(36).slice(2),
-    [existingSession],
-  );
+  const [sessionId, setSessionId] = useState(existingSession);
 
   const [state, setState] = useState<PathState | null>(null);
   const [mode, setMode] = useState<Mode>(normalizeMode(search.get("mode")));
@@ -88,11 +85,34 @@ function StudyRoute() {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [items, busy]);
 
+  // 会话连续性：没有 ?session= 时接上该路径最近一次会话，并把 id 写回地址栏。
+  useEffect(() => {
+    if (existingSession) {
+      setSessionId((current) => (current === existingSession ? current : existingSession));
+      return;
+    }
+    let cancelled = false;
+    const adopt = (next: string) => {
+      if (cancelled) return;
+      setSessionId(next);
+      router.replace(masterySessionRoute(pathId, mode, next));
+    };
+    api
+      .listSessions(pathId)
+      .then(({ sessions }) => adopt(sessions[0]?.session_id || Math.random().toString(36).slice(2)))
+      .catch(() => adopt(Math.random().toString(36).slice(2)));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathId, existingSession]);
+
   useEffect(() => {
     knowledgeApi.list().then(setKnowledgeBases).catch(() => setKnowledgeBases([]));
   }, []);
 
   useEffect(() => {
+    if (!sessionId) return;
     api
       .getSettings("llm")
       .then((value) => {
@@ -117,19 +137,27 @@ function StudyRoute() {
           setKbIds(preferences.knowledge_bases ?? []);
         }
         if (detail.session?.mode) setMode(normalizeMode(detail.session.mode));
-        const history = (detail.messages as SessionMessage[])
-          .filter(
-            (message) =>
-              message.content || message.data?.card || message.data?.grade || message.data?.quiz_set,
-          )
-          .map<Item>((message) => ({
-            role: message.role,
-            text: message.content,
-            ...(message.data?.card ? { card: message.data.card } : {}),
-            ...(message.data?.grade ? { grade: message.data.grade } : {}),
-            ...(message.data?.quiz_set ? { quiz: message.data.quiz_set } : {}),
-          }));
-        if (history.length) setItems(history);
+        const history: Item[] = [];
+        for (const message of detail.messages as SessionMessage[]) {
+          const text = message.content ?? "";
+          const grade = message.data?.grade;
+          // legacy REST 判分消息把结果写进正文（"correct" / "incorrect"），避免与判分卡重复。
+          const placeholderText =
+            grade != null && (text.trim() === "correct" || text.trim() === "incorrect");
+          if (text.trim() && !placeholderText) {
+            history.push({ role: message.role, text });
+          }
+          if (message.data?.card) {
+            history.push({ role: message.role, text: "", card: message.data.card });
+          }
+          if (grade) {
+            history.push({ role: message.role, text: "", grade });
+          }
+          if (message.data?.quiz_set) {
+            history.push({ role: message.role, text: "", quiz: message.data.quiz_set });
+          }
+        }
+        setItems(history);
       })
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,8 +599,15 @@ function StudyRoute() {
             kbIds={kbIds}
             onKbChange={changeKnowledgeBases}
             streaming={busy}
-            onSend={(text) => void send(text)}
-            placeholder={t("study.placeholder")}
+            onSend={(text) => {
+              void send(
+                text,
+                pending_question
+                  ? { answer: { question_id: pending_question.question_id, text } }
+                  : undefined,
+              );
+            }}
+            placeholder={pending_question ? t("q.placeholder") : t("study.placeholder")}
             askHint={askHint}
             capabilities={[
               { id: "mastery_path", label: t("quiz.capability.mastery") },

@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { MarkdownMessage } from "@/components/common/MarkdownMessage";
 import type { PendingQuestion } from "@/lib/types";
 
-/** A posed question card. Answering starts the next turn. */
+/** A posed question card. Choice cards answer in place; free text uses the composer. */
 export function QuestionCard({
   question,
   onAnswer,
@@ -20,14 +18,6 @@ export function QuestionCard({
   answered?: boolean;
 }) {
   const { t } = useTranslation();
-  const [text, setText] = useState("");
-
-  const submit = () => {
-    const value = text.trim();
-    if (!value) return;
-    onAnswer(value);
-    setText("");
-  };
 
   return (
     <div className="rounded-xl border border-primary/25 bg-primary/[0.05] p-4">
@@ -55,33 +45,7 @@ export function QuestionCard({
           ))}
         </ul>
       ) : (
-        <div className="mt-3 rounded-2xl border border-border bg-card p-2 shadow-sm transition focus-within:border-primary/40">
-          <textarea
-            rows={1}
-            value={text}
-            placeholder={t("q.placeholder")}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                submit();
-              }
-            }}
-            className="max-h-32 w-full resize-none bg-transparent px-2 py-1.5 text-[14px] text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <div className="flex justify-end">
-            <button
-              type="button"
-              aria-label={t("q.submit")}
-              title={t("q.submit")}
-              disabled={!text.trim()}
-              onClick={submit}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
-            >
-              <ArrowUp size={16} />
-            </button>
-          </div>
-        </div>
+        <p className="mt-3 text-[12px] text-muted-foreground">{t("q.answerBelow")}</p>
       )}
       {!answered && (
         <div className="mt-3 text-right">

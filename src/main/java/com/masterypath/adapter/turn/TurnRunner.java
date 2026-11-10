@@ -65,6 +65,20 @@ public final class TurnRunner {
     /** 判分结果在 {@code tool_result.metadata} 里的键。 */
     private static final String GRADE_KEY = "mastery_grade";
 
+    /** 会话回顾的抬头（显式声明为运行时数据，避免模型复述）。 */
+    private static final String RECAP_HEADER =
+            "[Session recap — runtime data, never quote or restate this block]\n"
+                    + "Each question below was already put on the learner's card. A card marked "
+                    + "graded is finished: do not ask it again. A bare letter or short phrase "
+                    + "from the learner refers to the most recent card.";
+
+    /** 回顾里最多列出的卡片数。 */
+    private static final int RECAP_LIMIT = 6;
+
+    /** 回顾里题干与选项的截断长度（字符）。 */
+    private static final int RECAP_PROMPT_LIMIT = 240;
+    private static final int RECAP_OPTION_LIMIT = 90;
+
     /** 快照注入的固定抬头（逐字复刻参考实现）。 */
     private static final String SNAPSHOT_HEADER =
             "[Current-turn mastery_status snapshot]\n"
@@ -415,17 +429,28 @@ public final class TurnRunner {
 
             String context = knowledgeContext(kbIds, request.message());
             applyCardSubmission();
+            StringBuilder runtime = new StringBuilder();
             if (!request.pathId().isEmpty()) {
                 try {
                     ToolResult snapshot = MasteryTools.all().get("mastery_status")
                             .execute(Map.of(), ctx);
                     if (snapshot.ok()) {
-                        context = SNAPSHOT_HEADER + snapshot.content()
-                                + (context.isEmpty() ? "" : "\n\n" + context);
+                        runtime.append(SNAPSHOT_HEADER).append(snapshot.content());
                     }
                 } catch (RuntimeException ignored) {
                     // 状态读取失败不能拖垮整个回合。
                 }
+            }
+            String recap = recapContext();
+            if (!recap.isEmpty()) {
+                if (runtime.length() > 0) {
+                    runtime.append("\n\n");
+                }
+                runtime.append(recap);
+            }
+            if (runtime.length() > 0) {
+                context = context.isEmpty() ? runtime.toString()
+                        : runtime + "\n\n" + context;
             }
 
             // MasteryTools.all() 已含 4 个导航工具（23 = 19 mastery + 4 nav），
@@ -511,9 +536,8 @@ public final class TurnRunner {
         /**
          * 此前的会话历史（role + content，跳过空正文，最多 20 条）。
          *
-         * <p>题卡与判分结果只存在于消息的 {@code data} 里，而模型只读得到 {@code content}。
-         * 这里把它们还原成紧凑的文本证据：否则学习者回一个裸选项时，模型会误以为自己
-         * 从未出过题，从而反复道歉并重新出题。
+         * <p>只回放真实对话。题卡与判分改由 {@link #recapContext()} 注入运行时上下文：
+         * 若把它们拼进 assistant 正文，模型会把题号当成自己的话复述给学习者。
          */
         private List<Map<String, Object>> historyMessages() {
             if (request.sessionId().isEmpty()) {
@@ -534,21 +558,88 @@ public final class TurnRunner {
                     if (!"user".equals(role) && !"assistant".equals(role)) {
                         continue;
                     }
-                    Object data = map.get("data");
                     String content = str(map.get("content"));
-                    if ("assistant".equals(role)) {
-                        content = content + cardEvidence(data) + gradeEvidence(data);
-                    }
                     if (content.isBlank()) {
                         continue;
                     }
-                    history.add(Map.of("role", role, "content", content.strip()));
+                    history.add(Map.of("role", role, "content", content));
                 }
                 return history.size() <= 20
                         ? history : history.subList(history.size() - 20, history.size());
             } catch (RuntimeException e) {
                 return List.of();
             }
+        }
+
+        /**
+         * 会话回顾（运行时上下文，不进入 assistant 正文）。
+         *
+         * <p>列出最近几张卡片与它们的判分结果，让模型知道「这些题已经出过/答过」。
+         * 段落抬头显式声明为运行时数据，避免模型复述题号。
+         *
+         * @return 没有卡片时返回空串
+         */
+        private String recapContext() {
+            if (request.sessionId().isEmpty()) {
+                return "";
+            }
+            List<Map<?, ?>> cards = new ArrayList<>();
+            Map<String, Map<?, ?>> grades = new LinkedHashMap<>();
+            try {
+                Object raw = learningService.getSessionDetail(request.sessionId()).get("messages");
+                if (!(raw instanceof List<?> list)) {
+                    return "";
+                }
+                for (Object item : list) {
+                    if (!(item instanceof Map<?, ?> message)
+                            || !(message.get("data") instanceof Map<?, ?> data)) {
+                        continue;
+                    }
+                    if (data.get("grade") instanceof Map<?, ?> grade) {
+                        String questionId = str(grade.get("question_id"));
+                        if (!questionId.isEmpty()) {
+                            grades.put(questionId, grade);
+                        }
+                    }
+                    if (data.get("card") instanceof Map<?, ?> card) {
+                        cards.add(card);
+                    }
+                }
+            } catch (RuntimeException e) {
+                return "";
+            }
+            if (cards.isEmpty()) {
+                return "";
+            }
+            List<Map<?, ?>> recent = cards.size() <= RECAP_LIMIT
+                    ? cards : cards.subList(cards.size() - RECAP_LIMIT, cards.size());
+            StringBuilder text = new StringBuilder(RECAP_HEADER);
+            for (Map<?, ?> card : recent) {
+                text.append("\n- card ").append(str(card.get("question_id")))
+                        .append(" (").append(str(card.get("question_type")));
+                Map<?, ?> grade = grades.get(str(card.get("question_id")));
+                if (grade == null) {
+                    text.append(", awaiting answer");
+                } else {
+                    text.append(", graded ").append(str(grade.get("result")));
+                    text.append(", mastery_after ").append(str(grade.get("mastery_after")));
+                }
+                text.append("): ").append(clip(str(card.get("prompt")), RECAP_PROMPT_LIMIT));
+                Object options = card.get("options");
+                if (options instanceof List<?> list && !list.isEmpty()) {
+                    List<String> rendered = new ArrayList<>();
+                    for (Object option : list) {
+                        if (option instanceof Map<?, ?> map) {
+                            rendered.add(str(map.get("label")) + ") "
+                                    + clip(str(map.get("body")), RECAP_OPTION_LIMIT));
+                        }
+                    }
+                    if (!rendered.isEmpty()) {
+                        text.append(" | options: ").append(String.join(" | ", rendered));
+                    }
+                }
+            }
+            return text.toString();
         }
 
         /** 错误路径：先保住已产出的内容，再发 session_meta，最后发 error。 */
@@ -716,43 +807,12 @@ public final class TurnRunner {
         return metadata instanceof Map<?, ?> map ? map.get(GRADE_KEY) : null;
     }
 
-    /** 把 {@code data.card} 还原成「这张卡已交给学习者」的文本证据。 */
-    private static String cardEvidence(Object data) {
-        Object raw = data instanceof Map<?, ?> map ? map.get("card") : null;
-        if (!(raw instanceof Map<?, ?> card)) {
-            return "";
+    /** 截断到 {@code limit} 个字符，超出时补省略号。 */
+    private static String clip(String value, int limit) {
+        if (value.length() <= limit) {
+            return value;
         }
-        StringBuilder text = new StringBuilder("\n\n[Question card delivered to the learner]");
-        text.append("\nquestion_id: ").append(str(card.get("question_id")));
-        text.append("\nquestion_type: ").append(str(card.get("question_type")));
-        text.append("\nprompt: ").append(str(card.get("prompt")));
-        Object options = card.get("options");
-        if (options instanceof List<?> list && !list.isEmpty()) {
-            List<String> rendered = new ArrayList<>();
-            for (Object item : list) {
-                if (item instanceof Map<?, ?> option) {
-                    rendered.add(str(option.get("label")) + ") " + str(option.get("body")));
-                }
-            }
-            if (!rendered.isEmpty()) {
-                text.append("\noptions: ").append(String.join(" | ", rendered));
-            }
-        }
-        return text.toString();
-    }
-
-    /** 把 {@code data.grade} 还原成「这张卡已判分」的文本证据。 */
-    private static String gradeEvidence(Object data) {
-        Object raw = data instanceof Map<?, ?> map ? map.get("grade") : null;
-        if (!(raw instanceof Map<?, ?> grade)) {
-            return "";
-        }
-        return "\n\n[That card was graded]"
-                + "\nquestion_id: " + str(grade.get("question_id"))
-                + "\nlearner_answer: " + str(grade.get("learner_answer"))
-                + "\nresult: " + str(grade.get("result"))
-                + "\nis_correct: " + str(grade.get("is_correct"))
-                + "\nmastery_after: " + str(grade.get("mastery_after"));
+        return value.substring(0, limit) + "…";
     }
 
     @SuppressWarnings("unchecked")

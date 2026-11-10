@@ -132,8 +132,8 @@ class TurnRunnerTest {
     }
 
     @Test
-    @DisplayName("会话历史把题卡与判分还原成文本，模型不会误以为卡片没送到")
-    void historyReplaysCardAndGradeAsText() {
+    @DisplayName("题卡与判分只进运行时上下文，不进 assistant 历史正文")
+    void historyKeepsRuntimeEvidenceOutOfAssistantText() {
         service.createPath("p", "learn X", "X");
         service.build("p", Map.of("modules", List.of(Map.of(
                 "name", "M",
@@ -161,20 +161,18 @@ class TurnRunnerTest {
         run(fake, request("s1", "p", "study", "继续"));
 
         List<Map<String, Object>> messages = fake.calls().get(0);
-        assertThat(messages).anySatisfy(message -> {
-            assertThat(message).containsEntry("role", "assistant");
-            assertThat(String.valueOf(message.get("content")))
-                    .contains("[Question card delivered to the learner]")
-                    .contains("question_id: q-card")
-                    .contains("B) GRANT SELECT ON t TO reader;");
-        });
-        assertThat(messages).anySatisfy(message -> {
-            assertThat(message).containsEntry("role", "assistant");
-            assertThat(String.valueOf(message.get("content")))
-                    .contains("[That card was graded]")
-                    .contains("learner_answer: B")
-                    .contains("result: correct");
-        });
+        assertThat(messages).filteredOn(message -> !"system".equals(message.get("role")))
+                .allSatisfy(message -> assertThat(String.valueOf(message.get("content")))
+                        .doesNotContain("[Question card delivered")
+                        .doesNotContain("[That card was graded")
+                        .doesNotContain("q-card"));
+
+        String system = String.valueOf(messages.get(0).get("content"));
+        assertThat(system)
+                .contains("[Session recap")
+                .contains("never quote or restate")
+                .contains("card q-card (choice, graded correct, mastery_after 0.5)")
+                .contains("B) GRANT SELECT ON t TO reader;");
     }
 
     @Test

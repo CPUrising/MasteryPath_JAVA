@@ -64,6 +64,7 @@
   "q.skip": "Skip",
   "q.submit": "Submit",
   "q.placeholder": "Type your answer",
+  "q.answerBelow": "Type your answer in the box below.",
   "q.verdict.correct": "Correct.",
   "q.verdict.partial": "Partially correct.",
   "q.verdict.incorrect": "Incorrect.",

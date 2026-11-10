@@ -417,6 +417,21 @@
 | — | No attempt yields none | `changes/0041-mastery-turn-evidence/specs/learning-tools` | `PathStateTest#lastAnsweredIsNoneBeforeAnyAnswer` | 通过（`0041`） |
 | — | Latest attempt is replayed | `changes/0041-mastery-turn-evidence/specs/learning-tools` | `PathStateTest#lastAnsweredReplaysTheLatestAttempt` | 通过（`0041`） |
 
+## 20. 会话连续性与答题入口（0042）
+
+> 场景名取自 `openspec/changes/0042-mastery-session-continuity/specs/`。
+
+| ID | 场景 | 规范位置 | Java / 前端验证 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | History is included | `changes/0042-mastery-session-continuity/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0042`） |
+| — | History replays delivered cards and grades | `changes/0042-mastery-session-continuity/specs/agent-turn` | `TurnRunnerTest#historyKeepsRuntimeEvidenceOutOfAssistantText` | 通过（`0042`） |
+| — | Runtime evidence never enters assistant text | `changes/0042-mastery-session-continuity/specs/agent-turn` | `TurnRunnerTest#historyKeepsRuntimeEvidenceOutOfAssistantText` | 通过（`0042`） |
+| — | Graded card is persisted with its outcome | `changes/0042-mastery-session-continuity/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0042`） |
+| — | Reopening resumes the latest session | `changes/0042-mastery-session-continuity/specs/agent-turn` | `sessions/page.tsx`（会话解析 effect）+ `npm run build` | 通过（`0042`） |
+| — | Full history is rendered after reload | `changes/0042-mastery-session-continuity/specs/agent-turn` | `sessions/page.tsx`（消息拆分渲染）+ `npm run build` | 通过（`0042`） |
+| — | Composer answers the open question | `changes/0042-mastery-session-continuity/specs/agent-turn` | `sessions/page.tsx`（`pending_question` → `mastery_answer`）、`QuestionCard.tsx` | 通过（`0042`） |
+| — | Session list opens a specific session | `changes/0042-mastery-session-continuity/specs/agent-turn` | `SessionCamp.tsx` | 通过（`0042`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。
