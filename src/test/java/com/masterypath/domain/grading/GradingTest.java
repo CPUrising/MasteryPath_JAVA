@@ -2,6 +2,7 @@ package com.masterypath.domain.grading;
 
 import com.masterypath.domain.model.PendingOption;
 import com.masterypath.domain.model.PendingQuestion;
+import com.masterypath.testsupport.AnswerFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -235,6 +236,19 @@ class GradingTest {
         pending.setRequiredKeywords(List.of("x"));
 
         assertThat(Grading.grade(pending, "   ").result()).isEqualTo(Decision.UNGRADED);
+    }
+
+    // -- 真实作答矩阵 ---------------------------------------------------------
+
+    @Test
+    @DisplayName("13 条真实风格作答：练习题卷保持 correct/partial/ungraded 语义")
+    void realAnswersKeepPracticeSemantics() {
+        for (AnswerFixtures.Case item : AnswerFixtures.load()) {
+            Decision decision = Grading.grade(AnswerFixtures.toQuestion(item), item.learnerAnswer());
+            assertThat(decision.result())
+                    .as("%s：%s", item.id(), item.note())
+                    .isEqualTo(item.practice());
+        }
     }
 
     // -- normalize ------------------------------------------------------------

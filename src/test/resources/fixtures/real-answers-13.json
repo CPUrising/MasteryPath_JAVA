@@ -1,0 +1,199 @@
+{
+  "_note": "合成数据：按真实会话中出现过的作答形态脱敏改写，不含任何真实用户内容。practice 为练习题卷 Grading 的期望，mastery 为掌握路径 MasteryGrading.isCorrect 的期望。",
+  "cases": [
+    {
+      "id": "A01",
+      "question_type": "choice",
+      "prompt": "下面哪一项最能描述 synchronized 的作用？",
+      "options": [
+        {"label": "A", "body": "让线程休眠一段时间"},
+        {"label": "B", "body": "保证同一时刻只有一个线程进入临界区，并建立可见性"},
+        {"label": "C", "body": "把方法编译成机器码"},
+        {"label": "D", "body": "创建新的线程"}
+      ],
+      "expected_answer": "B",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "B",
+      "practice": "correct",
+      "mastery": true,
+      "note": "标准标签作答"
+    },
+    {
+      "id": "A02",
+      "question_type": "choice",
+      "prompt": "下面哪一项最能描述 synchronized 的作用？",
+      "options": [
+        {"label": "A", "body": "让线程休眠一段时间"},
+        {"label": "B", "body": "保证同一时刻只有一个线程进入临界区，并建立可见性"},
+        {"label": "C", "body": "把方法编译成机器码"},
+        {"label": "D", "body": "创建新的线程"}
+      ],
+      "expected_answer": "B",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "b",
+      "practice": "correct",
+      "mastery": true,
+      "note": "小写标签"
+    },
+    {
+      "id": "A03",
+      "question_type": "choice",
+      "prompt": "下面哪一项最能描述 synchronized 的作用？",
+      "options": [
+        {"label": "A", "body": "让线程休眠一段时间"},
+        {"label": "B", "body": "保证同一时刻只有一个线程进入临界区，并建立可见性"},
+        {"label": "C", "body": "把方法编译成机器码"},
+        {"label": "D", "body": "创建新的线程"}
+      ],
+      "expected_answer": "B",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "保证同一时刻只有一个线程进入临界区，并建立可见性",
+      "practice": "correct",
+      "mastery": false,
+      "note": "选项正文作答：练习题卷可判，掌握路径只认标签"
+    },
+    {
+      "id": "A04",
+      "question_type": "choice",
+      "prompt": "下面哪一项最能描述 synchronized 的作用？",
+      "options": [
+        {"label": "A", "body": "让线程休眠一段时间"},
+        {"label": "B", "body": "保证同一时刻只有一个线程进入临界区，并建立可见性"},
+        {"label": "C", "body": "把方法编译成机器码"},
+        {"label": "D", "body": "创建新的线程"}
+      ],
+      "expected_answer": "B",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "我觉得是第二个",
+      "practice": "ungraded",
+      "mastery": false,
+      "note": "口语化作答，无法解析为标签"
+    },
+    {
+      "id": "A05",
+      "question_type": "choice",
+      "prompt": "下面哪一项最能描述 synchronized 的作用？",
+      "options": [
+        {"label": "A", "body": "让线程休眠一段时间"},
+        {"label": "B", "body": "保证同一时刻只有一个线程进入临界区，并建立可见性"},
+        {"label": "C", "body": "把方法编译成机器码"},
+        {"label": "D", "body": "创建新的线程"}
+      ],
+      "expected_answer": "B",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "AB",
+      "practice": "ungraded",
+      "mastery": false,
+      "note": "多标签歧义"
+    },
+    {
+      "id": "A06",
+      "question_type": "short",
+      "prompt": "2 + 2 等于多少？",
+      "options": [],
+      "expected_answer": "4",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "4.0",
+      "practice": "correct",
+      "mastery": false,
+      "note": "数值容差只属于练习题卷；掌握路径按字符串相似度"
+    },
+    {
+      "id": "A07",
+      "question_type": "short",
+      "prompt": "用中文说出线程池的名称。",
+      "options": [],
+      "expected_answer": "线程池",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "线程池。",
+      "practice": "correct",
+      "mastery": true,
+      "note": "句末标点：练习题卷归一化后精确匹配，掌握路径靠 0.85 相似度"
+    },
+    {
+      "id": "A08",
+      "question_type": "short",
+      "prompt": "Java 中用于声明同步方法的关键字是什么？",
+      "options": [],
+      "expected_answer": "synchronized",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "synchronised",
+      "practice": "correct",
+      "mastery": true,
+      "note": "拼写近似：两条链路都接受"
+    },
+    {
+      "id": "A09",
+      "question_type": "short",
+      "prompt": "Java 线程池的核心实现类叫什么？",
+      "options": [],
+      "expected_answer": "ThreadPool",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "ThreadPoolExecutor",
+      "practice": "incorrect",
+      "mastery": false,
+      "note": "同义但不同词"
+    },
+    {
+      "id": "A10",
+      "question_type": "open",
+      "prompt": "并发编程的三个核心概念是什么？",
+      "options": [],
+      "expected_answer": "并发,可见性,互斥",
+      "required_keywords": ["并发"],
+      "optional_keywords": ["可见性", "互斥"],
+      "learner_answer": "并发 与 可见性 有关",
+      "practice": "partial",
+      "mastery": true,
+      "note": "关键词 2/3：练习题卷给 partial，掌握路径命中率 0.667 判对"
+    },
+    {
+      "id": "A11",
+      "question_type": "open",
+      "prompt": "并发编程的三个核心概念是什么？",
+      "options": [],
+      "expected_answer": "并发,可见性,互斥",
+      "required_keywords": ["并发"],
+      "optional_keywords": ["可见性", "互斥"],
+      "learner_answer": "完全无关",
+      "practice": "incorrect",
+      "mastery": false,
+      "note": "关键词 0"
+    },
+    {
+      "id": "A12",
+      "question_type": "open",
+      "prompt": "并发编程的三个核心概念是什么？",
+      "options": [],
+      "expected_answer": "并发,可见性,互斥",
+      "required_keywords": ["并发"],
+      "optional_keywords": ["可见性", "互斥"],
+      "learner_answer": "",
+      "practice": "ungraded",
+      "mastery": false,
+      "note": "空开放题"
+    },
+    {
+      "id": "A13",
+      "question_type": "short",
+      "prompt": "volatile 保证的是什么？",
+      "options": [],
+      "expected_answer": "volatile",
+      "required_keywords": [],
+      "optional_keywords": [],
+      "learner_answer": "   ",
+      "practice": "ungraded",
+      "mastery": false,
+      "note": "空白短答"
+    }
+  ]
+}

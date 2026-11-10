@@ -24,7 +24,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('all', 'unit', 'storage', 'api')]
+    [ValidateSet('all', 'unit', 'storage', 'api', 'e2e')]
     [string]$Scope = 'all',
 
     [string]$Change = 'local'
@@ -109,11 +109,13 @@ if (-not (Test-Path $mvnw)) {
 $goals = @('-B', '-ntp', 'test')
 
 # 用标签而不是类名通配符：忘记打标签最多让 unit 变慢，不会让用例消失。
+# e2e 需要真实模型与网络，默认一律排除；只由 scripts/e2e-mastery.ps1 或 -Scope e2e 触发。
 switch ($Scope) {
-    'unit'    { $goals += @('-DexcludedGroups=storage,api') }
+    'unit'    { $goals += @('-DexcludedGroups=storage,api,e2e') }
     'storage' { $goals += @('-Dgroups=storage') }
     'api'     { $goals += @('-Dgroups=api') }
-    'all'     { }
+    'e2e'     { $goals += @('-Dgroups=e2e') }
+    'all'     { $goals += @('-DexcludedGroups=e2e') }
 }
 
 Write-Log "command: mvnw.cmd $($goals -join ' ')"

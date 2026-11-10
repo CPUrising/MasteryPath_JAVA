@@ -389,6 +389,18 @@
 | — | Next step reports its gate | `changes/0039-learning-stages-strategy/specs/learning-tools` | `PolicyOrderingTest#actionReflectsStageAndType` | 通过（`0039`） |
 | — | Review step reports forgetting risk | `changes/0039-learning-stages-strategy/specs/learning-tools` | `PolicyOrderingTest#dueReviewBeatsUnmasteredObjective` | 通过（`0039`） |
 
+## 18. 真实作答与真实模型对话（0040）
+
+> 本 change 只增加验证设施（`skip_specs: true`），不改行为规范。
+
+| 项 | 覆盖 | 验证 | 状态 |
+| --- | --- | --- | --- |
+| 13 条真实风格作答（练习题卷） | `Grading` 的 correct/partial/ungraded | `GradingTest#realAnswersKeepPracticeSemantics` | 通过（`0040`） |
+| 13 条真实风格作答（掌握路径） | `MasteryGrading` 的 correct/incorrect | `MasteryGradingTest#realAnswersKeepMasterySemantics` | 通过（`0040`） |
+| 掌握判分 REST 契约 | `POST /grade` / `GET session` / `GET mastery` | `MasteryGradeContractTest`（5 个） | 通过（`0040`） |
+| 真实模型全链路 | 建大纲 → 出题 → 判分 → 清门槛 → 定性评估 → 完成 | `MasteryJourneyE2ETest#walksAWholeMasteryPath`（`e2e`，真实调用） | 通过（`0040`） |
+| 默认回归隔离 | `verify.ps1` 排除 `e2e`，单独脚本运行 | `verify.ps1 -Scope all`（941 用例）+ `scripts/e2e-mastery.ps1` | 通过（`0040`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

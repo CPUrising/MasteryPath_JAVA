@@ -43,3 +43,4 @@
 | 2026-11-10 | `0037-mastery-turn-protocol` | 909 | 0 | 0 | [verify/0037](verify/0037-mastery-turn-protocol.md) |
 | 2026-11-10 | `0038-mastery-prompt-pack` | 922 | 0 | 0 | [verify/0038](verify/0038-mastery-prompt-pack.md) |
 | 2026-11-10 | `0039-learning-stages-strategy` | 934 | 0 | 0 | [verify/0039](verify/0039-learning-stages-strategy.md) |
+| 2026-11-10 | `0040-mastery-e2e-verification` | 941 | 0 | 0 | [verify/0040](verify/0040-mastery-e2e-verification.md) |

@@ -3,6 +3,7 @@ package com.masterypath.domain.grading;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.offset;
 
+import com.masterypath.testsupport.AnswerFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -81,5 +82,17 @@ class MasteryGradingTest {
         // 匹配块：ab(2)、d(1) → M=3，T=8 → 0.75
         assertThat(MasteryGrading.ratio("abcd", "abxd")).isCloseTo(0.75, offset(1e-9));
         assertThat(MasteryGrading.ratio("", "")).isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("13 条真实风格作答：掌握路径只有 correct/incorrect，没有 ungraded")
+    void realAnswersKeepMasterySemantics() {
+        for (AnswerFixtures.Case item : AnswerFixtures.load()) {
+            boolean correct = MasteryGrading.isCorrect(
+                    item.learnerAnswer(), item.expectedAnswer(), item.questionType());
+            assertThat(correct)
+                    .as("%s：%s", item.id(), item.note())
+                    .isEqualTo(item.mastery());
+        }
     }
 }
