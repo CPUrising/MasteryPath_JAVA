@@ -3,6 +3,7 @@ package com.masterypath.service;
 import com.masterypath.domain.model.KnowledgeType;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.policy.MasteryPolicy;
+import com.masterypath.domain.policy.NextStep;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
 import org.junit.jupiter.api.AfterEach;
@@ -57,14 +58,16 @@ class ObjectiveStateTest {
     }
 
     @Test
-    @DisplayName("延后不发掌握，nextObjective 返回 complete（单目标场景）")
+    @DisplayName("延后不发掌握；只剩延后目标时仍作为回退返回")
     void deferSkipsPoint() {
         service.deferObjective("p", "k1", "");
 
         LearningProgress loaded = store.load("p");
         assertThat(MasteryPolicy.isMastered(loaded, loaded.findKnowledgePoint("k1").knowledgePoint()))
                 .isFalse();
-        assertThat(MasteryPolicy.nextObjective(loaded).action()).isEqualTo("complete");
+        NextStep step = MasteryPolicy.nextObjective(loaded);
+        assertThat(step.action()).isEqualTo("probe");
+        assertThat(step.knowledgePointId()).isEqualTo("k1");
     }
 
     @Test

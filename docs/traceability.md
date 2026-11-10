@@ -369,6 +369,26 @@
 | — | Key protocol sentences survive | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptsTest#loopProtocol`、`#playbook`、`#generalAndRuntimePolicy` | 通过（`0038`） |
 | — | Tool manifest lists hinted tools only | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptsTest#toolManifest`、`MasteryPromptAssemblerTest#toolsFallBackToNone`、`#emptyPackRendersOnlyToolListAndDirective` | 通过（`0038`） |
 
+## 17. 学习阶段与教学策略（0039）
+
+> 本能力由 `0039` 修改；场景名取自
+> `openspec/changes/0039-learning-stages-strategy/specs/`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | TC-C9 TC-C10 next objective | `changes/0039-learning-stages-strategy/specs/learning-domain` | `MasteryPolicyTest#nextObjectiveFirstEligible`、`#nextObjectiveComplete` | 通过（`0039`） |
+| — | TC-C11 answer pending first | `changes/0039-learning-stages-strategy/specs/learning-domain` | `PolicyOrderingTest#pendingQuestionBeatsUnmasteredObjective` | 通过（`0039`） |
+| — | TC-F1 display target is not a gate | `changes/0039-learning-stages-strategy/specs/learning-domain` | `MasteryPolicyTest#displayTargetNotGate` | 通过（`0039`） |
+| — | TC-F6 TC-F7 TC-F8 prerequisite hard gate | `changes/0039-learning-stages-strategy/specs/learning-domain` | `MasteryPolicyTest#prerequisiteHardGate`、`#prerequisitePassedButNoQualitative`、`#prerequisiteAndQualitative` | 通过（`0039`） |
+| — | Due review comes before new objectives | `changes/0039-learning-stages-strategy/specs/learning-domain` | `PolicyOrderingTest#dueReviewBeatsUnmasteredObjective` | 通过（`0039`） |
+| — | Deferred objectives are not reviewed | `changes/0039-learning-stages-strategy/specs/learning-domain` | `PolicyOrderingTest#deferredObjectivesAreNotReviewed` | 通过（`0039`） |
+| — | Deferred objectives remain as fallback | `changes/0039-learning-stages-strategy/specs/learning-domain` | `PolicyOrderingTest#deferredObjectivesRemainAsFallback`、`ObjectiveStateTest#deferSkipsPoint` | 通过（`0039`） |
+| — | Teaching strategy picks probe or teach | `changes/0039-learning-stages-strategy/specs/learning-domain` | `PolicyOrderingTest#teachFirstTurnsProbeIntoTeach`、`#actionReflectsStageAndType` | 通过（`0039`） |
+| — | Stages follow the evidence | `changes/0039-learning-stages-strategy/specs/learning-domain` | `MasteryPolicyTest#untouchedObjectiveIsNotYetCovered`、`#explainedObjectiveIsExplained`、`#incorrectAttemptIsPracticedNotDemonstrated`、`#hintAssistedAttemptIsPracticedWithHelp`、`#independentCorrectAttemptIsIndependentlyDemonstrated`、`#voidedAttemptDoesNotCount` | 通过（`0039`） |
+| — | Learning stages cover every objective | `changes/0039-learning-stages-strategy/specs/learning-tools` | `StatusAndQuizToolsTest#activePathExposesIds`、`PathStateTest#learningStagesCoverEveryObjective`、`MasteryPolicyTest#learningStagesCoverEveryObjective` | 通过（`0039`） |
+| — | Next step reports its gate | `changes/0039-learning-stages-strategy/specs/learning-tools` | `PolicyOrderingTest#actionReflectsStageAndType` | 通过（`0039`） |
+| — | Review step reports forgetting risk | `changes/0039-learning-stages-strategy/specs/learning-tools` | `PolicyOrderingTest#dueReviewBeatsUnmasteredObjective` | 通过（`0039`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

@@ -77,6 +77,9 @@ class StatusAndQuizToolsTest {
                 .containsEntry("mode", "study")
                 .containsEntry("name", "X");
         assertThat((Map<String, Object>) payload.get("map")).containsOnlyKeys("k1", "k2");
+        assertThat((Map<String, Object>) payload.get("learning_stages"))
+                .containsOnlyKeys("k1", "k2")
+                .containsEntry("k1", "not_yet_covered");
         assertThat((Map<String, Object>) payload.get("next"))
                 .containsEntry("knowledge_point_id", "k1");
     }

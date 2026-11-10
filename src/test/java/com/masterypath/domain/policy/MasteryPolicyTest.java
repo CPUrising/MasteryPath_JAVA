@@ -299,4 +299,92 @@ class MasteryPolicyTest {
                 progress.getModules().get(0).getKnowledgePoints().get(0))).isFalse();
         assertThat(MasteryPolicy.nextObjective(progress).action()).isEqualTo("complete");
     }
+
+    // -- 学习阶段（参考实现 learning_stage） ---------------------------------
+
+    @Test
+    void untouchedObjectiveIsNotYetCovered() {
+        assertThat(MasteryPolicy.learningStage(one(M), "k1")).isEqualTo("not_yet_covered");
+    }
+
+    @Test
+    void explainedObjectiveIsExplained() {
+        LearningProgress progress = one(M);
+        progress.getExplainedObjectives().put("k1", Map.of("summary", "walked through it"));
+
+        assertThat(MasteryPolicy.learningStage(progress, "k1")).isEqualTo("explained");
+    }
+
+    @Test
+    void incorrectAttemptIsPracticedNotDemonstrated() {
+        LearningProgress progress = one(M);
+        progress.getQuizAttempts().add(attempt("k1", false, true, false));
+
+        assertThat(MasteryPolicy.learningStage(progress, "k1")).isEqualTo("practiced_not_demonstrated");
+    }
+
+    @Test
+    void hintAssistedAttemptIsPracticedWithHelp() {
+        LearningProgress progress = one(M);
+        progress.getQuizAttempts().add(attempt("k1", true, false, false));
+
+        assertThat(MasteryPolicy.learningStage(progress, "k1")).isEqualTo("practiced_with_help");
+    }
+
+    @Test
+    void independentCorrectAttemptIsIndependentlyDemonstrated() {
+        LearningProgress progress = one(M);
+        progress.getQuizAttempts().add(attempt("k1", true, true, false));
+
+        assertThat(MasteryPolicy.learningStage(progress, "k1"))
+                .isEqualTo("independently_demonstrated");
+    }
+
+    @Test
+    void hintFreeQualitativeEvidenceCountsAsIndependent() {
+        LearningProgress progress = one(C);
+        progress.getLearningEvidence().add(evidence("k1", 0));
+
+        assertThat(MasteryPolicy.learningStage(progress, "k1"))
+                .isEqualTo("independently_demonstrated");
+    }
+
+    @Test
+    void voidedAttemptDoesNotCount() {
+        LearningProgress progress = one(M);
+        progress.getQuizAttempts().add(attempt("k1", true, true, true));
+
+        assertThat(MasteryPolicy.learningStage(progress, "k1")).isEqualTo("not_yet_covered");
+    }
+
+    @Test
+    void learningStagesCoverEveryObjective() {
+        LearningProgress progress = progress(List.of(module("m1", "M1", 0,
+                List.of(kp("k1", "first", M), kp("k2", "second", C)))));
+
+        assertThat(MasteryPolicy.learningStages(progress)).containsOnlyKeys("k1", "k2")
+                .containsEntry("k1", "not_yet_covered")
+                .containsEntry("k2", "not_yet_covered");
+    }
+
+    private static QuizAttempt attempt(String kpId, boolean correct, boolean independent,
+                                       boolean voided) {
+        QuizAttempt attempt = new QuizAttempt();
+        attempt.setQuestionId("q-" + kpId);
+        attempt.setKnowledgePointId(kpId);
+        attempt.setCorrect(correct);
+        attempt.setIndependent(independent);
+        attempt.setVoided(voided);
+        return attempt;
+    }
+
+    private static com.masterypath.domain.model.LearningEvidence evidence(String kpId, int hints) {
+        com.masterypath.domain.model.LearningEvidence evidence =
+                new com.masterypath.domain.model.LearningEvidence();
+        evidence.setKnowledgePointId(kpId);
+        evidence.setAssessmentType(com.masterypath.domain.model.AssessmentType.QUALITATIVE);
+        evidence.setResult(com.masterypath.domain.model.AssessmentResult.CORRECT);
+        evidence.setHintsUsed(hints);
+        return evidence;
+    }
 }

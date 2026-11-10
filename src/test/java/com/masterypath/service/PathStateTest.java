@@ -53,16 +53,26 @@ class PathStateTest {
     }
 
     @Test
-    @DisplayName("活动路径返回 active 与全部 19 个键")
+    @DisplayName("活动路径返回 active 与全部 20 个键")
     void activePathHasAllKeys() {
         Map<String, Object> state = service.getState("p");
 
         assertThat(state).containsOnlyKeys(
                 "status", "path_id", "name", "goal", "version", "map", "counts", "next",
-                "sources", "knowledge_bases", "gaps", "proposals", "coverage", "reviews",
-                "review_settings", "session_count", "learner_profile", "pending_question",
-                "due_reviews");
+                "learning_stages", "sources", "knowledge_bases", "gaps", "proposals", "coverage",
+                "reviews", "review_settings", "session_count", "learner_profile",
+                "pending_question", "due_reviews");
         assertThat(state).containsEntry("status", "active").containsEntry("path_id", "p");
+    }
+
+    @Test
+    @DisplayName("learning_stages 按知识点给出阶段")
+    void learningStagesCoverEveryObjective() {
+        Map<String, Object> state = service.getState("p");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> stages = (Map<String, Object>) state.get("learning_stages");
+        assertThat(stages).containsEntry("k1", "not_yet_covered");
     }
 
     @Test

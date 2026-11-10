@@ -60,6 +60,7 @@ final class StatePayload {
             return payload;
         }
         payload.put("status", "active");
+        payload.put("learning_stages", state.getOrDefault("learning_stages", Map.of()));
         return payload;
     }
 

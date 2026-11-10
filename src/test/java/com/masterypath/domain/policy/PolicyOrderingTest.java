@@ -5,13 +5,16 @@ import static com.masterypath.domain.policy.PolicyFixtures.module;
 import static com.masterypath.domain.policy.PolicyFixtures.progress;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.masterypath.domain.model.DeferredObjective;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.KnowledgeType;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.PendingQuestion;
+import com.masterypath.domain.model.QuizAttempt;
 import com.masterypath.domain.model.RepetitionState;
 import com.masterypath.domain.model.ReviewTask;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -37,18 +40,22 @@ class PolicyOrderingTest {
         assertThat(MasteryPolicy.nextObjective(progress, NOW).action()).isEqualTo("answer_pending");
     }
 
-    /** 未掌握目标优先于到期复习。 */
+    /** 到期复习优先于未掌握目标（参考实现 next_objective 的优先级）。 */
     @Test
-    void unmasteredObjectiveBeatsDueReview() {
+    void dueReviewBeatsUnmasteredObjective() {
         LearningProgress progress = progress(List.of(module("m1", "M1", 0,
                 List.of(kp("k1", "first", KnowledgeType.MEMORY),
                         kp("k2", "second", KnowledgeType.MEMORY)))));
         progress.getMasteryLevels().put("k1", 1.0);
-        progress.setReviewQueue(List.of(reviewTask("k1", NOW - 100)));
+        ReviewTask dueTask = reviewTask("k1", NOW - 100);
+        dueTask.setForgettingRisk(0.6);
+        progress.setReviewQueue(List.of(dueTask));
 
         NextStep step = MasteryPolicy.nextObjective(progress, NOW);
-        assertThat(step.action()).isEqualTo("practice");
-        assertThat(step.knowledgePointId()).isEqualTo("k2");
+        assertThat(step.action()).isEqualTo("review");
+        assertThat(step.knowledgePointId()).isEqualTo("k1");
+        assertThat(step.gate()).isEqualTo("quantitative");
+        assertThat(step.forgettingRisk()).isEqualTo(0.6);
     }
 
     /** 全部掌握后，到期复习优先于 complete。 */
@@ -75,16 +82,65 @@ class PolicyOrderingTest {
         assertThat(MasteryPolicy.nextObjective(progress, NOW).action()).isEqualTo("complete");
     }
 
-    /** 定量类型返回 practice，定性类型返回 assess。 */
+    /** 未触碰目标按教学策略返回 probe/teach；已有记录后按门槛种类返回 practice/assess。 */
     @Test
-    void actionReflectsType() {
+    void actionReflectsStageAndType() {
         LearningProgress memory = progress(List.of(module("m1", "M1", 0,
                 List.of(kp("k1", "first", KnowledgeType.MEMORY)))));
-        assertThat(MasteryPolicy.nextObjective(memory, NOW).action()).isEqualTo("practice");
+        assertThat(MasteryPolicy.nextObjective(memory, NOW).action()).isEqualTo("probe");
+        assertThat(MasteryPolicy.nextObjective(memory, NOW).gate()).isEqualTo("quantitative");
 
         LearningProgress concept = progress(List.of(module("m1", "M1", 0,
                 List.of(kp("k1", "first", KnowledgeType.CONCEPT)))));
-        assertThat(MasteryPolicy.nextObjective(concept, NOW).action()).isEqualTo("assess");
+        assertThat(MasteryPolicy.nextObjective(concept, NOW).action()).isEqualTo("probe");
+
+        LearningProgress practiced = progress(List.of(module("m1", "M1", 0,
+                List.of(kp("k1", "first", KnowledgeType.MEMORY)))));
+        practiced.getQuizAttempts().add(attempt("k1", false));
+        assertThat(MasteryPolicy.nextObjective(practiced, NOW).action()).isEqualTo("practice");
+
+        LearningProgress discussed = progress(List.of(module("m1", "M1", 0,
+                List.of(kp("k1", "first", KnowledgeType.CONCEPT)))));
+        discussed.getQuizAttempts().add(attempt("k1", false));
+        NextStep assess = MasteryPolicy.nextObjective(discussed, NOW);
+        assertThat(assess.action()).isEqualTo("assess");
+        assertThat(assess.gate()).isEqualTo("qualitative");
+    }
+
+    /** 学习者要求先讲再测时，未触碰目标返回 teach。 */
+    @Test
+    void teachFirstTurnsProbeIntoTeach() {
+        LearningProgress progress = progress(List.of(module("m1", "M1", 0,
+                List.of(kp("k1", "first", KnowledgeType.MEMORY)))));
+        progress.setLearnerProfile(Map.of("teaching_strategy", "teach_first"));
+
+        NextStep step = MasteryPolicy.nextObjective(progress, NOW);
+        assertThat(step.action()).isEqualTo("teach");
+        assertThat(step.reason()).contains("teach before assessing");
+    }
+
+    /** 只剩被延后的目标时，延后不是放弃：仍返回它。 */
+    @Test
+    void deferredObjectivesRemainAsFallback() {
+        LearningProgress progress = progress(List.of(module("m1", "M1", 0,
+                List.of(kp("k1", "first", KnowledgeType.MEMORY)))));
+        progress.getDeferredObjectives().put("k1", new DeferredObjective("k1", "later"));
+
+        NextStep step = MasteryPolicy.nextObjective(progress, NOW);
+        assertThat(step.action()).isEqualTo("probe");
+        assertThat(step.knowledgePointId()).isEqualTo("k1");
+    }
+
+    /** 延后的知识点不会被当作到期复习。 */
+    @Test
+    void deferredObjectivesAreNotReviewed() {
+        LearningProgress progress = progress(List.of(module("m1", "M1", 0,
+                List.of(kp("k1", "first", KnowledgeType.MEMORY)))));
+        progress.getMasteryLevels().put("k1", 1.0);
+        progress.getDeferredObjectives().put("k1", new DeferredObjective("k1", ""));
+        progress.setReviewQueue(List.of(reviewTask("k1", NOW - 100)));
+
+        assertThat(MasteryPolicy.nextObjective(progress, NOW).action()).isEqualTo("complete");
     }
 
     /** 模块按 order 升序，而不是列表顺序。 */
@@ -111,6 +167,14 @@ class PolicyOrderingTest {
 
         List<ReviewTask> due = MasteryPolicy.dueReviews(progress, NOW);
         assertThat(due).extracting(ReviewTask::getKnowledgePointId).containsExactly("k2", "k1");
+    }
+
+    private static QuizAttempt attempt(String kpId, boolean correct) {
+        QuizAttempt attempt = new QuizAttempt();
+        attempt.setQuestionId("q-" + kpId);
+        attempt.setKnowledgePointId(kpId);
+        attempt.setCorrect(correct);
+        return attempt;
     }
 
     private static ReviewTask reviewTask(String kpId, double dueAt) {

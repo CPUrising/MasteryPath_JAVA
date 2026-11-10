@@ -1,11 +1,13 @@
 package com.masterypath.domain.policy;
 
 import com.masterypath.domain.model.AssessmentResult;
+import com.masterypath.domain.model.AssessmentType;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.KnowledgeType;
 import com.masterypath.domain.model.LearningEvidence;
 import com.masterypath.domain.model.LearningModule;
 import com.masterypath.domain.model.LearningProgress;
+import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.model.QuizAttempt;
 import com.masterypath.domain.model.ReviewTask;
 import com.masterypath.domain.model.TimeSupport;
@@ -48,6 +50,12 @@ public final class MasteryPolicy {
 
     /** 定性通过时用于展示的掌握度。 */
     private static final double QUALITATIVE_PASS_DISPLAY = 1.0;
+
+    /** 默认教学策略：先诊断式探查，让学习者有机会直接证明已会。 */
+    public static final String PROBE_FIRST = "probe_first";
+
+    /** 学习者要求先讲再测时的教学策略。 */
+    public static final String TEACH_FIRST = "teach_first";
 
     private MasteryPolicy() {
     }
@@ -100,6 +108,27 @@ public final class MasteryPolicy {
             return QUALITATIVE_PASS_DISPLAY;
         }
         return QUANTITATIVE_GATE.getOrDefault(type, 0.9);
+    }
+
+    /** 该知识点走哪种门槛：{@code qualitative} 或 {@code quantitative}。 */
+    public static String gateKind(KnowledgePoint kp) {
+        return QUALITATIVE_TYPES.contains(kp.getType()) ? "qualitative" : "quantitative";
+    }
+
+    /**
+     * 学习者选择的教学顺序。
+     *
+     * <p>只有明确记录 {@code teach_first} 才先讲再测；缺失、空串或脏值一律按
+     * {@code probe_first}（参考实现 {@code LearnerProfile.teaching_strategy} 的默认值）。
+     */
+    public static String teachingStrategy(LearningProgress progress) {
+        Map<String, Object> profile = progress == null ? null : progress.getLearnerProfile();
+        if (profile == null) {
+            return PROBE_FIRST;
+        }
+        Object raw = profile.get("teaching_strategy");
+        return raw != null && TEACH_FIRST.equals(String.valueOf(raw).strip())
+                ? TEACH_FIRST : PROBE_FIRST;
     }
 
     /** 已达成「正确」的评估类型集合（跳过作废证据，{@code INV-28}）。 */
@@ -215,6 +244,68 @@ public final class MasteryPolicy {
     }
 
     /**
+     * 单个知识点的学习阶段（参考实现 {@code learning_stage}）。
+     *
+     * <p>优先级：独立答对 / 无提示的定性证据 → 有辅助的练习 → 练习但未证明 →
+     * 仅讲解 → 尚未覆盖。作废作答不计；证据按参考实现原样计入（含作废标记）。
+     */
+    public static String learningStage(LearningProgress progress, String kpId) {
+        List<QuizAttempt> attempts = activeAttempts(progress, kpId);
+        List<LearningEvidence> evidence = new ArrayList<>();
+        for (LearningEvidence item : progress.getLearningEvidence()) {
+            if (kpId.equals(item.getKnowledgePointId())) {
+                evidence.add(item);
+            }
+        }
+        boolean independentlyDemonstrated = false;
+        for (QuizAttempt attempt : attempts) {
+            if (attempt.isIndependent() && attempt.isCorrect()) {
+                independentlyDemonstrated = true;
+                break;
+            }
+        }
+        if (!independentlyDemonstrated) {
+            for (LearningEvidence item : evidence) {
+                if (item.getAssessmentType() == AssessmentType.QUALITATIVE
+                        && item.getResult() == AssessmentResult.CORRECT
+                        && item.getHintsUsed() == 0) {
+                    independentlyDemonstrated = true;
+                    break;
+                }
+            }
+        }
+        if (independentlyDemonstrated) {
+            return "independently_demonstrated";
+        }
+        for (QuizAttempt attempt : attempts) {
+            if (!attempt.isIndependent()) {
+                return "practiced_with_help";
+            }
+        }
+        for (LearningEvidence item : evidence) {
+            if (item.getHintsUsed() > 0) {
+                return "practiced_with_help";
+            }
+        }
+        if (!attempts.isEmpty() || !evidence.isEmpty()) {
+            return "practiced_not_demonstrated";
+        }
+        return progress.getExplainedObjectives().containsKey(kpId)
+                ? "explained" : "not_yet_covered";
+    }
+
+    /** 全部知识点的学习阶段（按模块 order 与 KP 列表顺序）。 */
+    public static Map<String, String> learningStages(LearningProgress progress) {
+        Map<String, String> stages = new LinkedHashMap<>();
+        for (LearningModule module : orderedModules(progress)) {
+            for (KnowledgePoint kp : module.getKnowledgePoints()) {
+                stages.put(kp.getId(), learningStage(progress, kp.getId()));
+            }
+        }
+        return stages;
+    }
+
+    /**
      * 拒绝修改已存在知识点的类型（ADR-003 / {@code INV-06}）。
      *
      * @throws IllegalArgumentException 当新旧类型不一致
@@ -251,68 +342,126 @@ public final class MasteryPolicy {
     /**
      * 下一个该做什么——由掌握门槛决定，而不是阶段游标。
      *
-     * <p>优先级（顺序即语义，不可调换）：
+     * <p>优先级（顺序即语义，不可调换；参考实现 {@code next_objective}）：
      * <ol>
      *   <li>存在待答题目 → {@code answer_pending}（{@code INV-02}：单槽位必须先清空）</li>
-     *   <li>按模块顺序、KP 顺序找到第一个「未掌握 + 未延后 + 前置已满足」的目标 →
-     *       {@code assess}（定性）或 {@code practice}（定量）</li>
-     *   <li>存在到期复习 → {@code review}</li>
+     *   <li>存在未延后的到期复习 → {@code review}（先巩固已掌握的地面）</li>
+     *   <li>按模块顺序、KP 顺序找到第一个「未掌握 + 未延后 + 前置已满足」的目标：
+     *       未触碰按 {@code teaching_strategy} 返回 {@code teach}/{@code probe}，
+     *       定性返回 {@code assess}，其余 {@code practice}</li>
+     *   <li>只剩被延后的目标 → 返回其中第一个（延后不是放弃）</li>
      *   <li>否则 → {@code complete}</li>
      * </ol>
      */
     public static NextStep nextObjective(LearningProgress progress, double now) {
-        if (progress.getPendingQuestion() != null) {
-            return NextStep.answerPending(
-                    progress.getPendingQuestion().getKnowledgePointId(),
-                    progress.getPendingQuestion().getPrompt());
+        PendingQuestion pending = progress.getPendingQuestion();
+        if (pending != null) {
+            KnowledgePointLocation pendingLocation =
+                    findKnowledgePoint(progress, pending.getKnowledgePointId());
+            if (!pendingLocation.found()) {
+                return NextStep.answerPending(
+                        pending.getKnowledgePointId(), pending.getPrompt());
+            }
+            KnowledgePoint kp = pendingLocation.knowledgePoint();
+            return new NextStep(
+                    "answer_pending",
+                    pendingLocation.moduleId(),
+                    pendingLocation.moduleName(),
+                    kp.getId(),
+                    kp.getName(),
+                    kp.getType().value(),
+                    objectiveStatus(progress, kp),
+                    gateKind(kp),
+                    displayMastery(progress, kp),
+                    gateThreshold(kp.getType()),
+                    "A posed question is awaiting the learner's answer; grade it with mastery_grade.",
+                    0.0,
+                    pending.getPrompt() == null ? "" : pending.getPrompt());
         }
 
+        Set<String> deferredIds = progress.getDeferredObjectives().keySet();
+        for (ReviewTask task : dueReviews(progress, now)) {
+            if (deferredIds.contains(task.getKnowledgePointId())) {
+                continue;
+            }
+            KnowledgePointLocation location = findKnowledgePoint(progress, task.getKnowledgePointId());
+            if (!location.found()) {
+                continue;
+            }
+            KnowledgePoint kp = location.knowledgePoint();
+            return new NextStep(
+                    "review",
+                    location.moduleId(),
+                    location.moduleName(),
+                    kp.getId(),
+                    kp.getName(),
+                    kp.getType().value(),
+                    objectiveStatus(progress, kp),
+                    gateKind(kp),
+                    displayMastery(progress, kp),
+                    gateThreshold(kp.getType()),
+                    task.getReason() == null || task.getReason().isBlank()
+                            ? "This objective is due for spaced-repetition review."
+                            : task.getReason(),
+                    task.getForgettingRisk(),
+                    "");
+        }
+
+        NextStep deferredFallback = null;
         for (LearningModule module : orderedModules(progress)) {
             for (KnowledgePoint kp : module.getKnowledgePoints()) {
                 if (isMastered(progress, kp)) {
                     continue;
                 }
-                if (progress.getDeferredObjectives().containsKey(kp.getId())) {
-                    continue;
-                }
                 if (!eligible(progress, kp)) {
                     continue;
                 }
-                String action = QUALITATIVE_TYPES.contains(kp.getType()) ? "assess" : "practice";
-                return new NextStep(
+                String status = objectiveStatus(progress, kp);
+                String action = actionFor(progress, kp, status);
+                NextStep step = new NextStep(
                         action,
                         module.getId(),
                         module.getName(),
                         kp.getId(),
                         kp.getName(),
                         kp.getType().value(),
-                        objectiveStatus(progress, kp),
+                        status,
+                        gateKind(kp),
                         displayMastery(progress, kp),
                         gateThreshold(kp.getType()),
-                        "next eligible objective",
+                        reasonFor(action),
+                        0.0,
                         "");
+                if (deferredIds.contains(kp.getId())) {
+                    if (deferredFallback == null) {
+                        deferredFallback = step;
+                    }
+                    continue;
+                }
+                return step;
             }
         }
 
-        List<ReviewTask> due = dueReviews(progress, now);
-        if (!due.isEmpty()) {
-            ReviewTask task = due.get(0);
-            KnowledgePointLocation location = findKnowledgePoint(progress, task.getKnowledgePointId());
-            return new NextStep(
-                    "review",
-                    location.moduleId(),
-                    location.moduleName(),
-                    task.getKnowledgePointId(),
-                    location.found() ? location.knowledgePoint().getName() : "",
-                    task.getKnowledgeType().value(),
-                    "mastered",
-                    location.found() ? displayMastery(progress, location.knowledgePoint()) : 1.0,
-                    gateThreshold(task.getKnowledgeType()),
-                    "spaced review due",
-                    "");
+        if (deferredFallback != null) {
+            return deferredFallback;
         }
-
         return NextStep.complete("every objective mastered");
+    }
+
+    /** 未触碰目标按教学策略返回 {@code teach}/{@code probe}；其余按门槛种类返回。 */
+    private static String actionFor(LearningProgress progress, KnowledgePoint kp, String status) {
+        if ("new".equals(status)) {
+            return TEACH_FIRST.equals(teachingStrategy(progress)) ? "teach" : "probe";
+        }
+        return QUALITATIVE_TYPES.contains(kp.getType()) ? "assess" : "practice";
+    }
+
+    private static String reasonFor(String action) {
+        return switch (action) {
+            case "teach" -> "Untouched objective — teach before assessing, as the learner requested.";
+            case "probe" -> "Untouched objective — probe first to let the learner test out.";
+            default -> "Objective is below its mastery gate; keep working it until it clears.";
+        };
     }
 
     /** 以当前时间计算下一个目标。 */

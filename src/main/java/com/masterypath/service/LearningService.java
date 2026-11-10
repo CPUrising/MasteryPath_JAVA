@@ -1028,6 +1028,7 @@ public final class LearningService {
                 "map", summary,
                 "counts", counts,
                 "next", step.toMap(),
+                "learning_stages", MasteryPolicy.learningStages(progress),
                 "sources", dumpSources(progress.getSources()),
                 "knowledge_bases", knowledgeBases,
                 "gaps", gapMaps(progress.getSourceGaps()),
