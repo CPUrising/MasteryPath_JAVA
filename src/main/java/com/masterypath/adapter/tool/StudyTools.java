@@ -1,5 +1,6 @@
 package com.masterypath.adapter.tool;
 
+import com.masterypath.domain.grading.Decision;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.MasteryInteraction;
@@ -116,14 +117,6 @@ public final class StudyTools {
                     ? spec.optionalKeywords() : List.of();
             List<String> accepted = ToolSupport.stringList(params.get("accepted_answers"));
 
-            if ("short".equals(spec.questionType()) && accepted.isEmpty()
-                    && !QuizSpec.isSelfGradingShort(spec.expectedAnswer())) {
-                return ToolResult.failure(
-                        "short questions need accepted_answers so equivalent wording is not marked "
-                                + "wrong; add at least one accepted answer, or use question_type=open "
-                                + "for keyword-based grading.");
-            }
-
             PendingQuestion pending = QuizSpec.toPending(
                     new QuizSpec.Normalized(spec.questionType(), spec.options(),
                             spec.expectedAnswer(), required, optional),
@@ -213,6 +206,11 @@ public final class StudyTools {
                         ctx.turnId()));
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
+            }
+            // 无法解析的作答不判、不落状态（INV-46）：让导师回问澄清，绝不判错。
+            if (Decision.UNGRADED.equals(ToolSupport.str(result.get("status")))) {
+                return ToolResult.failure("Not graded: " + ToolSupport.str(result.get("reason"))
+                        + ". Ask the learner to clarify.", result);
             }
             // 判分结果回指题目，并附带卡片复盘所需的答案键（提交后才释放）。
             result.putIfAbsent("question_id", questionId);

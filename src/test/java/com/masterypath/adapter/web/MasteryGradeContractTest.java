@@ -75,18 +75,21 @@ class MasteryGradeContractTest {
     }
 
     @Test
-    @DisplayName("无法解析的选择题判 incorrect，不是 ungraded")
-    void unparseableChoiceIsIncorrectNotUngraded() throws Exception {
+    @DisplayName("无法解析的选择题返回 422，且零状态变更")
+    void unparseableChoiceIsUngraded() throws Exception {
         String questionId = registerChoice("s1");
+        int evidenceBefore = api.service.store().load("p").getLearningEvidence().size();
 
-        Map<String, Object> graded = grade(questionId, "Z", "s1");
+        var response = api.mvc.perform(post("/learning/paths/p/grade")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"Z\","
+                                + "\"session_id\":\"s1\"}"))
+                .andReturn().getResponse();
 
-        assertThat(graded)
-                .containsEntry("status", "graded")
-                .containsEntry("result", "incorrect")
-                .containsEntry("is_correct", false);
-        assertThat(String.valueOf(graded.get("result"))).isNotEqualTo("ungraded");
-        assertThat(((Number) graded.get("mastery_after")).doubleValue()).isEqualTo(0.0);
+        assertThat(response.getStatus()).isEqualTo(422);
+        assertThat(response.getContentAsString()).contains("Not graded");
+        assertThat(api.service.store().load("p").getLearningEvidence()).hasSize(evidenceBefore);
+        assertThat(api.service.store().load("p").getPendingQuestion()).isNotNull();
     }
 
     @Test

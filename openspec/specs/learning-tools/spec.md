@@ -70,14 +70,19 @@
 ### Requirement: Deterministic Grading
 
 系统 SHALL 在注册时固定参照物，判分时刻 MUST NOT 调用 LLM。判分 MUST 按幂等键
-`(path_id, interaction_id)` 定位事务：已判分时 MUST 返回首次结果且不新增证据。
-判分结果只有 `correct` / `incorrect`：`expected_answer` 为空 MUST 判错（fail-closed）；
-无法解析的作答 MUST 判错，MUST NOT 返回 `ungraded` 或 `partial`。
-有提示的作答 MUST 记录 `independent=false`，但结果 MUST NOT 被降级。
+`(path_id, interaction_id)` 定位。结果 SHALL 为 `correct` / `incorrect` / `partial` / `ungraded`；
+无法解析的作答 MUST 返回 `ungraded` 且零状态变更（不写 attempt/证据、不改掌握度、不清待答题）。
+开放题判对 MUST 在服务层降为 `partial`（`INV-35`）。有提示的作答 MUST 记录
+`independent=false`，结果 MUST NOT 被降级。各题型的匹配细节见场景 `Per-type matching rules`。
 
-- `choice`：去掉空格后整串相等。
-- `short`：完全相等；期望答案长度 ≤30 时相似度 ≥0.85；超过 30 字只做精确匹配。
-- `open`：期望答案按 `[,;，；。\n]` 拆词，命中率 ≥0.6 判对。
+#### Scenario: Per-type matching rules
+
+- **GIVEN** 一道 `choice` / `short` / `open` 题
+- **WHEN** 判分
+- **THEN** `choice` MUST 先按标签命中，否则按选项正文归一化后唯一匹配
+- **AND** `short` MUST 依次尝试精确、`accepted_answers`、数值容差 1e-6、相似度 ≥0.90，超过 30 字只做精确匹配
+- **AND** `open` MUST 使用注册时固定的 `required_keywords` / `optional_keywords`，required 全中且 optional 命中率 ≥0.6 判对
+- **AND** 空作答与未注册关键词 MUST 返回 `ungraded`
 
 #### Scenario: TC-K1 registration validation
 
@@ -95,27 +100,29 @@
 
 - **GIVEN** 选择题期望答案为 `B`
 - **WHEN** 作答为 `zzz`（无法解析为标签）
-- **THEN** 结果 MUST 为 `incorrect`，且 MUST 正常写入作答与证据
-- **AND** 系统 MUST NOT 返回 `ungraded`
+- **THEN** 结果 MUST 为 `ungraded`
+- **AND** 系统 MUST NOT 写入 attempt / 证据，掌握度与待答题 MUST 保持不变
 
 #### Scenario: TC-H1 body unique match
 
-- **GIVEN** 选择题期望答案为标签 `B`
-- **WHEN** 作答为选项正文而非标签
-- **THEN** 结果 MUST 为 `incorrect`；作答为 ` b ` 或 `B` 时 MUST 为 `correct`
+- **GIVEN** 选择题期望答案为标签 `B`，且 `B` 的正文唯一
+- **WHEN** 作答为选项正文 / ` b ` / `B`
+- **THEN** 三种作答 MUST 均判 `correct`
 
 #### Scenario: TC-H3 TC-H4 short answer matching
 
 - **GIVEN** 简答题
-- **WHEN** 作答与期望答案完全一致 / 相似度低于 0.85 / 期望答案超过 30 字且不完全一致
+- **WHEN** 作答与期望答案完全一致 / 相似度低于 0.90 / 期望答案超过 30 字且不完全一致
 - **THEN** 结果 MUST 依次为正确、错误、错误
-- **AND** 期望答案 ≤30 字且相似度 ≥0.85 时 MUST 判对
+- **AND** 期望答案 ≤30 字且相似度 ≥0.90 时 MUST 判对
+- **AND** 空作答 MUST 返回 `ungraded`
 
 #### Scenario: TC-H5 open answer is weakest
 
-- **GIVEN** 开放题期望答案含 5 个以分隔符隔开的关键词
-- **WHEN** 作答命中 3 个（0.6）
-- **THEN** MUST 判对；命中少于 3 个 MUST 判错
+- **GIVEN** 开放题注册了 required 与 optional 关键词
+- **WHEN** required 全中且 optional 命中率达到 0.6 / 低于 0.6 / required 未全中
+- **THEN** 结果 MUST 依次为 `correct`、`partial`、`incorrect` 或 `partial`
+- **AND** 服务层 MUST 把开放题的 `correct` 降为 `partial`
 
 #### Scenario: TC-K5 TC-H6 hints downgrade
 
@@ -146,13 +153,27 @@
 
 ### Requirement: Repair Recomputes Instead Of Deleting
 
-系统 SHALL 通过作废或改正题目来修复错误评估，MUST NOT 物理删除历史证据。作废后 MUST 重算掌握度与复习状态；改正后 MUST 重判已存作答并追加新证据。
+系统 SHALL 通过作废或改正题目来修复错误评估，MUST NOT 物理删除历史证据。作废后 MUST 重算掌握度与复习状态；改正后 MUST 重判已存作答并追加新证据。改正后重判若为 `ungraded`，系统 MUST 拒绝该次修复并返回可读原因，MUST NOT 写入「已纠正」。返回体 MUST 含 `is_correct` 与 `result`。
 
 #### Scenario: TC-M5 repair void
 
 - **GIVEN** 一条错误判分证据
 - **WHEN** 作废该题
 - **THEN** 证据 MUST 被标记作废、门槛 MUST 重新计算，历史记录 MUST 仍可查
+
+#### Scenario: Corrected key still ungradable is refused
+
+- **GIVEN** 题目已判分，且新答案键与已存作答仍无法判定
+- **WHEN** 以 `correct` 修复
+- **THEN** 系统 MUST 抛前置条件错误，且 MUST NOT 写 `assessment.corrected`
+- **AND** `mastery_repair_question` MUST NOT 回「已纠正」
+
+#### Scenario: Corrected key is reported truthfully
+
+- **GIVEN** 新答案键使已存作答可以判定
+- **WHEN** 以 `correct` 修复
+- **THEN** 返回体 MUST 含真实的 `is_correct` 与 `result`
+- **AND** 工具回执 MUST 带出该 `result`
 
 ### Requirement: Gap Classification
 
@@ -164,35 +185,11 @@
 - **WHEN** 选择重新生成 / 重新生成 / 补充来源
 - **THEN** 缺口 MUST 仍存在 / 闭合 / 角标消失
 
-### Requirement: Short Questions Need Accepted Answers
-
-系统 SHALL 在注册 `short` 题时要求至少一个 `accepted_answers`；纯数值或单 token 的 `short`
-MAY 豁免。缺失时 MUST 拒绝并返回可读原因，MUST NOT 静默退化为仅精确匹配。`open` 题继续使用
-既有 `required_keywords` / `optional_keywords` 契约，不受本要求影响。
-
-#### Scenario: Natural-language short needs accepted answers
-
-- **GIVEN** 一道 `short` 题，期望答案是自然语言短语，且未提供 `accepted_answers`
-- **WHEN** 注册题目
-- **THEN** 系统 MUST 拒绝，并提示补充可接受答案
-
-#### Scenario: Numeric short is exempt
-
-- **GIVEN** 一道 `short` 题，期望答案是纯数值或单 token
-- **WHEN** 注册题目
-- **THEN** 系统 MUST 允许注册
-
-#### Scenario: Short with accepted answers is accepted
-
-- **GIVEN** 一道 `short` 题，期望答案是自然语言短语，且提供了至少一个 `accepted_answers`
-- **WHEN** 注册题目
-- **THEN** 系统 MUST 允许注册
-
 ### Requirement: Grade Feedback Persistence
 
-`POST /learning/paths/{id}/grade` SHALL 接受可选 `session_id` 与 `turn_id`。成功与 `ungraded`
-结果 MUST 以 user 答案 + assistant `data.grade` 写入会话消息；`ungraded` MUST NOT 改变掌握度或证据；
-同一 `question_id` 的重复判分 MUST NOT 重复写入消息。
+`POST /learning/paths/{id}/grade` SHALL 接受可选 `session_id` 与 `turn_id`。只有真正 `graded`
+的结果 MUST 以 user 答案 + assistant `data.grade` 写入会话消息；`ungraded` MUST 返回 422、
+MUST NOT 写入会话消息、MUST NOT 改变掌握度或证据。同一 `question_id` 的重复判分 MUST NOT 重复写入消息。
 
 #### Scenario: Graded feedback persists
 
@@ -204,7 +201,8 @@ MAY 豁免。缺失时 MUST 拒绝并返回可读原因，MUST NOT 静默退化�
 
 - **GIVEN** 一次无法解析的作答
 - **WHEN** 判分返回 `ungraded`
-- **THEN** 会话 MUST 记录 `status=ungraded`，且掌握度与 `learning_evidence` MUST 不变
+- **THEN** 响应 MUST 为 422，会话 MUST NOT 新增消息
+- **AND** 掌握度、证据与待答题 MUST 不变
 
 #### Scenario: Repeated grade does not duplicate messages
 

@@ -12,9 +12,8 @@ import java.util.Map;
 /**
  * 13 条脱敏改写的真实风格作答（{@code fixtures/real-answers-13.json}）。
  *
- * <p>同一份 fixture 同时服务两条判分链路：
- * {@code practice} 是 {@code Grading.grade(...).result()} 的期望，
- * {@code mastery} 是 {@code MasteryGrading.isCorrect(...)} 的期望。
+ * <p>{@code expected} 是 {@code Grading.grade(...).result()} 的期望。掌握路径与练习题卷
+ * 共用同一个判分器（{@code 0043}），因此只有一列期望。
  *
  * <p>用 Map 手工映射而不是直接反序列化 record：全局 ObjectMapper 配置了 snake_case，
  * 手工映射可以避免未来命名策略调整时静默读空。
@@ -36,8 +35,7 @@ public final class AnswerFixtures {
             List<String> requiredKeywords,
             List<String> optionalKeywords,
             String learnerAnswer,
-            String practice,
-            boolean mastery,
+            String expected,
             String note) {
     }
 
@@ -91,8 +89,7 @@ public final class AnswerFixtures {
                 strings(raw.get("required_keywords")),
                 strings(raw.get("optional_keywords")),
                 text(raw.get("learner_answer")),
-                text(raw.get("practice")),
-                Boolean.parseBoolean(text(raw.get("mastery"))),
+                text(raw.get("expected")),
                 text(raw.get("note")));
     }
 

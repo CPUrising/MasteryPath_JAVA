@@ -251,7 +251,7 @@ class RepairQuestionTest {
     @Test
     @DisplayName("correct 后仍判错时正常返回 false")
     void correctionCanStillBeIncorrect() {
-        // 选择题的作答 "zzz" 与正确答案 "B" 不匹配：修正答案键后仍应是 incorrect。
+        // 作答 "A" 可解析但选错；把答案键改成 "B" 后重判仍是 incorrect。
         PendingQuestion pending = new PendingQuestion();
         pending.setQuestionId("q1");
         pending.setKnowledgePointId("k1");
@@ -263,12 +263,37 @@ class RepairQuestionTest {
                 new com.masterypath.domain.model.PendingOption("A", "3"),
                 new com.masterypath.domain.model.PendingOption("B", "4")));
         service.registerQuestion("p", pending, "", "");
-        service.grade("p", "q1", "zzz", 0, false, "", "");
+        service.grade("p", "q1", "A", 0, false, "", "");
 
         Map<String, Object> result = service.repairQuestion(
                 "p", "q1", "correct", "B", "x", "", "");
 
-        assertThat(result).containsEntry("action", "correct").containsEntry("is_correct", false);
+        assertThat(result).containsEntry("action", "correct")
+                .containsEntry("is_correct", false)
+                .containsEntry("result", "incorrect");
+    }
+
+    @Test
+    @DisplayName("新答案键仍无法判定时拒绝修复，且不写 assessment.corrected")
+    void correctionRefusedWhenStillUngraded() {
+        // 作答 "zzz" 无法解析为标签，且新键仍是标签 → 重判 ungraded。
+        PendingQuestion pending = new PendingQuestion();
+        pending.setQuestionId("q1");
+        pending.setKnowledgePointId("k1");
+        pending.setModuleId("m1");
+        pending.setPrompt("2+2?");
+        pending.setQuestionType(PendingQuestion.QuestionType.CHOICE);
+        pending.setExpectedAnswer("A");
+        pending.setOptions(List.of(
+                new com.masterypath.domain.model.PendingOption("A", "3"),
+                new com.masterypath.domain.model.PendingOption("B", "4")));
+        service.registerQuestion("p", pending, "", "");
+        service.grade("p", "q1", "zzz", 0, false, "", "");
+
+        assertThatThrownBy(() -> service.repairQuestion("p", "q1", "correct", "B", "x", "", ""))
+                .isInstanceOf(PreconditionFailedException.class)
+                .hasMessageContaining("corrected answer cannot be graded");
+        assertThat(eventTypes()).doesNotContain("assessment.corrected");
     }
 
     // -- 事件与返回值 ---------------------------------------------------------
@@ -291,8 +316,8 @@ class RepairQuestionTest {
     }
 
     @Test
-    @DisplayName("返回值含 8 个键，path_revision 为 version+1")
-    void resultHasEightKeys() {
+    @DisplayName("返回值含 9 个键，path_revision 为 version+1")
+    void resultHasNineKeys() {
         quizAndGrade("9");
         int versionBefore = store.load("p").getVersion();
 
@@ -300,8 +325,10 @@ class RepairQuestionTest {
                 "p", "q1", "correct", "9", "wrong key", "", "");
 
         assertThat(result).containsOnlyKeys("status", "action", "question_id",
-                "knowledge_point_id", "path_revision", "is_correct", "mastery", "mastered", "next");
-        assertThat(result).containsEntry("path_revision", versionBefore + 1);
+                "knowledge_point_id", "path_revision", "is_correct", "result",
+                "mastery", "mastered", "next");
+        assertThat(result).containsEntry("path_revision", versionBefore + 1)
+                .containsEntry("result", "correct");
     }
 
     @Test

@@ -241,13 +241,11 @@ class GradingTest {
     // -- 真实作答矩阵 ---------------------------------------------------------
 
     @Test
-    @DisplayName("13 条真实风格作答：练习题卷保持 correct/partial/ungraded 语义")
+    @DisplayName("13 条真实风格作答：练习与掌握共用同一套 correct/partial/ungraded 语义")
     void realAnswersKeepPracticeSemantics() {
         for (AnswerFixtures.Case item : AnswerFixtures.load()) {
             Decision decision = Grading.grade(AnswerFixtures.toQuestion(item), item.learnerAnswer());
-            assertThat(decision.result())
-                    .as("%s：%s", item.id(), item.note())
-                    .isEqualTo(item.practice());
+            assertThat(decision.result()).as("%s：%s", item.id(), item.note()).isEqualTo(item.expected());
         }
     }
 

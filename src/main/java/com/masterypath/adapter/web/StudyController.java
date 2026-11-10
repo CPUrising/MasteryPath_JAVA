@@ -52,11 +52,9 @@ public class StudyController {
         ToolContext ctx = context(pathId, sessionId);
         ctx.setTurnId(turnId);
         ToolResult result = MasteryTools.all().get("mastery_grade").execute(params, ctx);
-        // 判分反馈只在 REST 题卡路径落库；WS 工具调用由 recordTurn 统一写，避免重复。
-        // 只有真正拿到判分结果（graded/ungraded）才写；precondition 失败没有 metadata。
+        // 判分反馈只在真正 graded 时落库；ungraded 走 422 且零状态变更（与参考实现一致）。
         Object status = result.metadata().get("status");
-        if (!sessionId.isEmpty() && status != null
-                && !"already_graded".equals(ApiSupport.str(status))) {
+        if (!sessionId.isEmpty() && "graded".equals(ApiSupport.str(status))) {
             service.recordGradeInteraction(pathId, sessionId,
                     ApiSupport.str(params.get("answer")), result.metadata(), turnId);
         }

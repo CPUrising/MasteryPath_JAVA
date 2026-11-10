@@ -76,7 +76,8 @@ public final class RepairTools {
             }
             String content = "void".equals(result.get("action"))
                     ? "The question was voided; continue from mastery_status.next."
-                    : "The answer key was corrected and the stored reply re-graded.";
+                    : "The answer key was corrected; the stored reply now grades "
+                            + ToolSupport.str(result.get("result")) + ".";
             return ToolResult.ok(content, result);
         }
     }

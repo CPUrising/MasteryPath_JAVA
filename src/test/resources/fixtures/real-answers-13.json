@@ -1,5 +1,5 @@
 {
-  "_note": "合成数据：按真实会话中出现过的作答形态脱敏改写，不含任何真实用户内容。practice 为练习题卷 Grading 的期望，mastery 为掌握路径 MasteryGrading.isCorrect 的期望。",
+  "_note": "合成数据：按真实会话中出现过的作答形态脱敏改写，不含任何真实用户内容。expected 为 Grading.grade 的期望结果；掌握路径与练习题卷共用同一个判分器。",
   "cases": [
     {
       "id": "A01",
@@ -15,8 +15,7 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "B",
-      "practice": "correct",
-      "mastery": true,
+      "expected": "correct",
       "note": "标准标签作答"
     },
     {
@@ -33,8 +32,7 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "b",
-      "practice": "correct",
-      "mastery": true,
+      "expected": "correct",
       "note": "小写标签"
     },
     {
@@ -51,9 +49,8 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "保证同一时刻只有一个线程进入临界区，并建立可见性",
-      "practice": "correct",
-      "mastery": false,
-      "note": "选项正文作答：练习题卷可判，掌握路径只认标签"
+      "expected": "correct",
+      "note": "选项正文作答：正文唯一匹配标签"
     },
     {
       "id": "A04",
@@ -69,9 +66,8 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "我觉得是第二个",
-      "practice": "ungraded",
-      "mastery": false,
-      "note": "口语化作答，无法解析为标签"
+      "expected": "ungraded",
+      "note": "口语化作答：无法解析为标签，不判也不记错"
     },
     {
       "id": "A05",
@@ -87,8 +83,7 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "AB",
-      "practice": "ungraded",
-      "mastery": false,
+      "expected": "ungraded",
       "note": "多标签歧义"
     },
     {
@@ -100,9 +95,8 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "4.0",
-      "practice": "correct",
-      "mastery": false,
-      "note": "数值容差只属于练习题卷；掌握路径按字符串相似度"
+      "expected": "correct",
+      "note": "数值容差 1e-6"
     },
     {
       "id": "A07",
@@ -113,9 +107,8 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "线程池。",
-      "practice": "correct",
-      "mastery": true,
-      "note": "句末标点：练习题卷归一化后精确匹配，掌握路径靠 0.85 相似度"
+      "expected": "correct",
+      "note": "句末标点被归一化剥离"
     },
     {
       "id": "A08",
@@ -126,9 +119,8 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "synchronised",
-      "practice": "correct",
-      "mastery": true,
-      "note": "拼写近似：两条链路都接受"
+      "expected": "correct",
+      "note": "拼写近似：相似度 0.92 ≥ 0.90"
     },
     {
       "id": "A09",
@@ -139,9 +131,8 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "ThreadPoolExecutor",
-      "practice": "incorrect",
-      "mastery": false,
-      "note": "同义但不同词"
+      "expected": "incorrect",
+      "note": "相似度 0.56 低于阈值"
     },
     {
       "id": "A10",
@@ -152,9 +143,8 @@
       "required_keywords": ["并发"],
       "optional_keywords": ["可见性", "互斥"],
       "learner_answer": "并发 与 可见性 有关",
-      "practice": "partial",
-      "mastery": true,
-      "note": "关键词 2/3：练习题卷给 partial，掌握路径命中率 0.667 判对"
+      "expected": "partial",
+      "note": "optional 命中 1/2 = 0.5，低于 0.6"
     },
     {
       "id": "A11",
@@ -165,9 +155,8 @@
       "required_keywords": ["并发"],
       "optional_keywords": ["可见性", "互斥"],
       "learner_answer": "完全无关",
-      "practice": "incorrect",
-      "mastery": false,
-      "note": "关键词 0"
+      "expected": "incorrect",
+      "note": "required 未命中"
     },
     {
       "id": "A12",
@@ -178,8 +167,7 @@
       "required_keywords": ["并发"],
       "optional_keywords": ["可见性", "互斥"],
       "learner_answer": "",
-      "practice": "ungraded",
-      "mastery": false,
+      "expected": "ungraded",
       "note": "空开放题"
     },
     {
@@ -191,8 +179,7 @@
       "required_keywords": [],
       "optional_keywords": [],
       "learner_answer": "   ",
-      "practice": "ungraded",
-      "mastery": false,
+      "expected": "ungraded",
       "note": "空白短答"
     }
   ]

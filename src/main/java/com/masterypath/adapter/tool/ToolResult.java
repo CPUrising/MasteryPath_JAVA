@@ -34,4 +34,9 @@ public record ToolResult(boolean ok, String content, Map<String, Object> metadat
     public static ToolResult failure(String content) {
         return new ToolResult(false, content, Map.of());
     }
+
+    /** 失败结果 + 元数据（例如 {@code ungraded} 的原因与判分结果）。 */
+    public static ToolResult failure(String content, Map<String, Object> metadata) {
+        return new ToolResult(false, content, metadata);
+    }
 }

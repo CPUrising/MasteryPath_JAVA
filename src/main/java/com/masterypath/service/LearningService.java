@@ -1,7 +1,7 @@
 package com.masterypath.service;
 
 import com.masterypath.domain.grading.Decision;
-import com.masterypath.domain.grading.MasteryGrading;
+import com.masterypath.domain.grading.Grading;
 import com.masterypath.domain.mode.BehaviorBudget;
 import com.masterypath.domain.model.AssessmentResult;
 import com.masterypath.domain.model.AssessmentType;
@@ -401,11 +401,11 @@ public final class LearningService {
             throw new PreconditionFailedException("interaction is not gradable");
         }
 
-        Decision decision = MasteryGrading.isCorrect(
-                answer, interaction.getQuestion().getExpectedAnswer(),
-                interaction.getQuestion().getQuestionType().value())
-                ? Decision.correct("")
-                : Decision.incorrect("");
+        Decision decision = Grading.grade(interaction.getQuestion(), answer);
+        if (decision.isUngraded()) {
+            // 无法解析的作答永不判错（INV-46）：零状态变更，题卡留在原地等澄清。
+            return payload("status", "ungraded", "reason", decision.reason());
+        }
 
         return store.mutate(pathId, tx -> {
             MasteryInteraction current = tx.getInteraction(questionId);
@@ -424,6 +424,11 @@ public final class LearningService {
             KnowledgePoint kp = location.knowledgePoint();
 
             String result = decision.result();
+            if (pending.getQuestionType() == PendingQuestion.QuestionType.OPEN
+                    && Decision.CORRECT.equals(result)) {
+                // INV-35：开放题不得单独授予掌握。
+                result = Decision.PARTIAL;
+            }
             boolean isCorrect = Decision.CORRECT.equals(result);
 
             boolean wasMastered = MasteryPolicy.isMastered(progress, kp);
@@ -756,6 +761,7 @@ public final class LearningService {
             }
 
             Boolean repairedCorrect;
+            String repairedResult = "voided";
             if ("void".equals(actionName)) {
                 for (QuizAttempt attempt : attempts) {
                     attempt.setVoided(true);
@@ -788,13 +794,15 @@ public final class LearningService {
                 if (interaction != null) {
                     interaction.getQuestion().setExpectedAnswer(newExpected);
                 }
-                Decision decision = MasteryGrading.isCorrect(
-                        userAnswer == null ? "" : userAnswer,
-                        question.getExpectedAnswer(),
-                        question.getQuestionType().value())
-                        ? Decision.correct("")
-                        : Decision.incorrect("");
-                String repairedResult = decision.result();
+                Decision decision = Grading.grade(question,
+                        userAnswer == null ? "" : userAnswer);
+                tx.require(!decision.isUngraded(),
+                        "corrected answer cannot be graded: " + decision.reason());
+                repairedResult = decision.result();
+                if (question.getQuestionType() == PendingQuestion.QuestionType.OPEN
+                        && Decision.CORRECT.equals(repairedResult)) {
+                    repairedResult = Decision.PARTIAL;
+                }
                 repairedCorrect = Decision.CORRECT.equals(repairedResult);
 
                 for (QuizAttempt attempt : attempts) {
@@ -863,6 +871,7 @@ public final class LearningService {
                     "knowledge_point_id", kp.getId(),
                     "path_revision", progress.getVersion() + 1,
                     "is_correct", repairedCorrect,
+                    "result", repairedResult,
                     "mastery", round3(MasteryPolicy.displayMastery(progress, kp)),
                     "mastered", MasteryPolicy.isMastered(progress, kp),
                     "next", MasteryPolicy.nextObjective(progress).toMap());

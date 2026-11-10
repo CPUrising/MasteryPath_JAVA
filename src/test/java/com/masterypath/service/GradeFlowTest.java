@@ -117,25 +117,25 @@ class GradeFlowTest {
     // -- 无法解析的作答 -------------------------------------------------------
 
     @Test
-    @DisplayName("选择题无法解析为标签时判错（不再有 ungraded）")
-    void unparseableChoiceIsIncorrect() {
+    @DisplayName("选择题无法解析为标签时返回 ungraded，零状态变更")
+    void unparseableChoiceIsUngraded() {
         service.registerQuestion("p", choiceQuestion("q1"), "", "");
 
         Map<String, Object> result = service.grade("p", "q1", "zzz", 0, false, "", "");
 
-        assertThat(result).containsEntry("status", "graded");
-        assertThat(result).containsEntry("result", "incorrect");
+        assertThat(result).containsEntry("status", "ungraded");
+        assertThat(String.valueOf(result.get("reason"))).contains("could not tell which option");
         LearningProgress loaded = store.load("p");
-        assertThat(loaded.getLearningEvidence()).hasSize(1);
-        assertThat(loaded.getQuizAttempts()).hasSize(1);
-        assertThat(loaded.getPendingQuestion()).isNull();
+        assertThat(loaded.getLearningEvidence()).isEmpty();
+        assertThat(loaded.getQuizAttempts()).isEmpty();
+        assertThat(loaded.getPendingQuestion()).isNotNull();
     }
 
     @Test
-    @DisplayName("作废后重复判分返回首次结果")
+    @DisplayName("判错后重复判分返回首次结果")
     void repeatedGradeAfterIncorrectIsAlreadyGraded() {
         service.registerQuestion("p", choiceQuestion("q1"), "", "");
-        service.grade("p", "q1", "zzz", 0, false, "", "");
+        service.grade("p", "q1", "A", 0, false, "", "");
 
         Map<String, Object> second = service.grade("p", "q1", "B", 0, false, "", "");
 
@@ -173,8 +173,8 @@ class GradeFlowTest {
     // -- 开放题 ---------------------------------------------------------------
 
     @Test
-    @DisplayName("开放题按期望答案关键词判对，但一次正确仍受置信上限")
-    void openCorrectIsCapped() {
+    @DisplayName("开放题不得单独授予掌握：判对也降为 partial")
+    void openCorrectIsDowngradedToPartial() {
         PendingQuestion pending = new PendingQuestion();
         pending.setQuestionId("q1");
         pending.setKnowledgePointId("k1");
@@ -182,14 +182,16 @@ class GradeFlowTest {
         pending.setPrompt("explain");
         pending.setQuestionType(PendingQuestion.QuestionType.OPEN);
         pending.setExpectedAnswer("photosynthesis,chlorophyll");
+        pending.setRequiredKeywords(List.of("photosynthesis"));
+        pending.setOptionalKeywords(List.of("chlorophyll"));
         service.registerQuestion("p", pending, "", "");
 
         Map<String, Object> result = service.grade(
-                "p", "q1", "photosynthesis and chlorophyll", 0, false, "", "");
+                "p", "q1", "photosynthesis uses chlorophyll", 0, false, "", "");
 
-        assertThat(result).containsEntry("result", "correct");
-        assertThat(result).containsEntry("gate_cleared", false);
-        assertThat(result.get("mastery_after")).isEqualTo(0.5);
+        assertThat(result).containsEntry("result", "partial");
+        assertThat(result).containsEntry("is_correct", false);
+        assertThat(result.get("mastery_after")).isEqualTo(0.0);
     }
 
     // -- 掌握推进 -------------------------------------------------------------

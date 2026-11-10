@@ -46,3 +46,4 @@
 | 2026-11-10 | `0040-mastery-e2e-verification` | 941 | 0 | 0 | [verify/0040](verify/0040-mastery-e2e-verification.md) |
 | 2026-11-10 | `0041-mastery-turn-evidence` | 945 | 0 | 0 | [verify/0041](verify/0041-mastery-turn-evidence.md) |
 | 2026-11-10 | `0042-mastery-session-continuity` | 945 | 0 | 0 | [verify/0042](verify/0042-mastery-session-continuity.md) |
+| 2026-11-10 | `0043-mastery-grading-parity` | 936 | 0 | 0 | [verify/0043](verify/0043-mastery-grading-parity.md) |

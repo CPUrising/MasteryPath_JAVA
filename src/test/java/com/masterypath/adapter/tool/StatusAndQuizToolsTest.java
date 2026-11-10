@@ -293,8 +293,8 @@ class StatusAndQuizToolsTest {
     }
 
     @Test
-    @DisplayName("无法解析的选择题判错，而不是拒判")
-    void unparseableChoiceIsIncorrect() {
+    @DisplayName("无法解析的选择题返回 ungraded，题卡留在原地")
+    void unparseableChoiceIsUngraded() {
         service.createPath("p", "learn X", "X");
         service.build("p", Map.of("modules", List.of(module("M", "pick one",
                 KnowledgeType.MEMORY))), false);
@@ -311,8 +311,11 @@ class StatusAndQuizToolsTest {
         ToolResult result = MasteryTools.all().get("mastery_grade")
                 .execute(Map.of("question_id", questionId, "answer", "zzz"), ctx);
 
-        assertThat(result.ok()).isTrue();
-        assertThat(result.content()).isEqualTo("Graded: incorrect.");
+        assertThat(result.ok()).isFalse();
+        assertThat(result.content())
+                .startsWith("Not graded:")
+                .contains("Ask the learner to clarify.");
+        assertThat(store.getOpenInteraction("p")).isNotNull();
     }
 
     @Test

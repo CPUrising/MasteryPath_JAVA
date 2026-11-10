@@ -395,8 +395,8 @@
 
 | 项 | 覆盖 | 验证 | 状态 |
 | --- | --- | --- | --- |
-| 13 条真实风格作答（练习题卷） | `Grading` 的 correct/partial/ungraded | `GradingTest#realAnswersKeepPracticeSemantics` | 通过（`0040`） |
-| 13 条真实风格作答（掌握路径） | `MasteryGrading` 的 correct/incorrect | `MasteryGradingTest#realAnswersKeepMasterySemantics` | 通过（`0040`） |
+| 13 条真实风格作答（练习题卷） | `Grading` 的 correct/partial/ungraded | `GradingTest#realAnswersKeepPracticeSemantics` | 通过（`0040`，`0043` 合并为单一期望） |
+| 13 条真实风格作答（掌握路径） | 与练习题卷同一判分器 | `GradingTest#realAnswersKeepPracticeSemantics`（原 `MasteryGradingTest` 已删除） | 通过（`0043`） |
 | 掌握判分 REST 契约 | `POST /grade` / `GET session` / `GET mastery` | `MasteryGradeContractTest`（5 个） | 通过（`0040`） |
 | 真实模型全链路 | 建大纲 → 出题 → 判分 → 清门槛 → 定性评估 → 完成 | `MasteryJourneyE2ETest#walksAWholeMasteryPath`（`e2e`，真实调用） | 通过（`0040`） |
 | 默认回归隔离 | `verify.ps1` 排除 `e2e`，单独脚本运行 | `verify.ps1 -Scope all`（941 用例）+ `scripts/e2e-mastery.ps1` | 通过（`0040`） |
@@ -431,6 +431,26 @@
 | — | Full history is rendered after reload | `changes/0042-mastery-session-continuity/specs/agent-turn` | `sessions/page.tsx`（消息拆分渲染）+ `npm run build` | 通过（`0042`） |
 | — | Composer answers the open question | `changes/0042-mastery-session-continuity/specs/agent-turn` | `sessions/page.tsx`（`pending_question` → `mastery_answer`）、`QuestionCard.tsx` | 通过（`0042`） |
 | — | Session list opens a specific session | `changes/0042-mastery-session-continuity/specs/agent-turn` | `SessionCamp.tsx` | 通过（`0042`） |
+
+## 21. 掌握判分回退到 DeepTutor 语义（0043）
+
+> 场景名取自 `openspec/changes/0043-mastery-grading-parity/specs/learning-tools`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| TC-K1 | registration validation | `changes/0043-mastery-grading-parity/specs/learning-tools` | `QuizRegistrationTest` | 通过（`0043`） |
+| TC-K3 TC-E3 | idempotent grading | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradeFlowTest#gradeIsIdempotent`、`#idempotentIgnoresNewAnswer` | 通过（`0043`） |
+| TC-K4 TC-H2 | ungraded zero change | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradeFlowTest#unparseableChoiceIsUngraded`、`MasteryGradeContractTest#unparseableChoiceIsUngraded`、`StudyApiTest#unparseableChoiceReturns422WithoutPersisting` | 通过（`0043`） |
+| TC-H1 | body unique match | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradingTest#realAnswersKeepPracticeSemantics`（A03）、`#resolveChoice*` | 通过（`0043`） |
+| TC-H3 TC-H4 | short answer matching | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradingTest`（数值/阈值/超长） | 通过（`0043`） |
+| TC-H5 | open answer is weakest | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradeFlowTest#openCorrectIsDowngradedToPartial`、`GradingTest#realAnswersKeepPracticeSemantics`（A10） | 通过（`0043`） |
+| TC-K5 TC-H6 | hints downgrade | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradeFlowTest#hintsDoNotDowngradeButAreNotIndependent` | 通过（`0043`） |
+| TC-M5 | repair void | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#voidRemovesMasteryAndMarksBank` | 通过（`0043`） |
+| — | Corrected key still ungradable is refused | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#correctionRefusedWhenStillUngraded` | 通过（`0043`） |
+| — | Corrected key is reported truthfully | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#resultHasNineKeys`、`#correctionCanStillBeIncorrect` | 通过（`0043`） |
+| — | Graded feedback persists | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#gradeFeedbackPersistsInSessionMessages` | 通过（`0043`） |
+| — | Ungraded persists with zero change | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#unparseableChoiceReturns422WithoutPersisting` | 通过（`0043`） |
+| — | Repeated grade does not duplicate messages | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#repeatedGradeDoesNotDuplicateMessages` | 通过（`0043`） |
 
 ## 维护规则
 

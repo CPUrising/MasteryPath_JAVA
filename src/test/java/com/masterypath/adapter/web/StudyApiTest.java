@@ -201,28 +201,23 @@ class StudyApiTest {
     }
 
     @Test
-    void unparseableChoiceIsIncorrectAndPersists() throws Exception {
+    void unparseableChoiceReturns422WithoutPersisting() throws Exception {
         api.buildMixedOutline("p");
         String questionId = registerChoiceQuestion("s1");
         var before = api.service.store().load("p");
         int evidenceBefore = before.getLearningEvidence().size();
 
-        Map<String, Object> graded = json(api.mvc.perform(post("/learning/paths/p/grade")
+        var response = api.mvc.perform(post("/learning/paths/p/grade")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"Z\","
                                 + "\"session_id\":\"s1\"}"))
-                .andReturn());
+                .andReturn().getResponse();
 
-        assertThat(graded).containsEntry("status", "graded")
-                .containsEntry("result", "incorrect");
-        var after = api.service.store().load("p");
-        assertThat(after.getLearningEvidence()).hasSize(evidenceBefore + 1);
-        List<Map<String, Object>> messages = messages("s1");
-        assertThat(messages).hasSize(2);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> grade = (Map<String, Object>) data(messages.get(1)).get("grade");
-        assertThat(grade).containsEntry("status", "graded")
-                .containsEntry("result", "incorrect");
+        assertThat(response.getStatus()).isEqualTo(422);
+        assertThat(response.getContentAsString()).contains("Not graded");
+        assertThat(api.service.store().load("p").getLearningEvidence()).hasSize(evidenceBefore);
+        Map<String, Object> detail = api.service.getSessionDetail("s1");
+        assertThat(detail == null ? List.of() : detail.get("messages")).isEqualTo(List.of());
     }
 
     @Test
@@ -246,14 +241,15 @@ class StudyApiTest {
     }
 
     @Test
-    void naturalLanguageShortNeedsAcceptedAnswers() throws Exception {
+    void naturalLanguageShortIsAllowedWithoutAcceptedAnswers() throws Exception {
         api.buildMixedOutline("p");
-        assertThat(api.mvc.perform(post("/learning/paths/p/quiz")
+        Map<String, Object> quiz = json(api.mvc.perform(post("/learning/paths/p/quiz")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"knowledge_point_id\":\"k1\",\"question\":\"what process?\","
                                 + "\"question_type\":\"short\","
                                 + "\"expected_answer\":\"the process of photosynthesis\"}"))
-                .andReturn().getResponse().getStatus()).isEqualTo(422);
+                .andReturn());
+        assertThat(quiz).containsEntry("status", "registered");
     }
 
     @Test
