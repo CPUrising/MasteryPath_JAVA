@@ -5,6 +5,8 @@ import com.masterypath.adapter.llm.LlmClient;
 import com.masterypath.adapter.llm.LlmError;
 import com.masterypath.adapter.loop.AgentLoop;
 import com.masterypath.adapter.loop.StreamEvent;
+import com.masterypath.adapter.prompt.MasteryPromptAssembler;
+import com.masterypath.adapter.prompt.MasteryPrompts;
 import com.masterypath.adapter.tool.MasteryTools;
 import com.masterypath.adapter.tool.StudyTools;
 import com.masterypath.adapter.tool.Tool;
@@ -16,11 +18,13 @@ import com.masterypath.domain.model.TopicSource;
 import com.masterypath.service.ChatService;
 import com.masterypath.service.LearningService;
 import com.masterypath.storage.LearningStore;
+import com.masterypath.storage.SettingsStore;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -70,13 +74,14 @@ public final class TurnRunner {
     private final ClientBuilder clientBuilder;
     private final Object knowledgeService;
     private final ChatService chatService;
+    private final SettingsStore settingsStore;
 
     /**
      * @param knowledgeService 知识库服务；{@code null} 表示没有知识库（{@code 0021} 落地真实实现）
      */
     public TurnRunner(LearningService learningService, LearningStore store,
                       ClientBuilder clientBuilder, Object knowledgeService) {
-        this(learningService, store, clientBuilder, knowledgeService, null);
+        this(learningService, store, clientBuilder, knowledgeService, null, null);
     }
 
     /**
@@ -85,11 +90,21 @@ public final class TurnRunner {
     public TurnRunner(LearningService learningService, LearningStore store,
                       ClientBuilder clientBuilder, Object knowledgeService,
                       ChatService chatService) {
+        this(learningService, store, clientBuilder, knowledgeService, chatService, null);
+    }
+
+    /**
+     * @param settingsStore 读取响应语言；{@code null} 时按 {@code zh} 处理
+     */
+    public TurnRunner(LearningService learningService, LearningStore store,
+                      ClientBuilder clientBuilder, Object knowledgeService,
+                      ChatService chatService, SettingsStore settingsStore) {
         this.learningService = learningService;
         this.store = store;
         this.clientBuilder = clientBuilder;
         this.knowledgeService = knowledgeService;
         this.chatService = chatService;
+        this.settingsStore = settingsStore;
     }
 
     /**
@@ -414,9 +429,37 @@ public final class TurnRunner {
             // 因此这里不需要再合并 NAV_TOOLS。
             Map<String, Tool> tools = MasteryTools.mountedTools(ctx);
             LlmClient client = clientBuilder.build(selection, request.sessionId());
+            String systemPrompt = new MasteryPromptAssembler(MasteryPrompts.shared())
+                    .systemPrompt(ctx.sessionMode(), tools.keySet(), responseLanguage(),
+                            LocalDate.now());
             List<Map<String, Object>> messages = new ArrayList<>(historyMessages());
-            messages.add(Map.of("role", "user", "content", request.message()));
-            loop = new AgentLoop(tools).stream(client, messages, ctx, null, context);
+            messages.add(Map.of("role", "user", "content", userMessage()));
+            loop = new AgentLoop(tools).stream(client, messages, ctx, systemPrompt, context);
+        }
+
+        /** 本轮用户消息（复刻 {@code loop.user} 模板）。 */
+        private String userMessage() {
+            return MasteryPrompts.shared().loopUser()
+                    .replace("{user_message}", request.message());
+        }
+
+        /** 响应语言：设置里没有就按 {@code zh}（本产品默认界面语言）。 */
+        private String responseLanguage() {
+            if (settingsStore == null) {
+                return "zh";
+            }
+            try {
+                Object general = settingsStore.section("general");
+                if (general instanceof Map<?, ?> map) {
+                    String value = str(map.get("response_language")).strip();
+                    if (!value.isEmpty()) {
+                        return value;
+                    }
+                }
+            } catch (RuntimeException ignored) {
+                // 设置读不到不能拖垮回合。
+            }
+            return "zh";
         }
 
         /**

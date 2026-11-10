@@ -331,6 +331,27 @@ class TurnRunnerTest {
     }
 
     @Test
+    @DisplayName("系统提示词来自 mastery 提示词包")
+    void systemPromptComesFromThePack() {
+        FakeLlmClient fake = new FakeLlmClient(List.of(LlmResponse.text("hi")));
+
+        List<TurnEvent> events = run(fake, request("s1", "p", "study", "hello"));
+
+        assertThat(types(events)).containsExactly("text_delta", "turn_end");
+        List<Map<String, Object>> messages = fake.calls().get(0);
+        String system = String.valueOf(messages.get(0).get("content"));
+        assertThat(system)
+                .contains("## mastery_tutor")
+                .contains("## mastery_session_mode")
+                .contains("## mastery_playbook")
+                .contains("这个模式是用来学的")
+                .contains("[语言要求 / Language]");
+        assertThat(messages.get(messages.size() - 1))
+                .containsEntry("role", "user")
+                .containsEntry("content", "hello");
+    }
+
+    @Test
     @DisplayName("快照读取失败不拖垮回合")
     void snapshotFailureDoesNotSinkTheTurn() {
         FakeLlmClient fake = new FakeLlmClient(List.of(LlmResponse.text("still here")));

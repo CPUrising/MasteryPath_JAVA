@@ -355,6 +355,20 @@
 | — | Grade without question id | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#shuffledChoiceKeepsExpectedBodyAndAllowsFreeText` | 通过（`0037`） |
 | — | Skip without arguments | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#skipWithoutArgumentsClearsOpenQuestion`、`ToolSchemasTest#requiredParametersMatchExecutors` | 通过（`0037`） |
 
+## 16. mastery 提示词包（0038）
+
+> 本能力由 `0038` 新增；场景名取自
+> `openspec/changes/0038-mastery-prompt-pack/specs/mastery-prompts/spec.md`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Blocks appear in the tutor's order | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptAssemblerTest#blocksFollowTheTutorOrder` | 通过（`0038`） |
+| — | The current mode paragraph is injected | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptAssemblerTest#blocksFollowTheTutorOrder`、`MasteryPromptsTest#sessionParagraphs`、`TurnRunnerTest#systemPromptComesFromThePack` | 通过（`0038`） |
+| — | Runtime date is resolved from the clock | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptsTest#runtimeContext`、`MasteryPromptAssemblerTest#blocksFollowTheTutorOrder` | 通过（`0038`） |
+| — | Language directive closes the prompt | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptsTest#languageDirective`、`MasteryPromptAssemblerTest#blocksFollowTheTutorOrder` | 通过（`0038`） |
+| — | Key protocol sentences survive | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptsTest#loopProtocol`、`#playbook`、`#generalAndRuntimePolicy` | 通过（`0038`） |
+| — | Tool manifest lists hinted tools only | `changes/0038-mastery-prompt-pack/specs/mastery-prompts` | `MasteryPromptsTest#toolManifest`、`MasteryPromptAssemblerTest#toolsFallBackToNone`、`#emptyPackRendersOnlyToolListAndDirective` | 通过（`0038`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

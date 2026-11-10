@@ -41,3 +41,4 @@
 | 2026-11-10 | `0035-quiz-generation-context` | 894 | 0 | 0 | [verify/0035](verify/0035-quiz-generation-context.md) |
 | 2026-11-10 | `0036-mastery-grading-parity` | 905 | 0 | 0 | [verify/0036](verify/0036-mastery-grading-parity.md) |
 | 2026-11-10 | `0037-mastery-turn-protocol` | 909 | 0 | 0 | [verify/0037](verify/0037-mastery-turn-protocol.md) |
+| 2026-11-10 | `0038-mastery-prompt-pack` | 922 | 0 | 0 | [verify/0038](verify/0038-mastery-prompt-pack.md) |

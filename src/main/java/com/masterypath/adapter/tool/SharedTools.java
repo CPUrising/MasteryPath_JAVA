@@ -1,5 +1,6 @@
 package com.masterypath.adapter.tool;
 
+import com.masterypath.adapter.prompt.MasteryPrompts;
 import com.masterypath.domain.mode.ModeGate;
 import com.masterypath.domain.mode.SessionMode;
 import com.masterypath.service.LearningService;
@@ -123,7 +124,7 @@ public final class SharedTools {
                     "status", previous.value().equals(requested) ? "unchanged" : "switched",
                     "previous_mode", previous.value(),
                     "mode", requested,
-                    "instructions", SessionMode.normalize(requested).instruction(),
+                    "instructions", MasteryPrompts.shared().session(requested),
                     "reason", ToolSupport.truncate(
                             ToolSupport.stripped(params.get("reason")), 200),
                     "persisted", persisted,

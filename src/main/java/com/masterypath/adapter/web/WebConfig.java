@@ -121,6 +121,7 @@ public class WebConfig {
             config.put("session_key", sessionKey);
             return ModelResolution.buildClient(config);
         };
-        return new TurnRunner(service, store, builder, knowledgeService, chatService);
+        return new TurnRunner(service, store, builder, knowledgeService, chatService,
+                settingsStore);
     }
 }
