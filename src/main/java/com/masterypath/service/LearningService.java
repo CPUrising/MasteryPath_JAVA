@@ -1,7 +1,7 @@
 package com.masterypath.service;
 
 import com.masterypath.domain.grading.Decision;
-import com.masterypath.domain.grading.Grading;
+import com.masterypath.domain.grading.MasteryGrading;
 import com.masterypath.domain.mode.BehaviorBudget;
 import com.masterypath.domain.model.AssessmentResult;
 import com.masterypath.domain.model.AssessmentType;
@@ -399,11 +399,11 @@ public final class LearningService {
             throw new PreconditionFailedException("interaction is not gradable");
         }
 
-        Decision decision = Grading.grade(interaction.getQuestion(), answer);
-        if (decision.isUngraded()) {
-            // 零状态变更：绝不把猜测记成作答（INV-46）。
-            return payload("status", "ungraded", "reason", decision.reason());
-        }
+        Decision decision = MasteryGrading.isCorrect(
+                answer, interaction.getQuestion().getExpectedAnswer(),
+                interaction.getQuestion().getQuestionType().value())
+                ? Decision.correct("")
+                : Decision.incorrect("");
 
         return store.mutate(pathId, tx -> {
             MasteryInteraction current = tx.getInteraction(questionId);
@@ -422,16 +422,6 @@ public final class LearningService {
             KnowledgePoint kp = location.knowledgePoint();
 
             String result = decision.result();
-            if (pending.getQuestionType() == PendingQuestion.QuestionType.OPEN
-                    && Decision.CORRECT.equals(result)) {
-                result = Decision.PARTIAL;   // 开放题不单独授予掌握（INV-35）
-            }
-            if (hintsUsed > 0 && Decision.CORRECT.equals(result)) {
-                result = Decision.PARTIAL;   // INV-36
-            }
-            if (hintsUsed > BehaviorBudget.MAX_HINTS_PER_QUESTION && Decision.CORRECT.equals(result)) {
-                result = Decision.PARTIAL;   // 提示预算超限（INV-60）；与上一条重叠，照抄参考实现
-            }
             boolean isCorrect = Decision.CORRECT.equals(result);
 
             boolean wasMastered = MasteryPolicy.isMastered(progress, kp);
@@ -795,14 +785,13 @@ public final class LearningService {
                 if (interaction != null) {
                     interaction.getQuestion().setExpectedAnswer(newExpected);
                 }
-                Decision decision = Grading.grade(question, userAnswer == null ? "" : userAnswer);
-                tx.require(!decision.isUngraded(),
-                        "corrected answer cannot be graded: " + decision.reason());
+                Decision decision = MasteryGrading.isCorrect(
+                        userAnswer == null ? "" : userAnswer,
+                        question.getExpectedAnswer(),
+                        question.getQuestionType().value())
+                        ? Decision.correct("")
+                        : Decision.incorrect("");
                 String repairedResult = decision.result();
-                if (question.getQuestionType() == PendingQuestion.QuestionType.OPEN
-                        && Decision.CORRECT.equals(repairedResult)) {
-                    repairedResult = Decision.PARTIAL;   // INV-35
-                }
                 repairedCorrect = Decision.CORRECT.equals(repairedResult);
 
                 for (QuizAttempt attempt : attempts) {

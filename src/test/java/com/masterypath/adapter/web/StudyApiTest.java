@@ -60,7 +60,8 @@ class StudyApiTest {
 
         assertThat(graded).containsEntry("status", "graded")
                 .containsEntry("result", "correct")
-                .containsEntry("gate_cleared", true);
+                .containsEntry("gate_cleared", false);
+        assertThat(graded.get("mastery_after")).isEqualTo(0.5);
     }
 
     @Test
@@ -200,28 +201,28 @@ class StudyApiTest {
     }
 
     @Test
-    void ungradedGradePersistsWithoutMasteryChange() throws Exception {
+    void unparseableChoiceIsIncorrectAndPersists() throws Exception {
         api.buildMixedOutline("p");
         String questionId = registerChoiceQuestion("s1");
         var before = api.service.store().load("p");
         int evidenceBefore = before.getLearningEvidence().size();
-        double masteryBefore = before.getMasteryLevels().getOrDefault("k1", 0.0);
 
-        MvcResult result = api.mvc.perform(post("/learning/paths/p/grade")
+        Map<String, Object> graded = json(api.mvc.perform(post("/learning/paths/p/grade")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"question_id\":\"" + questionId + "\",\"answer\":\"Z\","
                                 + "\"session_id\":\"s1\"}"))
-                .andReturn();
+                .andReturn());
 
-        assertThat(result.getResponse().getStatus()).isEqualTo(422);
+        assertThat(graded).containsEntry("status", "graded")
+                .containsEntry("result", "incorrect");
         var after = api.service.store().load("p");
-        assertThat(after.getLearningEvidence()).hasSize(evidenceBefore);
-        assertThat(after.getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(masteryBefore);
+        assertThat(after.getLearningEvidence()).hasSize(evidenceBefore + 1);
         List<Map<String, Object>> messages = messages("s1");
         assertThat(messages).hasSize(2);
         @SuppressWarnings("unchecked")
         Map<String, Object> grade = (Map<String, Object>) data(messages.get(1)).get("grade");
-        assertThat(grade).containsEntry("status", "ungraded");
+        assertThat(grade).containsEntry("status", "graded")
+                .containsEntry("result", "incorrect");
     }
 
     @Test

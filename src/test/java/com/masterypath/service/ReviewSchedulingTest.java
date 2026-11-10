@@ -58,17 +58,21 @@ class ReviewSchedulingTest {
     @Test
     @DisplayName("判分首次掌握：写入状态与队列、发 review.scheduled，事件顺序与参考实现一致")
     void gradeSeedsAndEmitsInOrder() {
+        register("q0", "4");
+        service.grade("p", "q0", "4", 0, false, "", "");
         register("q1", "4");
+        service.grade("p", "q1", "4", 0, false, "", "");
+        register("q2", "4");
         int before = store.eventsSince("p", 0).size();
 
-        service.grade("p", "q1", "4", 0, false, "", "");
+        service.grade("p", "q2", "4", 0, false, "", "");
 
         LearningProgress progress = store.load("p");
         assertThat(progress.getRepetitionStates()).containsKey("k1");
         assertThat(progress.getReviewQueue()).hasSize(1);
         assertThat(progress.getReviewQueue().get(0).getKnowledgePointId()).isEqualTo("k1");
         assertThat(progress.getRepetitionStates().get("k1").getProvenance()).isEqualTo("system");
-        // 只比较判分这一步产生的事件：注册本身也会发 question.registered。
+        // 只比较最后一次判分产生的事件：前两次判分不会清门槛。
         assertThat(eventTypes().subList(before, eventTypes().size()))
                 .containsExactly("review.scheduled", "attempt.graded", "objective.mastered");
     }
@@ -76,8 +80,7 @@ class ReviewSchedulingTest {
     @Test
     @DisplayName("播种事件的 payload 含 provenance，不含 scheduled_after_failure")
     void seedPayloadShape() {
-        register("q1", "4");
-        service.grade("p", "q1", "4", 0, false, "", "");
+        master();
 
         String payload = payloadOf("review.scheduled");
         assertThat(payload).contains("\"knowledge_point_id\":\"k1\"")
@@ -256,8 +259,10 @@ class ReviewSchedulingTest {
 
     /** 用判分把 k1 推到掌握（会顺带播种）。 */
     private void master() {
-        register("q1", "4");
-        service.grade("p", "q1", "4", 0, false, "", "");
+        for (int index = 0; index < 3; index++) {
+            register("m" + index, "4");
+            service.grade("p", "m" + index, "4", 0, false, "", "");
+        }
     }
 
     private void register(String questionId, String expected) {

@@ -1,25 +1,27 @@
 package com.masterypath.domain.policy;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.offset;
 
 import com.masterypath.domain.model.QuizAttempt;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * 近期加权正确率（{@code learning/mastery.py}）。
+ * 掌握度分数（逐字复刻 DeepTutor {@code learning/mastery.py}）。
  *
- * <p>最关键的一条是「早期错、近期对」必须能超过 0.9——它证明衰减方向正确。
- * 方向写反会让刚学会的学习者永远达不到定量门槛。
+ * <p>核心语义：最近 5 次加权、1 次上限 0.5、2 次上限 0.8；
+ * 只有独立且未作废的作答计入。
  */
 class MasteryScoreTest {
 
-    private static QuizAttempt attempt(String id, boolean correct, boolean voided) {
+    private static QuizAttempt attempt(String id, boolean correct, boolean independent) {
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuestionId(id);
         attempt.setKnowledgePointId("k1");
         attempt.setCorrect(correct);
-        attempt.setVoided(voided);
+        attempt.setIndependent(independent);
         return attempt;
     }
 
@@ -30,77 +32,108 @@ class MasteryScoreTest {
     }
 
     @Test
-    void allCorrectIsOne() {
+    @DisplayName("一次正确被置信上限压到 0.5")
+    void singleCorrectIsCapped() {
+        assertThat(MasteryScore.compute(List.of(attempt("q1", true, true)))).isEqualTo(0.5);
+    }
+
+    @Test
+    @DisplayName("两次正确被置信上限压到 0.8")
+    void twoCorrectAreCapped() {
         assertThat(MasteryScore.compute(List.of(
-                attempt("q1", true, false),
-                attempt("q2", true, false)))).isEqualTo(1.0);
+                attempt("q1", true, true),
+                attempt("q2", true, true)))).isEqualTo(0.8);
+    }
+
+    @Test
+    @DisplayName("三次正确达到 1.0")
+    void threeCorrectReachOne() {
+        assertThat(MasteryScore.compute(List.of(
+                attempt("q1", true, true),
+                attempt("q2", true, true),
+                attempt("q3", true, true)))).isEqualTo(1.0);
     }
 
     @Test
     void allWrongIsZero() {
         assertThat(MasteryScore.compute(List.of(
-                attempt("q1", false, false),
-                attempt("q2", false, false)))).isZero();
-    }
-
-    /** 衰减方向：最新一条权重最高。 */
-    @Test
-    void recentCorrectOutweighsEarlyMistakes() {
-        // 早期错 3 次，最近对 1 次
-        double score = MasteryScore.compute(List.of(
-                attempt("q1", false, false),
-                attempt("q2", false, false),
-                attempt("q3", false, false),
-                attempt("q4", true, false)));
-
-        // 权重：0.6^3, 0.6^2, 0.6^1, 0.6^0 = 0.216, 0.36, 0.6, 1.0
-        // 分子 = 1.0；分母 = 2.176
-        assertThat(score).isCloseTo(1.0 / 2.176, org.assertj.core.data.Offset.offset(1e-9));
-        assertThat(score).isGreaterThan(0.45);
-    }
-
-    /** 若方向写反（早期权重最高），同样序列会得到明显更低的值。 */
-    @Test
-    void decayDirectionIsNotReversed() {
-        double recencyWeighted = MasteryScore.compute(List.of(
-                attempt("q1", false, false),
-                attempt("q2", true, false)));
-
-        // 正确方向：分子 = 1.0（最新），分母 = 0.6 + 1.0 = 1.6 → 0.625
-        // 反向：分子 = 0.6，分母 = 1.6 → 0.375
-        assertThat(recencyWeighted).isCloseTo(1.0 / 1.6, org.assertj.core.data.Offset.offset(1e-9));
-        assertThat(recencyWeighted).isGreaterThan(0.5);
-    }
-
-    /** 作废记录不参与计算（INV-14）。 */
-    @Test
-    void voidedAttemptsExcluded() {
-        double withVoided = MasteryScore.compute(List.of(
                 attempt("q1", false, true),
-                attempt("q2", true, false)));
-
-        assertThat(withVoided).isEqualTo(1.0);
+                attempt("q2", false, true)))).isZero();
     }
 
-    /** 全部作废 → 0.0（无有效证据）。 */
+    @Test
+    @DisplayName("最近 5 次权重为 0.5/0.7/0.85/0.95/1.0")
+    void recentFiveWeights() {
+        // 错、错、错、对、对 → (0.85*0 + 0.95*1 + 1.0*1) / 4.0
+        double score = MasteryScore.compute(List.of(
+                attempt("q1", false, true),
+                attempt("q2", false, true),
+                attempt("q3", false, true),
+                attempt("q4", true, true),
+                attempt("q5", true, true)));
+
+        assertThat(score).isCloseTo(1.95 / 4.0, offset(1e-9));
+    }
+
+    @Test
+    @DisplayName("超过 5 次时只取最近 5 次")
+    void onlyLastFiveCount() {
+        // 最早的 correct 被丢弃，剩下 错、错、错、对、对
+        double score = MasteryScore.compute(List.of(
+                attempt("q0", true, true),
+                attempt("q1", false, true),
+                attempt("q2", false, true),
+                attempt("q3", false, true),
+                attempt("q4", true, true),
+                attempt("q5", true, true)));
+
+        assertThat(score).isCloseTo(1.95 / 4.0, offset(1e-9));
+    }
+
+    @Test
+    @DisplayName("作废记录不参与计算")
+    void voidedAttemptsExcluded() {
+        QuizAttempt voided = attempt("q1", true, true);
+        voided.setVoided(true);
+
+        assertThat(MasteryScore.compute(List.of(
+                voided,
+                attempt("q2", true, true),
+                attempt("q3", true, true),
+                attempt("q4", true, true)))).isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("使用提示的作答不计入掌握度")
+    void nonIndependentAttemptsExcluded() {
+        assertThat(MasteryScore.compute(List.of(
+                attempt("q1", true, false)))).isZero();
+        assertThat(MasteryScore.compute(List.of(
+                attempt("q1", true, false),
+                attempt("q2", true, true),
+                attempt("q3", true, true),
+                attempt("q4", true, true)))).isEqualTo(1.0);
+    }
+
     @Test
     void allVoidedIsZero() {
-        assertThat(MasteryScore.compute(List.of(
-                attempt("q1", true, true)))).isZero();
+        QuizAttempt voided = attempt("q1", true, true);
+        voided.setVoided(true);
+
+        assertThat(MasteryScore.compute(List.of(voided))).isZero();
     }
 
-    /** 连续答对足够多次后能跨过 0.9 门槛。 */
     @Test
-    void sustainedCorrectCrossesGate() {
+    @DisplayName("早期错误可被后续正确逐步抵消")
+    void recoveryRaisesScore() {
         double score = MasteryScore.compute(List.of(
-                attempt("q1", false, false),
-                attempt("q2", true, false),
-                attempt("q3", true, false),
-                attempt("q4", true, false)));
+                attempt("q1", false, true),
+                attempt("q2", false, true),
+                attempt("q3", true, true),
+                attempt("q4", true, true),
+                attempt("q5", true, true)));
 
-        // 分子 = 0.216 + 0.36 + 0.6 + 1.0 = 2.176... 其中仅后三条为 1
-        // 实际：0.6^3*0 + 0.6^2*1 + 0.6^1*1 + 0.6^0*1 = 0.36+0.6+1.0 = 1.96
-        // 分母 = 2.176 → 0.9007
-        assertThat(score).isGreaterThanOrEqualTo(0.9);
+        assertThat(score).isCloseTo(2.8 / 4.0, offset(1e-9));
+        assertThat(score).isLessThan(0.9);
     }
 }

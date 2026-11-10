@@ -320,6 +320,24 @@
 | — | Requests without an explicit topic still stay on-path | `changes/0035-quiz-generation-context/specs/quiz-set` | 真实模型复验（模糊请求生成线程状态题） | 通过（`0035`） |
 | — | Context never leaks grading data | `changes/0035-quiz-generation-context/specs/quiz-set` | `QuizSetTurnTest#promptIncludesPathContext`（断言无 `expected_answer` / `mastery`） | 通过（`0035`） |
 
+## 14. 掌握式判分与掌握度（0036）
+
+> 本能力由 `0036` 修改；场景名取自
+> `openspec/changes/0036-mastery-grading-parity/specs/`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Unparseable answer is incorrect | `changes/0036-mastery-grading-parity/specs/learning-tools` | `MasteryGradingTest#emptyExpectedIsIncorrect`、`GradeFlowTest#unparseableChoiceIsIncorrect` | 通过（`0036`） |
+| — | Choice compares normalized labels only | `changes/0036-mastery-grading-parity/specs/learning-tools` | `MasteryGradingTest#choiceComparesNormalizedLabel` | 通过（`0036`） |
+| — | Short answer matching | `changes/0036-mastery-grading-parity/specs/learning-tools` | `MasteryGradingTest#shortExactMatch`、`#shortFuzzyThreshold`、`#longShortOnlyExact` | 通过（`0036`） |
+| — | Open answer keyword ratio | `changes/0036-mastery-grading-parity/specs/learning-tools` | `MasteryGradingTest#openKeywordRatio`、`#openSupportsCjkDelimiters` | 通过（`0036`） |
+| — | Hints do not downgrade | `changes/0036-mastery-grading-parity/specs/learning-tools` | `GradeFlowTest#hintsDoNotDowngradeButAreNotIndependent` | 通过（`0036`） |
+| — | Single correct answer is capped | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#singleCorrectIsCapped`、`GradeFlowTest#singleCorrectDoesNotClearGate` | 通过（`0036`） |
+| — | Two correct answers are capped | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#twoCorrectAreCapped` | 通过（`0036`） |
+| — | Three correct answers clear the gate | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#threeCorrectReachOne`、`GradeFlowTest#correctAnswerClearsGate` | 通过（`0036`） |
+| — | Hints and voids are excluded | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#voidedAttemptsExcluded`、`#nonIndependentAttemptsExcluded` | 通过（`0036`） |
+| — | Recency weights recover from early mistakes | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#recentFiveWeights`、`#onlyLastFiveCount`、`#recoveryRaisesScore` | 通过（`0036`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

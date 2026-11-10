@@ -80,8 +80,7 @@ class PathStateTest {
     @Test
     @DisplayName("掌握后 counts.mastered 递增、next 变为 complete")
     void masteredCountAndNext() {
-        register("q1", "4");
-        service.grade("p", "q1", "4", 0, false, "", "");
+        masterK1();
 
         Map<String, Object> state = service.getState("p");
 
@@ -92,8 +91,7 @@ class PathStateTest {
     @Test
     @DisplayName("reviews 含派生的 due / interval_index / provenance")
     void reviewsCarryDerivedFields() {
-        register("q1", "4");
-        service.grade("p", "q1", "4", 0, false, "", "");
+        masterK1();
 
         List<?> reviews = (List<?>) service.getState("p").get("reviews");
 
@@ -171,6 +169,14 @@ class PathStateTest {
         assertThat(entry).containsKeys("name", "module_id", "module_name", "type",
                 "status", "source", "mastery");
         assertThat(entry).containsEntry("status", "new");
+    }
+
+    /** 连续答对 3 次，跨过门槛（DeepTutor 置信上限要求至少 3 次）。 */
+    private void masterK1() {
+        for (int index = 0; index < 3; index++) {
+            register("q" + index, "4");
+            service.grade("p", "q" + index, "4", 0, false, "", "");
+        }
     }
 
     private void register(String questionId, String expected) {

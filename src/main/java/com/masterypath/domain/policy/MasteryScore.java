@@ -6,19 +6,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 掌握度分数：近期加权正确率（ADR-007）。
+ * 掌握度分数（逐字复刻 DeepTutor {@code learning/mastery.py::compute_mastery}）。
  *
- * <p>纯函数。定量门槛（{@code memory}/{@code procedure}）读取本值；
- * {@code concept}/{@code design} 不读它（走定性评估）。
+ * <p>最近 5 次作答按 {@code (0.5, 0.7, 0.85, 0.95, 1.0)} 加权（越新越大），
+ * 并施加置信上限：只有 1 次作答时分数不超过 0.5，只有 2 次时不超过 0.8。
+ * 因此一次或两次正确都不足以跨过 0.9 门槛。
  *
- * <p><b>衰减方向</b>：最新一次作答权重为 1.0，越早权重按 {@code 0.6^rank} 递减。
- * 这样「早期答错、近期答对」的学习者不会被历史错误长期压制。
- * 方向写反会导致刚学会的人永远达不到门槛。
+ * <p>只统计 {@code independent=true} 且未作废的作答。
  */
 public final class MasteryScore {
 
-    /** 越早的作答衰减越快；与参考实现的 {@code _DECAY} 一致。 */
-    static final double DECAY = 0.6;
+    /** 最近 5 次作答的权重（最旧 → 最新）。 */
+    static final double[] RECENCY_WEIGHTS = {0.5, 0.7, 0.85, 0.95, 1.0};
 
     private MasteryScore() {
     }
@@ -26,7 +25,7 @@ public final class MasteryScore {
     /**
      * 计算近期加权正确率。
      *
-     * @param attempts 该知识点的全部作答（内部会跳过 {@code voided}）
+     * @param attempts 该知识点的全部作答（内部会跳过 {@code voided} 与非独立作答）
      * @return {@code 0.0}～{@code 1.0}；无有效作答时返回 {@code 0.0}
      */
     public static double compute(List<QuizAttempt> attempts) {
@@ -35,7 +34,7 @@ public final class MasteryScore {
         }
         List<QuizAttempt> active = new ArrayList<>();
         for (QuizAttempt attempt : attempts) {
-            if (!attempt.isVoided()) {
+            if (!attempt.isVoided() && attempt.isIndependent()) {
                 active.add(attempt);
             }
         }
@@ -43,16 +42,22 @@ public final class MasteryScore {
             return 0.0;
         }
 
+        int recent = Math.min(RECENCY_WEIGHTS.length, active.size());
         double total = 0.0;
         double weightSum = 0.0;
-        int count = active.size();
-        for (int index = 0; index < count; index++) {
-            // index 0 是最早的一条；最新一条 rank=0，权重 1.0
-            int rank = count - 1 - index;
-            double weight = Math.pow(DECAY, rank);
-            total += weight * (active.get(index).isCorrect() ? 1.0 : 0.0);
+        for (int offset = 0; offset < recent; offset++) {
+            // offset 0 对应最近一次；权重从数组末尾往前取。
+            double weight = RECENCY_WEIGHTS[RECENCY_WEIGHTS.length - 1 - offset];
+            QuizAttempt attempt = active.get(active.size() - 1 - offset);
+            total += weight * (attempt.isCorrect() ? 1.0 : 0.0);
             weightSum += weight;
         }
-        return weightSum == 0.0 ? 0.0 : total / weightSum;
+        double score = weightSum == 0.0 ? 0.0 : total / weightSum;
+        double cap = switch (recent) {
+            case 1 -> 0.5;
+            case 2 -> 0.8;
+            default -> 1.0;
+        };
+        return Math.min(score, cap);
     }
 }

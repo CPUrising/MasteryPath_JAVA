@@ -290,8 +290,8 @@ class StatusAndQuizToolsTest {
     }
 
     @Test
-    @DisplayName("无法判分时 ok=false 且文案含 Not graded")
-    void ungradedIsFailure() {
+    @DisplayName("无法解析的选择题判错，而不是拒判")
+    void unparseableChoiceIsIncorrect() {
         service.createPath("p", "learn X", "X");
         service.build("p", Map.of("modules", List.of(module("M", "pick one",
                 KnowledgeType.MEMORY))), false);
@@ -308,8 +308,8 @@ class StatusAndQuizToolsTest {
         ToolResult result = MasteryTools.all().get("mastery_grade")
                 .execute(Map.of("question_id", questionId, "answer", "zzz"), ctx);
 
-        assertThat(result.ok()).isFalse();
-        assertThat(result.content()).startsWith("Not graded: ").contains("Ask the learner to clarify.");
+        assertThat(result.ok()).isTrue();
+        assertThat(result.content()).isEqualTo("Graded: incorrect.");
     }
 
     @Test

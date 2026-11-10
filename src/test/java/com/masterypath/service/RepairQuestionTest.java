@@ -56,8 +56,13 @@ class RepairQuestionTest {
     @Test
     @DisplayName("TC-R1：void 清除掌握度与复习计划，并标记题库")
     void voidRemovesMasteryAndMarksBank() {
+        // 三次正确才过门槛；作废其中一次后剩余两次受置信上限限制（0.8），门槛重新关闭。
+        register("q0", "4");
+        service.grade("p", "q0", "4", 0, false, "", "");
         Map<String, Object> graded = quizAndGrade("4");
-        assertThat(graded).containsEntry("gate_cleared", true);
+        register("q2", "4");
+        service.grade("p", "q2", "4", 0, false, "", "");
+        assertThat(graded).containsEntry("gate_cleared", false);
         assertThat(store.load("p").getMasteryLevels().get("k1")).isGreaterThanOrEqualTo(0.9);
         assertThat(store.load("p").getRepetitionStates()).containsKey("k1");
 
@@ -66,12 +71,12 @@ class RepairQuestionTest {
 
         assertThat(result).containsEntry("action", "void").containsEntry("status", "repaired");
         LearningProgress progress = store.load("p");
-        assertThat(progress.getMasteryLevels().getOrDefault("k1", 0.0)).isZero();
-        assertThat(progress.getQuizAttempts().get(0).isVoided()).isTrue();
-        assertThat(progress.getLearningEvidence().get(0).isVoided()).isTrue();
+        assertThat(progress.getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(0.8);
+        assertThat(progress.getQuizAttempts().get(1).isVoided()).isTrue();
+        assertThat(progress.getLearningEvidence().get(1).isVoided()).isTrue();
         assertThat(progress.getRepetitionStates()).doesNotContainKey("k1");
         assertThat(progress.getReviewQueue()).isEmpty();
-        assertThat(store.listBankEntries("p").get(0).getResult()).isEqualTo("voided");
+        assertThat(store.listBankEntries("p")).anyMatch(entry -> "voided".equals(entry.getResult()));
         assertThat(eventTypes()).contains("assessment.voided");
     }
 
@@ -117,9 +122,13 @@ class RepairQuestionTest {
     @Test
     @DisplayName("TC-R2：correct 重判已存作答并恢复门槛")
     void correctRegradesStoredAnswerAndRestoresGate() {
-        // 答案键写错了：学习者答 "9" 才是对的。
+        // 前两次独立正确（0.8，未过门槛）；q1 的答案键写错了：学习者答 "9" 才是对的。
+        register("q0", "4");
+        service.grade("p", "q0", "4", 0, false, "", "");
+        register("m1", "4");
+        service.grade("p", "m1", "4", 0, false, "", "");
         quizAndGrade("9");
-        assertThat(store.load("p").getMasteryLevels().getOrDefault("k1", 0.0)).isZero();
+        assertThat(store.load("p").getMasteryLevels().getOrDefault("k1", 0.0)).isLessThan(0.9);
         assertThat(store.load("p").getRepetitionStates()).isEmpty();
 
         Map<String, Object> result = service.repairQuestion(
@@ -127,13 +136,13 @@ class RepairQuestionTest {
 
         assertThat(result).containsEntry("is_correct", true).containsEntry("action", "correct");
         LearningProgress progress = store.load("p");
-        assertThat(progress.getQuizAttempts().get(0).isCorrect()).isTrue();
+        assertThat(progress.getQuizAttempts().get(2).isCorrect()).isTrue();
         assertThat(progress.getLearningEvidence()
                 .get(progress.getLearningEvidence().size() - 1).getResult())
                 .isEqualTo(AssessmentResult.CORRECT);
         assertThat(progress.getMasteryLevels().get("k1")).isGreaterThanOrEqualTo(0.9);
         assertThat(progress.getRepetitionStates()).containsKey("k1");
-        assertThat(store.listBankEntries("p").get(0).isCorrect()).isTrue();
+        assertThat(store.listBankEntries("p")).anyMatch(entry -> entry.isCorrect());
         assertThat(eventTypes()).contains("assessment.corrected", "review.scheduled");
     }
 
@@ -240,9 +249,9 @@ class RepairQuestionTest {
     }
 
     @Test
-    @DisplayName("correct 后无法判分时拒绝，文案含原因")
-    void ungradableCorrectionRejected() {
-        // 选择题的作答 "zzz" 无法解析为任何选项标签 → ungraded。
+    @DisplayName("correct 后仍判错时正常返回 false")
+    void correctionCanStillBeIncorrect() {
+        // 选择题的作答 "zzz" 与正确答案 "B" 不匹配：修正答案键后仍应是 incorrect。
         PendingQuestion pending = new PendingQuestion();
         pending.setQuestionId("q1");
         pending.setKnowledgePointId("k1");
@@ -256,9 +265,10 @@ class RepairQuestionTest {
         service.registerQuestion("p", pending, "", "");
         service.grade("p", "q1", "zzz", 0, false, "", "");
 
-        assertThatThrownBy(() -> service.repairQuestion("p", "q1", "correct", "B", "x", "", ""))
-                .isInstanceOf(PreconditionFailedException.class)
-                .hasMessageContaining("corrected answer cannot be graded");
+        Map<String, Object> result = service.repairQuestion(
+                "p", "q1", "correct", "B", "x", "", "");
+
+        assertThat(result).containsEntry("action", "correct").containsEntry("is_correct", false);
     }
 
     // -- 事件与返回值 ---------------------------------------------------------

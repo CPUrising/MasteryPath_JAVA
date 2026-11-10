@@ -114,111 +114,117 @@ class GradeFlowTest {
         assertThat(store.load("p").getLearningEvidence()).hasSize(1);
     }
 
-    // -- TC-K4 ungraded -------------------------------------------------------
+    // -- 无法解析的作答 -------------------------------------------------------
 
     @Test
-    @DisplayName("TC-K4：无法解析的选择题返回 ungraded")
-    void unparseableChoiceIsUngraded() {
+    @DisplayName("选择题无法解析为标签时判错（不再有 ungraded）")
+    void unparseableChoiceIsIncorrect() {
         service.registerQuestion("p", choiceQuestion("q1"), "", "");
 
         Map<String, Object> result = service.grade("p", "q1", "zzz", 0, false, "", "");
 
-        assertThat(result).containsEntry("status", "ungraded");
-        assertThat(result.get("reason")).asString().contains("could not tell which option");
-    }
-
-    @Test
-    @DisplayName("TC-K4：ungraded 时零状态变更")
-    void ungradedLeavesNoTrace() {
-        service.registerQuestion("p", choiceQuestion("q1"), "", "");
-
-        service.grade("p", "q1", "zzz", 0, false, "", "");
-
-        LearningProgress loaded = store.load("p");
-        assertThat(loaded.getMasteryLevels()).isEmpty();
-        assertThat(loaded.getLearningEvidence()).isEmpty();
-        assertThat(loaded.getQuizAttempts()).isEmpty();
-        assertThat(loaded.getPendingQuestion()).isNotNull();   // 槽位仍被占据
-    }
-
-    @Test
-    @DisplayName("TC-K4：ungraded 后仍可用正确答案判分")
-    void canGradeAfterUngraded() {
-        service.registerQuestion("p", choiceQuestion("q1"), "", "");
-        service.grade("p", "q1", "zzz", 0, false, "", "");
-
-        Map<String, Object> result = service.grade("p", "q1", "B", 0, false, "", "");
-
         assertThat(result).containsEntry("status", "graded");
+        assertThat(result).containsEntry("result", "incorrect");
+        LearningProgress loaded = store.load("p");
+        assertThat(loaded.getLearningEvidence()).hasSize(1);
+        assertThat(loaded.getQuizAttempts()).hasSize(1);
+        assertThat(loaded.getPendingQuestion()).isNull();
     }
 
-    // -- TC-K5 提示降级 -------------------------------------------------------
+    @Test
+    @DisplayName("作废后重复判分返回首次结果")
+    void repeatedGradeAfterIncorrectIsAlreadyGraded() {
+        service.registerQuestion("p", choiceQuestion("q1"), "", "");
+        service.grade("p", "q1", "zzz", 0, false, "", "");
+
+        Map<String, Object> second = service.grade("p", "q1", "B", 0, false, "", "");
+
+        assertThat(second).containsEntry("status", "already_graded");
+        assertThat(second).containsEntry("result", "incorrect");
+    }
+
+    // -- 提示不改变判定 -------------------------------------------------------
 
     @Test
-    @DisplayName("TC-K5：用了提示的正确作答降级为 partial")
-    void hintsDowngradeToPartial() {
+    @DisplayName("用了提示仍判对，但 independent=false 且掌握度为 0")
+    void hintsDoNotDowngradeButAreNotIndependent() {
         service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
 
         Map<String, Object> result = service.grade("p", "q1", "4", 1, false, "", "");
 
-        assertThat(result).containsEntry("result", "partial");
+        assertThat(result).containsEntry("result", "correct");
         assertThat(result).containsEntry("gate_cleared", false);
-    }
-
-    @Test
-    @DisplayName("TC-K5：有提示时不写满分，掌握不打开")
-    void hintsPreventMastery() {
-        service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
-        service.grade("p", "q1", "4", 1, false, "", "");
-
         LearningProgress loaded = store.load("p");
         assertThat(loaded.getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(0.0);
+        assertThat(loaded.getQuizAttempts().get(0).isIndependent()).isFalse();
     }
 
     @Test
-    @DisplayName("TC-K5：无提示的正确作答不降级")
+    @DisplayName("无提示的正确作答 independent=true")
     void noHintsStaysCorrect() {
         service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
 
         Map<String, Object> result = service.grade("p", "q1", "4", 0, false, "", "");
 
         assertThat(result).containsEntry("result", "correct");
+        assertThat(store.load("p").getQuizAttempts().get(0).isIndependent()).isTrue();
     }
 
-    // -- 开放题降级 -----------------------------------------------------------
+    // -- 开放题 ---------------------------------------------------------------
 
     @Test
-    @DisplayName("开放题判 correct 时服务层降级为 partial（INV-35）")
-    void openCorrectDowngradedToPartial() {
+    @DisplayName("开放题按期望答案关键词判对，但一次正确仍受置信上限")
+    void openCorrectIsCapped() {
         PendingQuestion pending = new PendingQuestion();
         pending.setQuestionId("q1");
         pending.setKnowledgePointId("k1");
         pending.setModuleId("m1");
         pending.setPrompt("explain");
         pending.setQuestionType(PendingQuestion.QuestionType.OPEN);
-        pending.setRequiredKeywords(List.of("photosynthesis"));
+        pending.setExpectedAnswer("photosynthesis,chlorophyll");
         service.registerQuestion("p", pending, "", "");
 
-        Map<String, Object> result = service.grade("p", "q1", "photosynthesis", 0, false, "", "");
+        Map<String, Object> result = service.grade(
+                "p", "q1", "photosynthesis and chlorophyll", 0, false, "", "");
 
-        assertThat(result).containsEntry("result", "partial");
+        assertThat(result).containsEntry("result", "correct");
         assertThat(result).containsEntry("gate_cleared", false);
+        assertThat(result.get("mastery_after")).isEqualTo(0.5);
     }
 
     // -- 掌握推进 -------------------------------------------------------------
 
+    /** 连续答对 {@code times} 次（每次重新登记一道题）。 */
+    private void answerCorrectly(int times) {
+        for (int index = 0; index < times; index++) {
+            service.registerQuestion("p", shortQuestion("q" + index, "4"), "", "");
+            service.grade("p", "q" + index, "4", 0, false, "", "");
+        }
+    }
+
     @Test
-    @DisplayName("定量类型首次答对后门槛清除，来源为 system")
-    void correctAnswerClearsGate() {
+    @DisplayName("一次答对受置信上限限制，不能清除门槛")
+    void singleCorrectDoesNotClearGate() {
         service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
 
         Map<String, Object> result = service.grade("p", "q1", "4", 0, false, "", "");
 
-        assertThat(result).containsEntry("gate_cleared", true);
-        assertThat(result).containsEntry("source", "system");
+        assertThat(result).containsEntry("result", "correct");
+        assertThat(result).containsEntry("gate_cleared", false);
+        assertThat(result.get("mastery_after")).isEqualTo(0.5);
+    }
+
+    @Test
+    @DisplayName("三次答对后门槛清除，来源为 system")
+    void correctAnswerClearsGate() {
+        answerCorrectly(3);
+
         LearningProgress loaded = store.load("p");
+        assertThat(loaded.getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(1.0);
         assertThat(MasteryPolicy.isMastered(loaded,
                 loaded.findKnowledgePoint("k1").knowledgePoint())).isTrue();
+        assertThat(MasteryPolicy.masterySource(loaded,
+                loaded.findKnowledgePoint("k1").knowledgePoint())).isEqualTo("system");
     }
 
     @Test
@@ -233,10 +239,9 @@ class GradeFlowTest {
     }
 
     @Test
-    @DisplayName("答对后 nextObjective 越过该目标")
+    @DisplayName("三次答对后 nextObjective 越过该目标")
     void correctAnswerAdvancesFrontier() {
-        service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
-        service.grade("p", "q1", "4", 0, false, "", "");
+        answerCorrectly(3);
 
         assertThat(MasteryPolicy.nextObjective(store.load("p")).action()).isEqualTo("complete");
     }
@@ -306,9 +311,7 @@ class GradeFlowTest {
     @Test
     @DisplayName("判分发 attempt.graded 与 objective.mastered 事件")
     void gradeEmitsEvents() {
-        service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
-
-        service.grade("p", "q1", "4", 0, false, "", "");
+        answerCorrectly(3);
 
         assertThat(store.eventsSince("p", 0))
                 .extracting(event -> event.get("event_type"))
