@@ -5,24 +5,29 @@ import { Check, Copy, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { MarkdownMessage } from "./MarkdownMessage";
+import { ToolActivityList } from "@/components/chat/ToolActivity";
+import type { ToolActivityEntry } from "@/lib/types";
 
 /**
  * One conversation bubble, shared by general chat and the mastery tutor.
  *
  * User text stays pre-wrapped; assistant text is Markdown. Copy is always
  * available; withdraw is only rendered when the caller can persist a delete.
+ * Assistant tool calls are shown above the bubble as collapsible rows.
  */
 export function MessageBubble({
   role,
   content,
   attachments = [],
   streaming = false,
+  activities,
   onWithdraw,
 }: {
   role: "user" | "assistant";
   content: string;
   attachments?: { name: string }[];
   streaming?: boolean;
+  activities?: ToolActivityEntry[];
   onWithdraw?: () => void;
 }) {
   const { t } = useTranslation();
@@ -47,6 +52,7 @@ export function MessageBubble({
 
   return (
     <div className={`group flex flex-col ${user ? "items-end" : "items-start"}`}>
+      {!user && <ToolActivityList activities={activities} />}
       <div
         className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${
           user ? "bg-primary/10" : "bg-muted"
@@ -57,7 +63,11 @@ export function MessageBubble({
         ) : content ? (
           <MarkdownMessage content={content} />
         ) : streaming ? (
-          <span className="inline-block h-4 w-1.5 animate-pulse rounded-full bg-muted-foreground/60" />
+          <span className="thinking-dots" role="status" aria-label={t("chat.thinking")}>
+            <span />
+            <span />
+            <span />
+          </span>
         ) : null}
         {attachments.length > 0 && (
           <span className="mt-1 block text-[11px] text-muted-foreground">

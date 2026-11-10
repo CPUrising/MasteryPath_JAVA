@@ -13,6 +13,7 @@ import { chatApi } from "@/lib/chat-api";
 import { knowledgeApi } from "@/lib/knowledge-api";
 import { chatSessionRoute } from "@/lib/learning-routes";
 import { masteryHandoffFrom, type MasteryHandoffPayload } from "@/lib/mastery-handoff";
+import { addToolCall, resolveToolResult } from "@/lib/tool-activity";
 import type {
   ChatSessionDetail,
   ChatSessionSummary,
@@ -108,9 +109,28 @@ export function ChatWorkspace({ sessionId }: { sessionId?: string }) {
   };
 
   /** 新消息落库后重新拉取，拿到服务端 id，撤回才有依据。 */
-  const syncMessages = async (sid: string) => {
+  const syncMessages = async (sid: string, assistantId: string | number) => {
     try {
-      applyDetail(await chatApi.get(sid));
+      const detail = await chatApi.get(sid);
+      setSession(detail.session);
+      setMessages((current) => {
+        const next = toDisplayMessages(detail);
+        // 动作记录不落库：把本轮实时动作挂回最后一条助手消息，避免同步后立即消失。
+        const live = current.find(
+          (message) => message.id === assistantId && message.activities?.length,
+        );
+        if (!live) return next;
+        let target = -1;
+        for (let index = next.length - 1; index >= 0; index -= 1) {
+          if (next[index].role === "assistant") {
+            target = index;
+            break;
+          }
+        }
+        if (target < 0) return next;
+        next[target] = { ...next[target], activities: live.activities };
+        return next;
+      });
     } catch {
       /* keep the streamed copy if the reload fails */
     }
@@ -156,7 +176,45 @@ export function ChatWorkspace({ sessionId }: { sessionId?: string }) {
                   : message,
               ),
             );
+          } else if (event.type === "tool_call") {
+            const name = typeof data.name === "string" ? data.name : "";
+            const args =
+              data.arguments && typeof data.arguments === "object"
+                ? (data.arguments as Record<string, unknown>)
+                : {};
+            if (name) {
+              setMessages((current) =>
+                current.map((message) =>
+                  message.id === assistantMessage.id
+                    ? {
+                        ...message,
+                        activities: addToolCall(message.activities ?? [], name, args),
+                      }
+                    : message,
+                ),
+              );
+            }
           } else if (event.type === "tool_result") {
+            const name = typeof data.name === "string" ? data.name : "";
+            const ok = data.ok === true;
+            const content = typeof data.content === "string" ? data.content : "";
+            if (name) {
+              setMessages((current) =>
+                current.map((message) =>
+                  message.id === assistantMessage.id
+                    ? {
+                        ...message,
+                        activities: resolveToolResult(
+                          message.activities ?? [],
+                          name,
+                          ok,
+                          content,
+                        ),
+                      }
+                    : message,
+                ),
+              );
+            }
             const handoff = masteryHandoffFrom(event);
             if (handoff) {
               setHandoffs((current) =>
@@ -185,7 +243,7 @@ export function ChatWorkspace({ sessionId }: { sessionId?: string }) {
       setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
     } finally {
       setStreaming(false);
-      if (sid) void syncMessages(sid);
+      if (sid) void syncMessages(sid, assistantMessage.id);
     }
   };
 

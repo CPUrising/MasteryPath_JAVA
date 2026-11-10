@@ -18,6 +18,7 @@ import { StudyOutline } from "@/components/learning/StudyOutline";
 import { api, type GradeOutcome } from "@/lib/api";
 import { knowledgeApi } from "@/lib/knowledge-api";
 import { masteryHandoffFrom, type MasteryHandoffPayload } from "@/lib/mastery-handoff";
+import { addToolCall, resolveToolResult } from "@/lib/tool-activity";
 import { masterySessionRoute, masteryTopicRoute } from "@/lib/learning-routes";
 import { MODE_NOTES, normalizeMode } from "@/lib/mastery-mode";
 import { takePendingPrompt } from "@/lib/pending-prompt";
@@ -33,6 +34,7 @@ import type {
   QuizQuestion,
   QuizSet,
   SessionMessage,
+  ToolActivityEntry,
   TopicSession,
 } from "@/lib/types";
 import { runTurn, type TurnCapability } from "@/lib/ws";
@@ -43,6 +45,8 @@ interface Item {
   card?: PendingQuestion;
   grade?: GradeOutcome;
   quiz?: QuizSet;
+  /** 本轮实时工具动作（不落库，刷新后不显示）。 */
+  activities?: ToolActivityEntry[];
   /** 生成进度条所属题卷；`quiz_set` 到达后移除。 */
   planSetId?: string;
   planCount?: number;
@@ -336,6 +340,38 @@ function StudyRoute() {
             if (event.type === "text_delta") {
               appendAssistant(String(event.data.text ?? ""));
             }
+            if (event.type === "tool_call") {
+              const name = String(event.data.name ?? "");
+              const args =
+                event.data.arguments && typeof event.data.arguments === "object"
+                  ? (event.data.arguments as Record<string, unknown>)
+                  : {};
+              if (name) {
+                setItems((previous) => {
+                  const next = [...previous];
+                  const last = next[next.length - 1];
+                  const attachable =
+                    last?.role === "assistant" &&
+                    !last.card &&
+                    !last.grade &&
+                    !last.quiz &&
+                    !last.planSetId;
+                  if (attachable) {
+                    next[next.length - 1] = {
+                      ...last,
+                      activities: addToolCall(last.activities ?? [], name, args),
+                    };
+                  } else {
+                    next.push({
+                      role: "assistant",
+                      text: "",
+                      activities: addToolCall([], name, args),
+                    });
+                  }
+                  return next;
+                });
+              }
+            }
             if (event.type === "quiz_plan") {
               const plan = event.data as unknown as QuizPlan;
               if (plan?.set_id) {
@@ -343,7 +379,12 @@ function StudyRoute() {
                   const next = [...previous];
                   const last = next[next.length - 1];
                   const placeholder =
-                    last?.role === "assistant" && !last.text && !last.card && !last.grade && !last.quiz;
+                    last?.role === "assistant" &&
+                    !last.text &&
+                    !last.card &&
+                    !last.grade &&
+                    !last.quiz &&
+                    !last.activities?.length;
                   const row: Item = {
                     role: "assistant",
                     text: "",
@@ -403,6 +444,25 @@ function StudyRoute() {
               }
             }
             if (event.type === "tool_result") {
+              const name = String(event.data.name ?? "");
+              const ok = event.data.ok === true;
+              const content = typeof event.data.content === "string" ? event.data.content : "";
+              if (name) {
+                setItems((previous) =>
+                  previous.map((item) => {
+                    if (!item.activities) return item;
+                    const running = item.activities.some(
+                      (entry) => entry.name === name && entry.status === "running",
+                    );
+                    return running
+                      ? {
+                          ...item,
+                          activities: resolveToolResult(item.activities, name, ok, content),
+                        }
+                      : item;
+                  }),
+                );
+              }
               const metadata = event.data.metadata as Record<string, unknown> | undefined;
               const grade = metadata?.mastery_grade as GradeOutcome | undefined;
               if (grade?.question_id) {
@@ -452,7 +512,7 @@ function StudyRoute() {
         setItems((previous) => {
           const next = [...previous];
           const last = next[next.length - 1];
-          if (last?.role === "assistant" && !last.text && !last.quiz && !last.card && !last.grade) {
+          if (last?.role === "assistant" && !last.text && !last.quiz && !last.card && !last.grade && !last.activities?.length) {
             next.pop();
           }
           return next;
@@ -462,7 +522,7 @@ function StudyRoute() {
       await load().catch(() => undefined);
       setBusy(false);
     },
-    [pathId, sessionId, mode, load, t, selection, capability],
+    [pathId, sessionId, mode, load, t, selection, capability, router],
   );
 
   /** 作答作为下一条 WS 消息提交；判分由服务端在导师开口前完成。 */
@@ -605,6 +665,7 @@ function StudyRoute() {
                         key={`message-${index}`}
                         role={item.role}
                         content={item.text}
+                        activities={item.activities}
                         streaming={busy && index === items.length - 1 && item.role === "assistant"}
                       />
                     );

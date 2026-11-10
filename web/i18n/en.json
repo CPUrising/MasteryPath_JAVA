@@ -216,6 +216,13 @@
   "chat.greeting.morning": "Good morning — what's on your mind?",
   "chat.greeting.afternoon": "Good afternoon — what's on your mind?",
   "chat.greeting.evening": "Good evening — what's on your mind?",
+  "chat.thinking": "Thinking…",
+  "tool.status.running": "Running",
+  "tool.status.ok": "Done",
+  "tool.status.failed": "Failed",
+  "tool.arguments": "Arguments",
+  "tool.result": "Result",
+  "tool.emptyArguments": "No arguments",
 
   "kb.subtitle": "Add reference material, pick an embedding model, and chat grounded in your documents.",
   "kb.create": "New knowledge base",

@@ -342,6 +342,19 @@ export interface ChatTurnEvent {
   data: Record<string, unknown>;
 }
 
+export type ToolActivityStatus = "running" | "ok" | "failed";
+
+/** 一次工具调用在对话中的实时展示记录（不落库）。 */
+export interface ToolActivityEntry {
+  /** 同一回合内唯一（`name-index`）。 */
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  status: ToolActivityStatus;
+  /** `tool_result.content`；`running` 时为空。 */
+  content?: string;
+}
+
 export interface QuestionEntry {
   entry_id: string;
   path_id: string;

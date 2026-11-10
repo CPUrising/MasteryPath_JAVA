@@ -96,6 +96,48 @@ body {
   }
 }
 
+/* ─── Thinking indicator: three dots fading in sequence ─── */
+@keyframes thinking-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--muted-foreground);
+}
+.thinking-dots > span {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: thinking-dot 1.2s ease-in-out infinite;
+}
+.thinking-dots > span:nth-child(1) {
+  animation-delay: 0s;
+}
+.thinking-dots > span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking-dots > span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-dots > span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
 /* ─── Chat markdown: keep the same light surface as the mastery pages ─── */
 .chat-markdown {
   overflow-wrap: anywhere;
