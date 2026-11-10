@@ -33,6 +33,7 @@ import type {
   QuizQuestion,
   QuizSet,
   SessionMessage,
+  TopicSession,
 } from "@/lib/types";
 import { runTurn, type TurnCapability } from "@/lib/ws";
 
@@ -111,8 +112,10 @@ function StudyRoute() {
     knowledgeApi.list().then(setKnowledgeBases).catch(() => setKnowledgeBases([]));
   }, []);
 
+  // 历史回放：按 path 拉全部会话，把消息按 id 合并后渲染，避免只剩最近一段对话。
   useEffect(() => {
     if (!sessionId) return;
+    let cancelled = false;
     api
       .getSettings("llm")
       .then((value) => {
@@ -126,42 +129,71 @@ function StudyRoute() {
         });
       })
       .catch(() => setModels([]));
-    api
-      .getSession(sessionId)
-      .then((detail) => {
-        const preferences = (detail.session as unknown as {
-          preferences?: { llm_selection?: LLMSelection; knowledge_bases?: string[] | null };
-        })?.preferences;
-        if (preferences?.llm_selection?.model_id) setSelection(preferences.llm_selection);
-        if (preferences && preferences.knowledge_bases != null) {
-          setKbIds(preferences.knowledge_bases ?? []);
+
+    type SessionDetail = { session: TopicSession; messages: unknown[] };
+    const loadHistory = async () => {
+      const details: SessionDetail[] = [];
+      try {
+        const { sessions } = await api.listSessions(pathId);
+        const loaded = await Promise.all(
+          sessions.map((item) => api.getSession(item.session_id).catch(() => null)),
+        );
+        for (const detail of loaded) {
+          if (detail) details.push(detail as SessionDetail);
         }
-        if (detail.session?.mode) setMode(normalizeMode(detail.session.mode));
-        const history: Item[] = [];
+      } catch {
+        /* 列表不可用时退回当前会话 */
+      }
+      let current = details.find((detail) => detail.session.session_id === sessionId) ?? null;
+      if (!current) {
+        current = (await api.getSession(sessionId).catch(() => null)) as SessionDetail | null;
+        if (current) details.push(current);
+      }
+      if (cancelled) return;
+
+      const preferences = (current?.session as unknown as {
+        preferences?: { llm_selection?: LLMSelection; knowledge_bases?: string[] | null };
+      })?.preferences;
+      if (preferences?.llm_selection?.model_id) setSelection(preferences.llm_selection);
+      if (preferences && preferences.knowledge_bases != null) {
+        setKbIds(preferences.knowledge_bases ?? []);
+      }
+      if (current?.session?.mode) setMode(normalizeMode(current.session.mode));
+
+      // 消息 id 全局自增，跨会话合并后按 id 排序即为完整时间顺序。
+      const merged = new Map<number, SessionMessage>();
+      for (const detail of details) {
         for (const message of detail.messages as SessionMessage[]) {
-          const text = message.content ?? "";
-          const grade = message.data?.grade;
-          // legacy REST 判分消息把结果写进正文（"correct" / "incorrect"），避免与判分卡重复。
-          const placeholderText =
-            grade != null && (text.trim() === "correct" || text.trim() === "incorrect");
-          if (text.trim() && !placeholderText) {
-            history.push({ role: message.role, text });
-          }
-          if (message.data?.card) {
-            history.push({ role: message.role, text: "", card: message.data.card });
-          }
-          if (grade) {
-            history.push({ role: message.role, text: "", grade });
-          }
-          if (message.data?.quiz_set) {
-            history.push({ role: message.role, text: "", quiz: message.data.quiz_set });
-          }
+          merged.set(message.id, message);
         }
-        setItems(history);
-      })
-      .catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+      }
+      const history: Item[] = [];
+      for (const message of [...merged.values()].sort((a, b) => a.id - b.id)) {
+        const text = message.content ?? "";
+        const grade = message.data?.grade;
+        // legacy REST 判分消息把结果写进正文（"correct" / "incorrect"），避免与判分卡重复。
+        const placeholderText =
+          grade != null && (text.trim() === "correct" || text.trim() === "incorrect");
+        if (text.trim() && !placeholderText) {
+          history.push({ role: message.role, text });
+        }
+        if (message.data?.card) {
+          history.push({ role: message.role, text: "", card: message.data.card });
+        }
+        if (grade) {
+          history.push({ role: message.role, text: "", grade });
+        }
+        if (message.data?.quiz_set) {
+          history.push({ role: message.role, text: "", quiz: message.data.quiz_set });
+        }
+      }
+      setItems(history);
+    };
+    void loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathId, sessionId]);
 
   // Until a session override exists, follow the path's default knowledge bases.
   useEffect(() => {
