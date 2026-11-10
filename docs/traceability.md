@@ -338,6 +338,23 @@
 | — | Hints and voids are excluded | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#voidedAttemptsExcluded`、`#nonIndependentAttemptsExcluded` | 通过（`0036`） |
 | — | Recency weights recover from early mistakes | `changes/0036-mastery-grading-parity/specs/learning-domain` | `MasteryScoreTest#recentFiveWeights`、`#onlyLastFiveCount`、`#recoveryRaisesScore` | 通过（`0036`） |
 
+## 15. 题卡与回合协议（0037）
+
+> 本能力由 `0037` 新增；场景名取自
+> `openspec/changes/0037-mastery-turn-protocol/specs/`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Answer is graded before the tutor speaks | `changes/0037-mastery-turn-protocol/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0037`） |
+| — | Answer text is the user message | `changes/0037-mastery-turn-protocol/specs/agent-turn` | `WsTurnTest#gradesCardAnswerOverTheSocket` | 通过（`0037`） |
+| — | Skip clears the card before the tutor speaks | `changes/0037-mastery-turn-protocol/specs/agent-turn` | `StatusAndQuizToolsTest#skipWithoutArgumentsClearsOpenQuestion` | 通过（`0037`） |
+| — | History is included | `changes/0037-mastery-turn-protocol/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0037`） |
+| — | Correct body keeps its label | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#shuffledChoiceKeepsExpectedBodyAndAllowsFreeText` | 通过（`0037`） |
+| — | Card allows free text | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#shuffledChoiceKeepsExpectedBodyAndAllowsFreeText` | 通过（`0037`） |
+| — | Grade result carries the answer key | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#gradeSucceeds`、`TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0037`） |
+| — | Grade without question id | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#shuffledChoiceKeepsExpectedBodyAndAllowsFreeText` | 通过（`0037`） |
+| — | Skip without arguments | `changes/0037-mastery-turn-protocol/specs/learning-tools` | `StatusAndQuizToolsTest#skipWithoutArgumentsClearsOpenQuestion`、`ToolSchemasTest#requiredParametersMatchExecutors` | 通过（`0037`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

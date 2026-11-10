@@ -85,7 +85,18 @@ public class WsTurnHandler extends TextWebSocketHandler {
         request.setNumQuestions(intOf(body.get("num_questions"), 3));
         request.setDifficulty(str(body.get("difficulty")));
         request.setQuestionTypes(stringList(body.get("question_types")));
+        request.setMasteryAnswer(mapOf(body.get("mastery_answer")));
+        request.setMasterySkip(mapOf(body.get("mastery_skip")));
+        if (request.message().isEmpty() && !request.masteryAnswer().isEmpty()) {
+            request.setMessage(str(request.masteryAnswer().get("text")));
+        }
         return request;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> mapOf(Object value) {
+        return value instanceof Map<?, ?> map
+                ? new LinkedHashMap<>((Map<String, Object>) map) : new LinkedHashMap<>();
     }
 
     /** 序列化成 {@code {"type": ..., "data": {...}}}。 */

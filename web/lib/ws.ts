@@ -13,6 +13,8 @@ export interface TurnRequest {
   capability?: TurnCapability;
   num_questions?: number;
   difficulty?: string;
+  mastery_answer?: { question_id: string; text: string };
+  mastery_skip?: { question_id: string };
 }
 
 /** Run one tutor turn over the WebSocket and stream events back. */

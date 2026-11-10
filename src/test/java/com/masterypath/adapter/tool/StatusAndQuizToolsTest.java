@@ -325,6 +325,62 @@ class StatusAndQuizToolsTest {
         assertThat(result.content()).isEqualTo("unknown question_id: nope");
     }
 
+    // -- 题卡协议 -------------------------------------------------------------
+
+    @Test
+    @DisplayName("选项乱序后 expected 跟随正确正文；卡片允许自由文本；缺省题号可判分")
+    void shuffledChoiceKeepsExpectedBodyAndAllowsFreeText() {
+        build("p", "x");
+        ToolContext ctx = ctx("p", SessionMode.STUDY);
+
+        ToolResult quiz = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "pick",
+                "expected_answer", "B",
+                "options", List.of(
+                        Map.of("label", "A", "body", "first"),
+                        Map.of("label", "B", "body", "second"),
+                        Map.of("label", "C", "body", "third"))), ctx);
+
+        assertThat(quiz.ok()).isTrue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> card = (Map<String, Object>) quiz.metadata().get("question_card");
+        assertThat(card).containsEntry("allow_free_text", true);
+
+        PendingQuestion stored = store.getOpenInteraction("p").getQuestion();
+        assertThat(stored.getOptions()).extracting(option -> option.getLabel())
+                .containsExactly("A", "B", "C");
+        String expectedBody = stored.getOptions().stream()
+                .filter(option -> option.getLabel().equals(stored.getExpectedAnswer()))
+                .findFirst()
+                .orElseThrow()
+                .getBody();
+        assertThat(expectedBody).isEqualTo("second");
+
+        ToolResult graded = MasteryTools.all().get("mastery_grade")
+                .execute(Map.of("answer", stored.getExpectedAnswer()), ctx);
+
+        assertThat(graded.ok()).isTrue();
+        assertThat(graded.content()).isEqualTo("Graded: correct.");
+    }
+
+    @Test
+    @DisplayName("mastery_skip_question 无参数时跳过当前待答题")
+    void skipWithoutArgumentsClearsOpenQuestion() {
+        build("p", "x");
+        ToolContext ctx = ctx("p", SessionMode.STUDY);
+        MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "2+2?",
+                "expected_answer", "4"), ctx);
+
+        ToolResult skipped = MasteryTools.all().get("mastery_skip_question")
+                .execute(Map.of(), ctx);
+
+        assertThat(skipped.ok()).isTrue();
+        assertThat(store.getOpenInteraction("p")).isNull();
+    }
+
     // -- 辅助 -----------------------------------------------------------------
 
     private ToolContext ctx(String pathId, SessionMode mode) {

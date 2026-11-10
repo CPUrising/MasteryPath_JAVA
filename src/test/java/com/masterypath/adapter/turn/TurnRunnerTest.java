@@ -6,6 +6,7 @@ import com.masterypath.adapter.llm.LlmError;
 import com.masterypath.adapter.llm.LlmResponse;
 import com.masterypath.adapter.llm.StreamChunk;
 import com.masterypath.adapter.llm.ToolCall;
+import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.model.TopicSource;
 import com.masterypath.service.LearningService;
 import com.masterypath.storage.LearningStore;
@@ -77,6 +78,47 @@ class TurnRunnerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> session = (Map<String, Object>) detail.get("session");
         assertThat(session).containsEntry("message_count", 2);
+    }
+
+    @Test
+    @DisplayName("mastery_answer 在导师开口前判分，并携带会话历史")
+    void gradesCardAnswerBeforeTheTutorSpeaks() {
+        service.createPath("p", "learn X", "X");
+        service.build("p", Map.of("modules", List.of(Map.of(
+                "name", "M",
+                "knowledge_points", List.of(Map.of("name", "fact one", "type", "memory"))))), false);
+        service.setSessionMode("p", "s1", "study");
+        service.recordTurn("p", "s1", "上一轮问题", "上一轮回答", "study", "t-0", null);
+
+        PendingQuestion pending = new PendingQuestion();
+        pending.setQuestionId("q-answer");
+        pending.setKnowledgePointId("k1");
+        pending.setModuleId("m1");
+        pending.setPrompt("2+2?");
+        pending.setQuestionType(PendingQuestion.QuestionType.SHORT);
+        pending.setExpectedAnswer("4");
+        service.registerQuestion("p", pending, "s1", "t-1");
+
+        FakeLlmClient fake = new FakeLlmClient(List.of(LlmResponse.text("答对了。")));
+        TurnRequest request = request("s1", "p", "study", "4");
+        request.setMasteryAnswer(Map.of("question_id", "q-answer", "text", "4"));
+
+        List<TurnEvent> events = run(fake, request);
+
+        assertThat(types(events)).containsExactly("tool_result", "text_delta", "turn_end");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> metadata = (Map<String, Object>) events.get(0).data().get("metadata");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> grade = (Map<String, Object>) metadata.get("mastery_grade");
+        assertThat(grade).containsEntry("result", "correct")
+                .containsEntry("question_id", "q-answer")
+                .containsEntry("correct_label", "4");
+
+        List<Map<String, Object>> messages = fake.calls().get(0);
+        assertThat(messages).anySatisfy(message ->
+                assertThat(message).containsEntry("role", "user").containsEntry("content", "4"));
+        assertThat(messages).anySatisfy(message ->
+                assertThat(message).containsEntry("content", "上一轮回答"));
     }
 
     @Test

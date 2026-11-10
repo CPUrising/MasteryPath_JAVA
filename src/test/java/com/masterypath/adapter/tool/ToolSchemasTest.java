@@ -42,7 +42,8 @@ class ToolSchemasTest {
     void requiredParametersMatchExecutors() {
         assertThat(required("mastery_quiz"))
                 .containsExactly("knowledge_point_id", "question", "expected_answer");
-        assertThat(required("mastery_grade")).containsExactly("question_id", "answer");
+        assertThat(required("mastery_grade")).containsExactly("answer");
+        assertThat(required("mastery_skip_question")).isEmpty();
         assertThat(required("mastery_assess")).containsExactly("knowledge_point_id", "passed");
         assertThat(required("mastery_repair_question")).containsExactly("action", "reason");
         assertThat(required("mastery_switch")).containsExactly("path_id");

@@ -396,6 +396,7 @@ public final class TurnRunner {
             });
 
             String context = knowledgeContext(kbIds, request.message());
+            applyCardSubmission();
             if (!request.pathId().isEmpty()) {
                 try {
                     ToolResult snapshot = MasteryTools.all().get("mastery_status")
@@ -413,9 +414,82 @@ public final class TurnRunner {
             // 因此这里不需要再合并 NAV_TOOLS。
             Map<String, Tool> tools = MasteryTools.mountedTools(ctx);
             LlmClient client = clientBuilder.build(selection, request.sessionId());
-            loop = new AgentLoop(tools).stream(client,
-                    List.of(Map.of("role", "user", "content", request.message())),
-                    ctx, null, context);
+            List<Map<String, Object>> messages = new ArrayList<>(historyMessages());
+            messages.add(Map.of("role", "user", "content", request.message()));
+            loop = new AgentLoop(tools).stream(client, messages, ctx, null, context);
+        }
+
+        /**
+         * 作答/跳过先行处理（复刻 DeepTutor learning adapter）。
+         *
+         * <p>结果作为 {@code tool_result} 事件发出，metadata 键为 {@code mastery_grade} /
+         * {@code mastery_skip}；失败只记录、不拖垮回合。
+         */
+        private void applyCardSubmission() {
+            Map<String, Object> answer = request.masteryAnswer();
+            if (!answer.isEmpty()) {
+                String questionId = str(answer.get("question_id")).strip();
+                String text = str(answer.get("text"));
+                if (!questionId.isEmpty() && !text.isEmpty()) {
+                    emitToolResult("mastery_grade", Map.of(
+                            "question_id", questionId, "answer", text), "mastery_grade");
+                }
+                return;
+            }
+            Map<String, Object> skip = request.masterySkip();
+            if (!skip.isEmpty()) {
+                String questionId = str(skip.get("question_id")).strip();
+                Map<String, Object> args = questionId.isEmpty()
+                        ? Map.of() : Map.of("question_id", questionId);
+                emitToolResult("mastery_skip_question", args, "mastery_skip");
+            }
+        }
+
+        private void emitToolResult(String toolName, Map<String, Object> arguments,
+                                    String metadataKey) {
+            Tool tool = MasteryTools.all().get(toolName);
+            if (tool == null) {
+                return;
+            }
+            try {
+                ToolResult result = tool.execute(arguments, ctx);
+                StreamEvent event = StreamEvent.toolResult(toolName, result.ok(),
+                        result.content(), Map.of(metadataKey, result.metadata()));
+                produced.add(event);
+                pending.add(new TurnEvent(event.type(), event.data()));
+            } catch (RuntimeException ignored) {
+                // 先行判分/跳过是 best-effort：失败时导师仍可从 mastery_status 继续。
+            }
+        }
+
+        /** 此前的会话历史（role + content，跳过空正文，最多 20 条）。 */
+        private List<Map<String, Object>> historyMessages() {
+            if (request.sessionId().isEmpty()) {
+                return List.of();
+            }
+            try {
+                Map<String, Object> detail = learningService.getSessionDetail(request.sessionId());
+                Object raw = detail.get("messages");
+                if (!(raw instanceof List<?> list)) {
+                    return List.of();
+                }
+                List<Map<String, Object>> history = new ArrayList<>();
+                for (Object item : list) {
+                    if (!(item instanceof Map<?, ?> map)) {
+                        continue;
+                    }
+                    String role = str(map.get("role"));
+                    String content = str(map.get("content"));
+                    if (content.isBlank() || (!"user".equals(role) && !"assistant".equals(role))) {
+                        continue;
+                    }
+                    history.add(Map.of("role", role, "content", content));
+                }
+                return history.size() <= 20
+                        ? history : history.subList(history.size() - 20, history.size());
+            } catch (RuntimeException e) {
+                return List.of();
+            }
         }
 
         /** 错误路径：先保住已产出的内容，再发 session_meta，最后发 error。 */

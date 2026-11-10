@@ -3,6 +3,7 @@ package com.masterypath.adapter.tool;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.MasteryInteraction;
+import com.masterypath.domain.model.PendingOption;
 import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.domain.mode.SessionMode;
 import com.masterypath.domain.policy.MasteryPolicy;
@@ -12,9 +13,11 @@ import com.masterypath.service.LearningService;
 import com.masterypath.storage.PreconditionFailedException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -104,6 +107,9 @@ public final class StudyTools {
             } catch (QuizSpec.QuizException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
             }
+            if ("choice".equals(spec.questionType())) {
+                spec = shuffleChoice(spec, new java.util.Random());
+            }
             List<String> required = QuizSpec.openRequiredKeywords(
                     spec.questionType(), spec.requiredKeywords(), spec.expectedAnswer());
             List<String> optional = "open".equals(spec.questionType())
@@ -184,25 +190,46 @@ public final class StudyTools {
                 return refusal;
             }
             LearningService service = SharedTools.service(ctx);
+            String questionId = ToolSupport.str(params.get("question_id")).strip();
+            if (questionId.isEmpty()) {
+                MasteryInteraction open = service.store().getOpenInteraction(ctx.pathId());
+                if (open == null || open.getQuestion() == null) {
+                    return ToolResult.failure("no open question to grade");
+                }
+                questionId = open.getQuestion().getQuestionId();
+            }
+            MasteryInteraction interaction = service.store().getInteraction(ctx.pathId(), questionId);
+            String answer = ToolSupport.str(params.get("answer"));
+            int hintsUsed = ToolSupport.intOf(params.get("hints_used"));
             Map<String, Object> result;
             try {
                 result = new LinkedHashMap<>(service.grade(
                         ctx.pathId(),
-                        ToolSupport.str(params.get("question_id")),
-                        ToolSupport.str(params.get("answer")),
-                        ToolSupport.intOf(params.get("hints_used")),
+                        questionId,
+                        answer,
+                        hintsUsed,
                         SessionMode.enforced(ctx.sessionMode()) == SessionMode.REVIEW,
                         ctx.sessionId(),
                         ctx.turnId()));
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
             }
-            // 判分结果回指题目：前端据此把已作答的卡片标记为不可再答。
-            result.putIfAbsent("question_id", ToolSupport.str(params.get("question_id")));
-            if ("ungraded".equals(result.get("status"))) {
-                return new ToolResult(false,
-                        "Not graded: " + result.get("reason") + ". Ask the learner to clarify.",
-                        result);
+            // 判分结果回指题目，并附带卡片复盘所需的答案键（提交后才释放）。
+            result.putIfAbsent("question_id", questionId);
+            result.putIfAbsent("learner_answer", answer);
+            result.putIfAbsent("independent", hintsUsed == 0);
+            if (interaction != null && interaction.getQuestion() != null) {
+                PendingQuestion question = interaction.getQuestion();
+                String correctLabel = question.getExpectedAnswer();
+                String correctBody = "";
+                for (var option : question.getOptions()) {
+                    if (option.getLabel().equalsIgnoreCase(correctLabel)) {
+                        correctBody = option.getBody();
+                        break;
+                    }
+                }
+                result.putIfAbsent("correct_label", correctLabel);
+                result.putIfAbsent("correct_body", correctBody);
             }
             return ToolResult.ok("Graded: " + result.get("result") + ".", result);
         }
@@ -235,8 +262,16 @@ public final class StudyTools {
                 return refusal;
             }
             try {
-                Map<String, Object> result = SharedTools.service(ctx).skipQuestion(
-                        ctx.pathId(), ToolSupport.str(params.get("question_id")));
+                LearningService service = SharedTools.service(ctx);
+                String questionId = ToolSupport.str(params.get("question_id")).strip();
+                if (questionId.isEmpty()) {
+                    MasteryInteraction open = service.store().getOpenInteraction(ctx.pathId());
+                    if (open == null || open.getQuestion() == null) {
+                        return ToolResult.failure("no open question to skip");
+                    }
+                    questionId = open.getQuestion().getQuestionId();
+                }
+                Map<String, Object> result = service.skipQuestion(ctx.pathId(), questionId);
                 return ToolResult.ok("Question skipped.", result);
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
@@ -346,7 +381,43 @@ public final class StudyTools {
                 "name", objectiveName == null ? "" : objectiveName));
         card.put("objective_name", objectiveName);
         card.put("attempt", attempt);
+        card.put("allow_free_text", true);
         return card;
+    }
+
+    /**
+     * 打乱选择题选项并按位置重贴标签（复刻 DeepTutor {@code _shuffle_choice_options}）。
+     *
+     * <p>模型经常把正确项放在第一个；乱序后标签连续，{@code expected_answer} 跟随正确正文。
+     */
+    static QuizSpec.Normalized shuffleChoice(QuizSpec.Normalized spec, Random rng) {
+        List<PendingOption> options = new ArrayList<>(spec.options());
+        if (options.size() < 2) {
+            return spec;
+        }
+        String expectedBody = "";
+        for (PendingOption option : options) {
+            if (option.getLabel().equalsIgnoreCase(spec.expectedAnswer())) {
+                expectedBody = option.getBody();
+                break;
+            }
+        }
+        if (expectedBody.isEmpty()) {
+            return spec;
+        }
+        Collections.shuffle(options, rng);
+        List<PendingOption> relabeled = new ArrayList<>();
+        String newExpected = spec.expectedAnswer();
+        for (int index = 0; index < options.size(); index++) {
+            String label = String.valueOf((char) ('A' + index));
+            PendingOption option = options.get(index);
+            relabeled.add(new PendingOption(label, option.getBody()));
+            if (option.getBody().equals(expectedBody)) {
+                newExpected = label;
+            }
+        }
+        return new QuizSpec.Normalized(spec.questionType(), relabeled, newExpected,
+                spec.requiredKeywords(), spec.optionalKeywords());
     }
 
     /** 该知识点已尝试次数 + 1（参考实现 {@code attempt_number}）。 */

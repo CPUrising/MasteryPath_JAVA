@@ -80,10 +80,9 @@ public final class ToolSchemas {
                 props("question_id", string(),
                         "answer", string(),
                         "hints_used", Map.of("type", "integer", "minimum", 0)),
-                List.of("question_id", "answer")));
+                List.of("answer")));
 
-        schemas.put("mastery_skip_question", schema(
-                props("question_id", string()), List.of("question_id")));
+        schemas.put("mastery_skip_question", schema(Map.of(), List.of()));
 
         schemas.put("mastery_repair_question", schema(
                 props("action", enumOf("string", List.of("void", "correct")),

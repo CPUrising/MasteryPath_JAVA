@@ -202,50 +202,6 @@ function StudyRoute() {
     [t],
   );
 
-  const answerQuestion = useCallback(
-    async (question: PendingQuestion, answer: string) => {
-      setItems((previous) => [...previous, { role: "user", text: answer }]);
-      try {
-        const outcome = await api.grade(pathId, {
-          question_id: question.question_id,
-          answer,
-          session_id: sessionId,
-          turn_id: "",
-        });
-        setItems((previous) => [
-          ...previous,
-          { role: "assistant", text: "", grade: outcome },
-        ]);
-      } catch (reason) {
-        const message = String(reason);
-        if (message.includes("ungraded")) {
-          // 未判定不是答错：保留题卡与输入区，允许换一种说法重答。
-          setItems((previous) => [
-            ...previous,
-            {
-              role: "assistant",
-              text: "",
-              grade: {
-                ok: false,
-                content: message,
-                status: "ungraded",
-                result: "ungraded",
-                question_id: question.question_id,
-              },
-            },
-          ]);
-        } else {
-          setItems((previous) => [
-            ...previous,
-            { role: "assistant", text: `${t("q.gradeFailed")} (${message})` },
-          ]);
-        }
-      }
-      await load().catch(() => undefined);
-    },
-    [load, pathId, sessionId, t],
-  );
-
   useEffect(() => {
     void load();
   }, [load]);
@@ -263,7 +219,13 @@ function StudyRoute() {
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (
+      text: string,
+      mastery?: {
+        answer?: { question_id: string; text: string };
+        skip?: { question_id: string };
+      },
+    ) => {
       setBusy(true);
       setHandoffs([]);
       setItems((previous) => [
@@ -307,6 +269,8 @@ function StudyRoute() {
             llm_selection: selection ?? undefined,
             capability: practice ? "deep_question" : undefined,
             num_questions: practice ? 3 : undefined,
+            mastery_answer: mastery?.answer,
+            mastery_skip: mastery?.skip,
           },
           (event) => {
             if (event.type === "text_delta") {
@@ -379,6 +343,23 @@ function StudyRoute() {
               }
             }
             if (event.type === "tool_result") {
+              const metadata = event.data.metadata as Record<string, unknown> | undefined;
+              const grade = metadata?.mastery_grade as GradeOutcome | undefined;
+              if (grade?.question_id) {
+                setItems((previous) => {
+                  if (previous.some((item) => item.grade?.question_id === grade.question_id)) {
+                    return previous;
+                  }
+                  const next = [...previous];
+                  const last = next[next.length - 1];
+                  const row: Item = { role: "assistant", text: "", grade };
+                  const placeholder =
+                    last?.role === "assistant" && !last.text && !last.card && !last.grade && !last.quiz;
+                  if (placeholder) next.splice(next.length - 1, 0, row);
+                  else next.push(row);
+                  return next;
+                });
+              }
               const handoff = masteryHandoffFrom(event);
               if (handoff) {
                 setHandoffs((current) =>
@@ -422,6 +403,27 @@ function StudyRoute() {
       setBusy(false);
     },
     [pathId, sessionId, mode, load, t, selection, capability],
+  );
+
+  /** 作答作为下一条 WS 消息提交；判分由服务端在导师开口前完成。 */
+  const answerQuestion = useCallback(
+    async (question: PendingQuestion, answer: string) => {
+      await send(answer, {
+        answer: { question_id: question.question_id, text: answer },
+      });
+    },
+    [send],
+  );
+
+  /** 跳过同样作为一条消息；先本地移除题卡，服务端会清空槽位。 */
+  const skipQuestion = useCallback(
+    async (question: PendingQuestion) => {
+      setItems((previous) =>
+        previous.filter((item) => item.card?.question_id !== question.question_id),
+      );
+      await send("跳过这道题", { skip: { question_id: question.question_id } });
+    },
+    [send],
   );
 
   useEffect(() => {
@@ -521,10 +523,7 @@ function StudyRoute() {
                           question={card}
                           answered={answeredCardIds.has(card.question_id)}
                           onAnswer={(answer) => void answerQuestion(card, answer)}
-                          onSkip={async () => {
-                            await api.skipQuestion(pathId, card.question_id);
-                            await load();
-                          }}
+                          onSkip={() => void skipQuestion(card)}
                         />
                       );
                     }
@@ -556,10 +555,7 @@ function StudyRoute() {
                       question={pending_question}
                       answered={answeredCardIds.has(pending_question.question_id)}
                       onAnswer={(answer) => void answerQuestion(pending_question, answer)}
-                      onSkip={async () => {
-                        await api.skipQuestion(pathId, pending_question.question_id);
-                        await load();
-                      }}
+                      onSkip={() => void skipQuestion(pending_question)}
                     />
                   )}
                 </div>

@@ -31,6 +31,8 @@ public class TurnRequest {
     private int numQuestions = 3;
     private String difficulty = "";
     private List<String> questionTypes = new ArrayList<>();
+    private Map<String, Object> masteryAnswer = new java.util.LinkedHashMap<>();
+    private Map<String, Object> masterySkip = new java.util.LinkedHashMap<>();
 
     public String capability() {
         return capability;
@@ -118,5 +120,25 @@ public class TurnRequest {
 
     public void setQuestionTypes(List<String> questionTypes) {
         this.questionTypes = questionTypes == null ? new ArrayList<>() : new ArrayList<>(questionTypes);
+    }
+
+    /** 作答卡片消息：{@code {question_id, text}}；空 map 表示本轮不是作答。 */
+    public Map<String, Object> masteryAnswer() {
+        return masteryAnswer;
+    }
+
+    public void setMasteryAnswer(Map<String, Object> masteryAnswer) {
+        this.masteryAnswer = masteryAnswer == null
+                ? new java.util.LinkedHashMap<>() : new java.util.LinkedHashMap<>(masteryAnswer);
+    }
+
+    /** 跳过卡片消息：{@code {question_id}}；空 map 表示本轮不是跳过。 */
+    public Map<String, Object> masterySkip() {
+        return masterySkip;
+    }
+
+    public void setMasterySkip(Map<String, Object> masterySkip) {
+        this.masterySkip = masterySkip == null
+                ? new java.util.LinkedHashMap<>() : new java.util.LinkedHashMap<>(masterySkip);
     }
 }

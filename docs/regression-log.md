@@ -40,3 +40,4 @@
 | 2026-11-09 | `0034-quiz-viewer-ui` | 893 | 0 | 0 | [verify/0034](verify/0034-quiz-viewer-ui.md) |
 | 2026-11-10 | `0035-quiz-generation-context` | 894 | 0 | 0 | [verify/0035](verify/0035-quiz-generation-context.md) |
 | 2026-11-10 | `0036-mastery-grading-parity` | 905 | 0 | 0 | [verify/0036](verify/0036-mastery-grading-parity.md) |
+| 2026-11-10 | `0037-mastery-turn-protocol` | 909 | 0 | 0 | [verify/0037](verify/0037-mastery-turn-protocol.md) |

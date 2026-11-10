@@ -8,6 +8,7 @@ import com.masterypath.adapter.llm.LlmResponse;
 import com.masterypath.adapter.llm.ToolCall;
 import com.masterypath.adapter.turn.TurnRunner;
 import com.masterypath.domain.model.JsonSupport;
+import com.masterypath.domain.model.PendingQuestion;
 import com.masterypath.service.LearningService;
 import com.masterypath.storage.LearningStore;
 
@@ -156,6 +157,50 @@ class WsTurnTest {
         }
         assertThat(String.join("", deltas)).isEqualTo("hello world");
         assertThat(deltas).hasSizeGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("mastery_answer 走 WS：先判分，答案文本作为用户消息")
+    void gradesCardAnswerOverTheSocket() throws Exception {
+        String pathId = "ws-p-answer-" + run;
+        String sessionId = "ws-s-answer-" + run;
+        service.createPath(pathId, "learn X", "X");
+        service.build(pathId, Map.of("modules", List.of(Map.of(
+                "name", "M",
+                "knowledge_points", List.of(Map.of("name", "fact one", "type", "memory"))))), false);
+        service.setSessionMode(pathId, sessionId, "study");
+
+        PendingQuestion pending = new PendingQuestion();
+        pending.setQuestionId("q-ws");
+        pending.setKnowledgePointId("k1");
+        pending.setModuleId("m1");
+        pending.setPrompt("2+2?");
+        pending.setQuestionType(PendingQuestion.QuestionType.SHORT);
+        pending.setExpectedAnswer("4");
+        service.registerQuestion(pathId, pending, sessionId, "t-1");
+
+        List<Map<String, Object>> seen = new ArrayList<>();
+        CLIENT.set(new LlmClient() {
+            @Override
+            public LlmResponse chat(List<Map<String, Object>> messages,
+                                    List<Map<String, Object>> tools) {
+                seen.addAll(messages);
+                return LlmResponse.text("答对了。");
+            }
+        });
+
+        List<Map<String, Object>> frames = exchange(Map.of(
+                "session_id", sessionId, "path_id", pathId, "mode", "study",
+                "mastery_answer", Map.of("question_id", "q-ws", "text", "4")));
+
+        assertThat(types(frames)).containsExactly("tool_result", "text_delta", "turn_end");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> metadata = (Map<String, Object>) data(frames.get(0)).get("metadata");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> grade = (Map<String, Object>) metadata.get("mastery_grade");
+        assertThat(grade).containsEntry("result", "correct").containsEntry("question_id", "q-ws");
+        assertThat(seen).anySatisfy(message ->
+                assertThat(message).containsEntry("role", "user").containsEntry("content", "4"));
     }
 
     // -- 辅助 -----------------------------------------------------------------
