@@ -47,7 +47,8 @@ public final class RepairTools {
             return "Repair an invalid question or a wrong answer key. action='void' removes "
                     + "the attempt's mastery credit and the question from the wrong-answer set; "
                     + "action='correct' writes the true answer and re-grades the stored reply. "
-                    + "Requires a short reason.";
+                    + "Correcting an open question updates the record but never changes mastery "
+                    + "credit (open is always graded partial). Requires a short reason.";
         }
 
         @Override
@@ -74,10 +75,17 @@ public final class RepairTools {
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
             }
-            String content = "void".equals(result.get("action"))
-                    ? "The question was voided; continue from mastery_status.next."
-                    : "The answer key was corrected; the stored reply now grades "
-                            + ToolSupport.str(result.get("result")) + ".";
+            String content;
+            if ("void".equals(result.get("action"))) {
+                content = "The question was voided; continue from mastery_status.next.";
+            } else if (Boolean.FALSE.equals(result.get("effective"))) {
+                content = "The answer key was updated, but this is an open question: a correct "
+                        + "reply is still recorded as partial, so mastery credit is unchanged. "
+                        + "Continue with a choice or short question.";
+            } else {
+                content = "The answer key was corrected; the stored reply now grades "
+                        + ToolSupport.str(result.get("result")) + ".";
+            }
             return ToolResult.ok(content, result);
         }
     }

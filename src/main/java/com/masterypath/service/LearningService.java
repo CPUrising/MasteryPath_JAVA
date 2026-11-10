@@ -762,6 +762,13 @@ public final class LearningService {
 
             Boolean repairedCorrect;
             String repairedResult = "voided";
+            // open 判对仍会降为 partial（INV-35）；改键只修记录，不能恢复掌握度。
+            boolean openQuestion = question != null
+                    && question.getQuestionType() == PendingQuestion.QuestionType.OPEN;
+            boolean effective = !"correct".equals(actionName) || !openQuestion;
+            String creditNote = effective ? ""
+                    : "open questions are recorded as partial even when correct; mastery credit "
+                            + "is unchanged";
             if ("void".equals(actionName)) {
                 for (QuizAttempt attempt : attempts) {
                     attempt.setVoided(true);
@@ -842,6 +849,8 @@ public final class LearningService {
                             "knowledge_point_id", kp.getId(),
                             "is_correct", repairedCorrect,
                             "result", repairedResult,
+                            "effective", effective,
+                            "credit_note", creditNote,
                             "repaired", true));
                     tx.saveInteraction(interaction);
                 }
@@ -872,6 +881,8 @@ public final class LearningService {
                     "path_revision", progress.getVersion() + 1,
                     "is_correct", repairedCorrect,
                     "result", repairedResult,
+                    "effective", effective,
+                    "credit_note", creditNote,
                     "mastery", round3(MasteryPolicy.displayMastery(progress, kp)),
                     "mastered", MasteryPolicy.isMastered(progress, kp),
                     "next", MasteryPolicy.nextObjective(progress).toMap());

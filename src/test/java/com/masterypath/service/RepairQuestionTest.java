@@ -316,8 +316,8 @@ class RepairQuestionTest {
     }
 
     @Test
-    @DisplayName("返回值含 9 个键，path_revision 为 version+1")
-    void resultHasNineKeys() {
+    @DisplayName("返回值含 12 个键，path_revision 为 version+1")
+    void resultHasStableKeys() {
         quizAndGrade("9");
         int versionBefore = store.load("p").getVersion();
 
@@ -325,10 +325,40 @@ class RepairQuestionTest {
                 "p", "q1", "correct", "9", "wrong key", "", "");
 
         assertThat(result).containsOnlyKeys("status", "action", "question_id",
-                "knowledge_point_id", "path_revision", "is_correct", "result",
-                "mastery", "mastered", "next");
+                "knowledge_point_id", "path_revision", "is_correct", "result", "effective",
+                "credit_note", "mastery", "mastered", "next");
         assertThat(result).containsEntry("path_revision", versionBefore + 1)
-                .containsEntry("result", "correct");
+                .containsEntry("result", "correct")
+                .containsEntry("effective", true)
+                .containsEntry("credit_note", "");
+    }
+
+    @Test
+    @DisplayName("open 题改键判对仍记 partial：effective=false 且掌握度不变")
+    void openCorrectionReportsNoCreditChange() {
+        store.create(ServiceFixtures.onePoint("q", KnowledgeType.PROCEDURE));
+        PendingQuestion pending = new PendingQuestion();
+        pending.setQuestionId("qo");
+        pending.setKnowledgePointId("k1");
+        pending.setModuleId("m1");
+        pending.setPrompt("explain?");
+        pending.setQuestionType(PendingQuestion.QuestionType.OPEN);
+        pending.setExpectedAnswer("依赖");
+        pending.setRequiredKeywords(List.of("依赖"));
+        service.registerQuestion("q", pending, "", "");
+        service.grade("q", "qo", "依赖", 0, false, "", "");
+        assertThat(store.load("q").getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(0.0);
+
+        Map<String, Object> result = service.repairQuestion(
+                "q", "qo", "correct", "依赖", "key was too narrow", "", "");
+
+        assertThat(result).containsEntry("result", "partial")
+                .containsEntry("is_correct", false)
+                .containsEntry("effective", false);
+        assertThat(String.valueOf(result.get("credit_note"))).contains("mastery credit");
+        assertThat(store.load("q").getMasteryLevels().getOrDefault("k1", 0.0)).isEqualTo(0.0);
+        assertThat(store.getInteraction("q", "qo").getResult())
+                .containsEntry("effective", false);
     }
 
     @Test

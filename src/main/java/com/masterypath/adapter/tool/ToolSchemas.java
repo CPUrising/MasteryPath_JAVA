@@ -65,7 +65,10 @@ public final class ToolSchemas {
                 props("knowledge_point_id", string(),
                         "question", string(),
                         "expected_answer", string(),
-                        "question_type", enumOf("string", QuizSpec.QUESTION_TYPES),
+                        "question_type", enumOf("string", QuizSpec.QUESTION_TYPES,
+                                "memory/procedure objectives accept choice or short only; "
+                                        + "open is recorded as partial even when correct and "
+                                        + "never earns mastery credit"),
                         "options", arrayOf(optionSchema(), null),
                         "explanation", string(),
                         "difficulty", enumOf("string", QuizSpec.DIFFICULTIES),
@@ -209,9 +212,16 @@ public final class ToolSchemas {
     }
 
     private static Map<String, Object> enumOf(String type, List<String> values) {
+        return enumOf(type, values, null);
+    }
+
+    private static Map<String, Object> enumOf(String type, List<String> values, String description) {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", type);
         schema.put("enum", values);
+        if (description != null) {
+            schema.put("description", description);
+        }
         return schema;
     }
 

@@ -447,7 +447,7 @@
 | TC-K5 TC-H6 | hints downgrade | `changes/0043-mastery-grading-parity/specs/learning-tools` | `GradeFlowTest#hintsDoNotDowngradeButAreNotIndependent` | 通过（`0043`） |
 | TC-M5 | repair void | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#voidRemovesMasteryAndMarksBank` | 通过（`0043`） |
 | — | Corrected key still ungradable is refused | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#correctionRefusedWhenStillUngraded` | 通过（`0043`） |
-| — | Corrected key is reported truthfully | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#resultHasNineKeys`、`#correctionCanStillBeIncorrect` | 通过（`0043`） |
+| — | Corrected key is reported truthfully | `changes/0043-mastery-grading-parity/specs/learning-tools` | `RepairQuestionTest#resultHasStableKeys`、`#correctionCanStillBeIncorrect` | 通过（`0043`） |
 | — | Graded feedback persists | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#gradeFeedbackPersistsInSessionMessages` | 通过（`0043`） |
 | — | Ungraded persists with zero change | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#unparseableChoiceReturns422WithoutPersisting` | 通过（`0043`） |
 | — | Repeated grade does not duplicate messages | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#repeatedGradeDoesNotDuplicateMessages` | 通过（`0043`） |
@@ -461,6 +461,19 @@
 | — | Long short without a short equivalent is refused | `changes/0044-mastery-question-type-contract/specs/learning-tools` | `StatusAndQuizToolsTest#longShortWithoutAcceptedIsRefused`、`StudyApiTest#longShortWithoutAcceptedAnswersIs422` | 通过（`0044`） |
 | — | Long short with a short equivalent is accepted | `changes/0044-mastery-question-type-contract/specs/learning-tools` | `StatusAndQuizToolsTest#longShortWithShortAcceptedIsAllowed`、`StudyApiTest#longShortWithShortAcceptedAnswersIsRegistered` | 通过（`0044`） |
 | — | Open accepts long expected answers | `changes/0044-mastery-question-type-contract/specs/learning-tools` | `StatusAndQuizToolsTest#longOpenIsAllowed` | 通过（`0044`） |
+
+## 23. 定量目标的题型门控（0045）
+
+> 场景名取自 `openspec/changes/0045-quiz-type-objective-gate/specs/learning-tools`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Open is refused on a memory objective | `changes/0045-quiz-type-objective-gate/specs/learning-tools` | `StatusAndQuizToolsTest#openRefusedOnMemoryObjective` | 通过（`0045`） |
+| — | Open is refused on a procedure objective | `changes/0045-quiz-type-objective-gate/specs/learning-tools` | `StatusAndQuizToolsTest#procedureObjectiveRefusesOpenButAcceptsChoice` | 通过（`0045`） |
+| — | Choice and short remain available on quantitative objectives | `changes/0045-quiz-type-objective-gate/specs/learning-tools` | `StatusAndQuizToolsTest#procedureObjectiveRefusesOpenButAcceptsChoice`、`#longShortWithShortAcceptedIsAllowed` | 通过（`0045`） |
+| — | Open remains available on qualitative objectives | `changes/0045-quiz-type-objective-gate/specs/learning-tools` | `StatusAndQuizToolsTest#longOpenIsAllowed` | 通过（`0045`） |
+| — | Open repair reports no credit change | `changes/0045-quiz-type-objective-gate/specs/learning-tools` | `RepairQuestionTest#openCorrectionReportsNoCreditChange` | 通过（`0045`） |
+| — | Corrected key is reported truthfully | `changes/0045-quiz-type-objective-gate/specs/learning-tools` | `RepairQuestionTest#resultHasStableKeys`、`#correctionCanStillBeIncorrect` | 通过（`0045`） |
 
 ## 维护规则
 

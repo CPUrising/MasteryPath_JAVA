@@ -43,6 +43,15 @@ public final class StudyTools {
                     + "required_keywords/optional_keywords, or add an accepted_answers entry of "
                     + SHORT_ANSWER_LIMIT + " characters or fewer.";
 
+    /** 定量目标不接受 open 的拒绝文案：open 判对也只记 partial，永远拿不到掌握度。 */
+    private static final String OPEN_ON_QUANTITATIVE =
+            "open questions cannot earn mastery credit for a memory or procedure objective: a "
+                    + "correct reply is recorded as partial and never raises the score. Use "
+                    + "question_type=choice, or question_type=short with an expected answer of "
+                    + SHORT_ANSWER_LIMIT + " characters or fewer (add accepted_answers for "
+                    + "equivalent phrasings). Open questions are for concept/design objectives, "
+                    + "which are opened by mastery_assess.";
+
     private StudyTools() {
     }
 
@@ -60,10 +69,11 @@ public final class StudyTools {
         public String description() {
             return "Pose a question for a MEMORY or PROCEDURE objective. Registers the "
                     + "expected answer server-side and puts the question on the learner's card; "
-                    + "this call ENDS THE TURN. Grade the answer on the next turn. Use "
-                    + "question_type=short only when the expected answer is 30 characters or "
-                    + "fewer; for explanations or multi-line answers use open with keywords, or "
-                    + "assess the objective qualitatively with mastery_assess.";
+                    + "this call ENDS THE TURN. Match the type to the objective: memory/procedure "
+                    + "accept choice or short only — an open answer is recorded as partial even "
+                    + "when correct and never raises the score. Use question_type=short only when "
+                    + "the expected answer is 30 characters or fewer; for explanations use "
+                    + "mastery_assess on a concept/design objective.";
         }
 
         @Override
@@ -121,6 +131,11 @@ public final class StudyTools {
                 spec = QuizSpec.normalize(params);
             } catch (QuizSpec.QuizException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
+            }
+            // 定量门槛只认 correct：open 判对也被降为 partial，这道题永远赢不了。
+            if ("open".equals(spec.questionType())
+                    && "quantitative".equals(MasteryPolicy.gateKind(kp))) {
+                return ToolResult.failure(OPEN_ON_QUANTITATIVE);
             }
             if ("choice".equals(spec.questionType())) {
                 spec = shuffleChoice(spec, new java.util.Random());

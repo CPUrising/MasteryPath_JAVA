@@ -48,3 +48,4 @@
 | 2026-11-10 | `0042-mastery-session-continuity` | 945 | 0 | 0 | [verify/0042](verify/0042-mastery-session-continuity.md) |
 | 2026-11-10 | `0043-mastery-grading-parity` | 936 | 0 | 0 | [verify/0043](verify/0043-mastery-grading-parity.md) |
 | 2026-11-10 | `0044-mastery-question-type-contract` | 941 | 0 | 0 | [verify/0044](verify/0044-mastery-question-type-contract.md) |
+| 2026-11-10 | `0045-quiz-type-objective-gate` | 944 | 0 | 0 | [verify/0045](verify/0045-quiz-type-objective-gate.md) |

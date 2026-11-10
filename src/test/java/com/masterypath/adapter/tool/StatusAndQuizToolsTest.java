@@ -409,13 +409,13 @@ class StatusAndQuizToolsTest {
     }
 
     @Test
-    @DisplayName("长答案的 open 题不受长度契约影响")
+    @DisplayName("concept 目标的长答案 open 题不受长度契约影响")
     void longOpenIsAllowed() {
         build("p", "x");
         ToolContext ctx = ctx("p", SessionMode.STUDY);
 
         ToolResult quiz = MasteryTools.all().get("mastery_quiz").execute(Map.of(
-                "knowledge_point_id", "k1",
+                "knowledge_point_id", "k2",
                 "question", "说明导入示例数据时为什么必须先选库",
                 "question_type", "open",
                 "expected_answer", "先创建数据库并切换过去，再在客户端里执行脚本导入",
@@ -423,6 +423,57 @@ class StatusAndQuizToolsTest {
 
         assertThat(quiz.ok()).isTrue();
         assertThat(quiz.metadata()).containsEntry("status", "registered");
+    }
+
+    @Test
+    @DisplayName("memory 目标拒绝 open 题")
+    void openRefusedOnMemoryObjective() {
+        build("p", "x");
+        ToolContext ctx = ctx("p", SessionMode.STUDY);
+
+        ToolResult quiz = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "用自己的话解释这个事实为什么成立",
+                "question_type", "open",
+                "expected_answer", "因为它是由定义直接推出的结论",
+                "required_keywords", List.of("定义")), ctx);
+
+        assertThat(quiz.ok()).isFalse();
+        assertThat(quiz.content())
+                .contains("question_type=choice")
+                .contains("question_type=short");
+        assertThat(store.getOpenInteraction("p")).isNull();
+    }
+
+    @Test
+    @DisplayName("procedure 目标拒绝 open，choice 仍可注册")
+    void procedureObjectiveRefusesOpenButAcceptsChoice() {
+        service.createPath("pp", "learn y", "y");
+        service.build("pp", Map.of("modules", List.of(
+                module("M3", "run the steps", KnowledgeType.PROCEDURE))), false);
+        ToolContext ctx = ctx("pp", SessionMode.STUDY);
+
+        ToolResult refused = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "说明这几步为什么必须按顺序执行",
+                "question_type", "open",
+                "expected_answer", "后一步依赖前一步的结果",
+                "required_keywords", List.of("依赖")), ctx);
+
+        assertThat(refused.ok()).isFalse();
+        assertThat(store.getOpenInteraction("pp")).isNull();
+
+        ToolResult accepted = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "正确的执行顺序是哪一个？",
+                "question_type", "choice",
+                "options", List.of(
+                        Map.of("label", "A", "body", "先建库再导入"),
+                        Map.of("label", "B", "body", "先导入再建库")),
+                "expected_answer", "A"), ctx);
+
+        assertThat(accepted.ok()).isTrue();
+        assertThat(accepted.metadata()).containsEntry("status", "registered");
     }
 
     @Test
