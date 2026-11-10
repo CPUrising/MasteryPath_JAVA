@@ -62,6 +62,9 @@ public final class TurnRunner {
     /** 单次读取来源文件的字节上限（参考实现 {@code read_text(max_bytes=200_000)}）。 */
     private static final int READ_TEXT_MAX_BYTES = 200_000;
 
+    /** 判分结果在 {@code tool_result.metadata} 里的键。 */
+    private static final String GRADE_KEY = "mastery_grade";
+
     /** 快照注入的固定抬头（逐字复刻参考实现）。 */
     private static final String SNAPSHOT_HEADER =
             "[Current-turn mastery_status snapshot]\n"
@@ -505,7 +508,13 @@ public final class TurnRunner {
             }
         }
 
-        /** 此前的会话历史（role + content，跳过空正文，最多 20 条）。 */
+        /**
+         * 此前的会话历史（role + content，跳过空正文，最多 20 条）。
+         *
+         * <p>题卡与判分结果只存在于消息的 {@code data} 里，而模型只读得到 {@code content}。
+         * 这里把它们还原成紧凑的文本证据：否则学习者回一个裸选项时，模型会误以为自己
+         * 从未出过题，从而反复道歉并重新出题。
+         */
         private List<Map<String, Object>> historyMessages() {
             if (request.sessionId().isEmpty()) {
                 return List.of();
@@ -522,11 +531,18 @@ public final class TurnRunner {
                         continue;
                     }
                     String role = str(map.get("role"));
-                    String content = str(map.get("content"));
-                    if (content.isBlank() || (!"user".equals(role) && !"assistant".equals(role))) {
+                    if (!"user".equals(role) && !"assistant".equals(role)) {
                         continue;
                     }
-                    history.add(Map.of("role", role, "content", content));
+                    Object data = map.get("data");
+                    String content = str(map.get("content"));
+                    if ("assistant".equals(role)) {
+                        content = content + cardEvidence(data) + gradeEvidence(data);
+                    }
+                    if (content.isBlank()) {
+                        continue;
+                    }
+                    history.add(Map.of("role", role, "content", content.strip()));
                 }
                 return history.size() <= 20
                         ? history : history.subList(history.size() - 20, history.size());
@@ -571,19 +587,25 @@ public final class TurnRunner {
             }
             StringBuilder text = new StringBuilder();
             Map<String, Object> card = null;
+            Map<String, Object> grade = null;
             for (StreamEvent event : produced) {
                 if (StreamEvent.TEXT_DELTA.equals(event.type())) {
                     text.append(str(event.data().get("text")));
                 }
-                if (StreamEvent.TOOL_RESULT.equals(event.type()) && truthy(cardOf(event))) {
-                    card = asMap(cardOf(event));
+                if (StreamEvent.TOOL_RESULT.equals(event.type())) {
+                    if (truthy(cardOf(event))) {
+                        card = asMap(cardOf(event));
+                    }
+                    if (truthy(gradeOf(event))) {
+                        grade = asMap(gradeOf(event));
+                    }
                 }
             }
             String mode = finalMode != null ? finalMode
                     : SessionMode.normalize(sessionMode(request.sessionId(), request.mode())).value();
             try {
                 learningService.recordTurn(request.pathId(), request.sessionId(),
-                        request.message(), text.toString(), mode, request.turnId(), card);
+                        request.message(), text.toString(), mode, request.turnId(), card, grade);
             } catch (RuntimeException ignored) {
                 // 持久化是 best-effort。
             }
@@ -686,6 +708,51 @@ public final class TurnRunner {
     private static Object cardOf(StreamEvent event) {
         Object metadata = event.data().get("metadata");
         return metadata instanceof Map<?, ?> map ? map.get(StudyTools.QUESTION_CARD_KEY) : null;
+    }
+
+    /** 从 {@code tool_result} 的 metadata 里取判分结果。 */
+    private static Object gradeOf(StreamEvent event) {
+        Object metadata = event.data().get("metadata");
+        return metadata instanceof Map<?, ?> map ? map.get(GRADE_KEY) : null;
+    }
+
+    /** 把 {@code data.card} 还原成「这张卡已交给学习者」的文本证据。 */
+    private static String cardEvidence(Object data) {
+        Object raw = data instanceof Map<?, ?> map ? map.get("card") : null;
+        if (!(raw instanceof Map<?, ?> card)) {
+            return "";
+        }
+        StringBuilder text = new StringBuilder("\n\n[Question card delivered to the learner]");
+        text.append("\nquestion_id: ").append(str(card.get("question_id")));
+        text.append("\nquestion_type: ").append(str(card.get("question_type")));
+        text.append("\nprompt: ").append(str(card.get("prompt")));
+        Object options = card.get("options");
+        if (options instanceof List<?> list && !list.isEmpty()) {
+            List<String> rendered = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> option) {
+                    rendered.add(str(option.get("label")) + ") " + str(option.get("body")));
+                }
+            }
+            if (!rendered.isEmpty()) {
+                text.append("\noptions: ").append(String.join(" | ", rendered));
+            }
+        }
+        return text.toString();
+    }
+
+    /** 把 {@code data.grade} 还原成「这张卡已判分」的文本证据。 */
+    private static String gradeEvidence(Object data) {
+        Object raw = data instanceof Map<?, ?> map ? map.get("grade") : null;
+        if (!(raw instanceof Map<?, ?> grade)) {
+            return "";
+        }
+        return "\n\n[That card was graded]"
+                + "\nquestion_id: " + str(grade.get("question_id"))
+                + "\nlearner_answer: " + str(grade.get("learner_answer"))
+                + "\nresult: " + str(grade.get("result"))
+                + "\nis_correct: " + str(grade.get("is_correct"))
+                + "\nmastery_after: " + str(grade.get("mastery_after"));
     }
 
     @SuppressWarnings("unchecked")

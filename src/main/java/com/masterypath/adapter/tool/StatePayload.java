@@ -40,6 +40,7 @@ final class StatePayload {
         payload.put("next", Map.of());
         payload.put("map", Map.of());
         payload.put("pending_question", null);
+        payload.put("last_answered", Map.of("status", "none"));
         payload.put("due_reviews", List.of());
         payload.put("sources", List.of());
         payload.put("learner_profile", state.get("learner_profile"));
@@ -52,6 +53,7 @@ final class StatePayload {
         payload.put("next", state.getOrDefault("next", Map.of()));
         payload.put("map", state.getOrDefault("map", Map.of()));
         payload.put("pending_question", state.get("pending_question"));
+        payload.put("last_answered", state.getOrDefault("last_answered", Map.of()));
         payload.put("due_reviews", state.getOrDefault("due_reviews", List.of()));
         payload.put("sources", state.getOrDefault("sources", List.of()));
         if (!ToolSupport.bool(payload.get("map"))) {

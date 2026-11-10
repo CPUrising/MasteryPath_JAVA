@@ -151,7 +151,7 @@ class QuizRegistrationTest {
     @DisplayName("跳过题目后可以注册新题")
     void canRegisterAfterSkip() {
         service.registerQuestion("p", shortQuestion("q1"), "", "");
-        service.skipQuestion("p", "q1");
+        service.skipQuestion("p", "q1", "", "");
 
         MasteryInteraction second = service.registerQuestion("p", shortQuestion("q2"), "", "");
 

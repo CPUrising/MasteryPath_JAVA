@@ -88,7 +88,7 @@ class TurnRunnerTest {
                 "name", "M",
                 "knowledge_points", List.of(Map.of("name", "fact one", "type", "memory"))))), false);
         service.setSessionMode("p", "s1", "study");
-        service.recordTurn("p", "s1", "上一轮问题", "上一轮回答", "study", "t-0", null);
+        service.recordTurn("p", "s1", "上一轮问题", "上一轮回答", "study", "t-0", null, null);
 
         PendingQuestion pending = new PendingQuestion();
         pending.setQuestionId("q-answer");
@@ -119,6 +119,62 @@ class TurnRunnerTest {
                 assertThat(message).containsEntry("role", "user").containsEntry("content", "4"));
         assertThat(messages).anySatisfy(message ->
                 assertThat(message).containsEntry("content", "上一轮回答"));
+
+        // 判分结果写进 assistant 消息的 data.grade，下一轮才回看得见。
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> stored = (List<Map<String, Object>>)
+                service.getSessionDetail("s1").get("messages");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) stored.get(stored.size() - 1).get("data");
+        assertThat((Map<String, Object>) data.get("grade"))
+                .containsEntry("question_id", "q-answer")
+                .containsEntry("result", "correct");
+    }
+
+    @Test
+    @DisplayName("会话历史把题卡与判分还原成文本，模型不会误以为卡片没送到")
+    void historyReplaysCardAndGradeAsText() {
+        service.createPath("p", "learn X", "X");
+        service.build("p", Map.of("modules", List.of(Map.of(
+                "name", "M",
+                "knowledge_points", List.of(Map.of("name", "fact one", "type", "memory"))))), false);
+        service.setSessionMode("p", "s1", "study");
+
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("question_id", "q-card");
+        card.put("question_type", "choice");
+        card.put("prompt", "Which statement is DCL?");
+        card.put("options", List.of(
+                Map.of("label", "A", "body", "CREATE INDEX idx ON t(c);"),
+                Map.of("label", "B", "body", "GRANT SELECT ON t TO reader;")));
+        service.recordTurn("p", "s1", "继续", "请看卡片。", "study", "t-0", card, null);
+
+        Map<String, Object> grade = new LinkedHashMap<>();
+        grade.put("question_id", "q-card");
+        grade.put("learner_answer", "B");
+        grade.put("result", "correct");
+        grade.put("is_correct", true);
+        grade.put("mastery_after", 0.5);
+        service.recordTurn("p", "s1", "B", "答对了。", "study", "t-1", null, grade);
+
+        FakeLlmClient fake = new FakeLlmClient(List.of(LlmResponse.text("下一题。")));
+        run(fake, request("s1", "p", "study", "继续"));
+
+        List<Map<String, Object>> messages = fake.calls().get(0);
+        assertThat(messages).anySatisfy(message -> {
+            assertThat(message).containsEntry("role", "assistant");
+            assertThat(String.valueOf(message.get("content")))
+                    .contains("[Question card delivered to the learner]")
+                    .contains("question_id: q-card")
+                    .contains("B) GRANT SELECT ON t TO reader;");
+        });
+        assertThat(messages).anySatisfy(message -> {
+            assertThat(message).containsEntry("role", "assistant");
+            assertThat(String.valueOf(message.get("content")))
+                    .contains("[That card was graded]")
+                    .contains("learner_answer: B")
+                    .contains("result: correct");
+        });
     }
 
     @Test

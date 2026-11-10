@@ -301,7 +301,7 @@ class GradeFlowTest {
     @DisplayName("已作废的题目不可判分")
     void abandonedQuestionNotGradable() {
         service.registerQuestion("p", shortQuestion("q1", "4"), "", "");
-        service.skipQuestion("p", "q1");
+        service.skipQuestion("p", "q1", "", "");
 
         assertThatThrownBy(() -> service.grade("p", "q1", "4", 0, false, "", ""))
                 .isInstanceOf(PreconditionFailedException.class)

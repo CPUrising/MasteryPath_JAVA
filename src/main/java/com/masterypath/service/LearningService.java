@@ -214,7 +214,8 @@ public final class LearningService {
      *
      * <p>事件 payload 含 {@code summary}（与 {@link #deferObjective} 不对称）。
      */
-    public Map<String, Object> noteExplained(String pathId, String kpId, String summary) {
+    public Map<String, Object> noteExplained(String pathId, String kpId, String summary,
+                                             String sessionId, String turnId) {
         String safeSummary = summary == null ? "" : summary;
         return store.mutate(pathId, tx -> {
             LearningProgress progress = tx.progress();
@@ -222,7 +223,7 @@ public final class LearningService {
             progress.getExplainedObjectives().put(kpId, payload("summary", safeSummary));
             tx.emit("objective.explained", payload(
                     "knowledge_point_id", kpId,
-                    "summary", safeSummary));
+                    "summary", safeSummary), sessionId, turnId);
             return payload("knowledge_point_id", kpId, "mastery_credit", false);
         });
     }
@@ -366,7 +367,8 @@ public final class LearningService {
             tx.emit("question.registered", payload(
                     "question_id", pending.getQuestionId(),
                     "knowledge_point_id", pending.getKnowledgePointId(),
-                    "question_type", pending.getQuestionType().value()));
+                    "question_type", pending.getQuestionType().value()),
+                    sessionId, turnId);
             return interaction;
         });
     }
@@ -487,11 +489,11 @@ public final class LearningService {
                     "is_correct", isCorrect,
                     "result", result,
                     "hints_used", hintsUsed,
-                    "mastery_after", after));
+                    "mastery_after", after), sessionId, turnId);
             if (gateCleared) {
                 tx.emit("objective.mastered", payload(
                         "knowledge_point_id", kp.getId(),
-                        "source", source));
+                        "source", source), sessionId, turnId);
             }
             return graded;
         });
@@ -502,7 +504,8 @@ public final class LearningService {
      *
      * <p>已终态时原样返回状态，不重复发事件。
      */
-    public Map<String, Object> skipQuestion(String pathId, String questionId) {
+    public Map<String, Object> skipQuestion(String pathId, String questionId,
+                                            String sessionId, String turnId) {
         return store.mutate(pathId, tx -> {
             MasteryInteraction current = tx.getInteraction(questionId);
             tx.require(current != null, "unknown question_id");
@@ -513,7 +516,7 @@ public final class LearningService {
             tx.saveInteraction(current);
             tx.progress().setPendingQuestion(null);
             tx.progress().setConsecutiveQuestions(0);
-            tx.emit("question.skipped", payload("question_id", questionId));
+            tx.emit("question.skipped", payload("question_id", questionId), sessionId, turnId);
             return payload("status", "abandoned", "question_id", questionId);
         });
     }
@@ -644,11 +647,11 @@ public final class LearningService {
             tx.emit("qualitative.assessed", payload(
                     "knowledge_point_id", kpId,
                     "passed", passed,
-                    "quality", quality));
+                    "quality", quality), sessionId, turnId);
             if (gateCleared) {
                 tx.emit("objective.mastered", payload(
                         "knowledge_point_id", kpId,
-                        "source", source));
+                        "source", source), sessionId, turnId);
             }
 
             tx.saveBankEntry(writtenBankEntry(pathId, kp, evidence, passed));
@@ -1043,7 +1046,52 @@ public final class LearningService {
                 "pending_question", progress.getPendingQuestion() == null
                         ? null
                         : QuestionCardProjector.publicPendingQuestion(progress.getPendingQuestion()),
+                "last_answered", lastAnswered(progress),
                 "due_reviews", dueReviews);
+    }
+
+    /**
+     * 最近一次作答的证据投影。
+     *
+     * <p>判分后 {@code pending_question} 会被清空，导师只剩「学习者发来一个裸选项」这一条线索，
+     * 因此这里显式回放上一次作答的题号、作答文本、结果与判分后的掌握度。
+     *
+     * @return 从未作答时返回 {@code {status: "none"}}
+     */
+    private static Map<String, Object> lastAnswered(LearningProgress progress) {
+        List<LearningEvidence> evidence = progress.getLearningEvidence();
+        for (int index = evidence.size() - 1; index >= 0; index--) {
+            LearningEvidence record = evidence.get(index);
+            if (record.isVoided() || record.getQuestionId().isEmpty()) {
+                continue;
+            }
+            String kpId = record.getKnowledgePointId() == null ? "" : record.getKnowledgePointId();
+            return payload(
+                    "status", "answered",
+                    "question_id", record.getQuestionId(),
+                    "knowledge_point_id", kpId,
+                    "result", record.getResult().value(),
+                    "assessment_type", record.getAssessmentType().value(),
+                    "hints_used", record.getHintsUsed(),
+                    "answer", answerOf(progress, record.getQuestionId()),
+                    "mastery_after", progress.getMasteryLevels().getOrDefault(kpId, 0.0),
+                    "session_id", record.getSessionId(),
+                    "turn_id", record.getTurnId());
+        }
+        return payload("status", "none");
+    }
+
+    /** 按题号回查学习者提交的原文（找不到时返回空串）。 */
+    private static String answerOf(LearningProgress progress, String questionId) {
+        List<QuizAttempt> attempts = progress.getQuizAttempts();
+        for (int index = attempts.size() - 1; index >= 0; index--) {
+            QuizAttempt attempt = attempts.get(index);
+            if (questionId.equals(attempt.getQuestionId())) {
+                Object answer = attempt.getUserAnswer();
+                return answer == null ? "" : String.valueOf(answer);
+            }
+        }
+        return "";
     }
 
     // -- 路径概览与 scratch（ADR-021） -----------------------------------------
@@ -1197,11 +1245,13 @@ public final class LearningService {
      * {@code has_pending_question} 由 {@code card} 决定。
      *
      * @param card 题卡；非 {@code null} 时写入 assistant 消息的 {@code data.card}
+     * @param grade 判分结果；非 {@code null} 时写入 assistant 消息的 {@code data.grade}
      */
     public Map<String, Object> recordTurn(String pathId, String sessionId,
                                           String userText, String assistantText,
                                           String mode, String turnId,
-                                          Map<String, Object> card) {
+                                          Map<String, Object> card,
+                                          Map<String, Object> grade) {
         String user = userText == null ? "" : userText;
         String assistant = assistantText == null ? "" : assistantText;
         Map<String, Object> session = ensureSession(pathId, sessionId, mode, "");
@@ -1210,9 +1260,16 @@ public final class LearningService {
                 && !user.strip().isEmpty()) {
             session.put("title", truncate(user.strip(), 40));
         }
+        Map<String, Object> data = new LinkedHashMap<>();
+        if (card != null) {
+            data.put("card", card);
+        }
+        if (grade != null) {
+            data.put("grade", grade);
+        }
         store.appendMessage(sessionId, "user", user, turnId, null);
         store.appendMessage(sessionId, "assistant", assistant, turnId,
-                card == null ? null : payload("card", card));
+                data.isEmpty() ? null : data);
         session.put("mode", mode == null || mode.isEmpty() ? "study" : mode);
         Object rawCount = session.get("message_count");
         int count = rawCount instanceof Number number ? number.intValue() : 0;

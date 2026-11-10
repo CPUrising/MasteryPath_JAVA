@@ -53,7 +53,7 @@ class PathStateTest {
     }
 
     @Test
-    @DisplayName("活动路径返回 active 与全部 20 个键")
+    @DisplayName("活动路径返回 active 与全部 21 个键")
     void activePathHasAllKeys() {
         Map<String, Object> state = service.getState("p");
 
@@ -61,7 +61,7 @@ class PathStateTest {
                 "status", "path_id", "name", "goal", "version", "map", "counts", "next",
                 "learning_stages", "sources", "knowledge_bases", "gaps", "proposals", "coverage",
                 "reviews", "review_settings", "session_count", "learner_profile",
-                "pending_question", "due_reviews");
+                "pending_question", "last_answered", "due_reviews");
         assertThat(state).containsEntry("status", "active").containsEntry("path_id", "p");
     }
 
@@ -73,6 +73,46 @@ class PathStateTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> stages = (Map<String, Object>) state.get("learning_stages");
         assertThat(stages).containsEntry("k1", "not_yet_covered");
+    }
+
+    @Test
+    @DisplayName("从未作答时 last_answered 为 none")
+    @SuppressWarnings("unchecked")
+    void lastAnsweredIsNoneBeforeAnyAnswer() {
+        Map<String, Object> last = (Map<String, Object>) service.getState("p").get("last_answered");
+
+        assertThat(last).containsEntry("status", "none");
+    }
+
+    @Test
+    @DisplayName("last_answered 回放上一次作答的题号、原文与判分")
+    @SuppressWarnings("unchecked")
+    void lastAnsweredReplaysTheLatestAttempt() {
+        register("q1", "4");
+        service.grade("p", "q1", "4", 0, false, "s1", "t1");
+
+        Map<String, Object> last = (Map<String, Object>) service.getState("p").get("last_answered");
+
+        assertThat(last).containsEntry("status", "answered")
+                .containsEntry("question_id", "q1")
+                .containsEntry("answer", "4")
+                .containsEntry("result", "correct")
+                .containsEntry("session_id", "s1")
+                .containsEntry("turn_id", "t1");
+        assertThat(((Number) last.get("mastery_after")).doubleValue()).isGreaterThan(0.0);
+    }
+
+    @Test
+    @DisplayName("attempt.graded 事件带上 session_id / turn_id")
+    void gradedEventCarriesSessionAndTurn() {
+        register("q1", "4");
+        service.grade("p", "q1", "4", 0, false, "s1", "t1");
+
+        Map<String, Object> event = store.eventsSince("p", 0).stream()
+                .filter(item -> "attempt.graded".equals(item.get("event_type")))
+                .findFirst()
+                .orElseThrow();
+        assertThat(event).containsEntry("session_id", "s1").containsEntry("turn_id", "t1");
     }
 
     @Test

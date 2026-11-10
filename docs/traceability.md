@@ -401,6 +401,22 @@
 | 真实模型全链路 | 建大纲 → 出题 → 判分 → 清门槛 → 定性评估 → 完成 | `MasteryJourneyE2ETest#walksAWholeMasteryPath`（`e2e`，真实调用） | 通过（`0040`） |
 | 默认回归隔离 | `verify.ps1` 排除 `e2e`，单独脚本运行 | `verify.ps1 -Scope all`（941 用例）+ `scripts/e2e-mastery.ps1` | 通过（`0040`） |
 
+## 19. 回合证据回放（0041）
+
+> 场景名取自 `openspec/changes/0041-mastery-turn-evidence/specs/`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Answer is graded before the tutor speaks | `changes/0041-mastery-turn-evidence/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0041`） |
+| — | Answer text is the user message | `changes/0041-mastery-turn-evidence/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0041`） |
+| — | Skip clears the card before the tutor speaks | `changes/0041-mastery-turn-evidence/specs/agent-turn` | `TurnRunnerTest`（跳过回合） | 通过（`0041`） |
+| — | History is included | `changes/0041-mastery-turn-evidence/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0041`） |
+| — | History replays delivered cards and grades | `changes/0041-mastery-turn-evidence/specs/agent-turn` | `TurnRunnerTest#historyReplaysCardAndGradeAsText` | 通过（`0041`） |
+| — | Graded card is persisted with its outcome | `changes/0041-mastery-turn-evidence/specs/agent-turn` | `TurnRunnerTest#gradesCardAnswerBeforeTheTutorSpeaks` | 通过（`0041`） |
+| — | Turn events carry session and turn | `changes/0041-mastery-turn-evidence/specs/learning-storage` | `PathStateTest#gradedEventCarriesSessionAndTurn` | 通过（`0041`） |
+| — | No attempt yields none | `changes/0041-mastery-turn-evidence/specs/learning-tools` | `PathStateTest#lastAnsweredIsNoneBeforeAnyAnswer` | 通过（`0041`） |
+| — | Latest attempt is replayed | `changes/0041-mastery-turn-evidence/specs/learning-tools` | `PathStateTest#lastAnsweredReplaysTheLatestAttempt` | 通过（`0041`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

@@ -109,7 +109,7 @@ class ObjectiveStateTest {
     @Test
     @DisplayName("记录已讲解写入 explainedObjectives，返回 mastery_credit=false")
     void noteExplainedWritesRecord() {
-        Map<String, Object> result = service.noteExplained("p", "k1", "covered the basics");
+        Map<String, Object> result = service.noteExplained("p", "k1", "covered the basics", "", "");
 
         assertThat(result).containsEntry("knowledge_point_id", "k1")
                 .containsEntry("mastery_credit", false);
@@ -121,7 +121,7 @@ class ObjectiveStateTest {
     @Test
     @DisplayName("已讲解不给掌握学分")
     void noteExplainedGrantsNoMastery() {
-        service.noteExplained("p", "k1", "summary");
+        service.noteExplained("p", "k1", "summary", "", "");
 
         LearningProgress loaded = store.load("p");
         assertThat(MasteryPolicy.isMastered(loaded, loaded.findKnowledgePoint("k1").knowledgePoint()))
@@ -133,7 +133,7 @@ class ObjectiveStateTest {
     @Test
     @DisplayName("已讲解事件 payload 含 summary（与 defer 不对称）")
     void noteExplainedEventIncludesSummary() {
-        service.noteExplained("p", "k1", "the summary");
+        service.noteExplained("p", "k1", "the summary", "", "");
 
         Map<String, Object> event = store.eventsSince("p", 0).stream()
                 .filter(item -> "objective.explained".equals(item.get("event_type")))
@@ -147,7 +147,7 @@ class ObjectiveStateTest {
     @Test
     @DisplayName("已讲解未知目标用 unknown objective 文案")
     void noteExplainedUnknownUsesObjectiveWording() {
-        assertThatThrownBy(() -> service.noteExplained("p", "nope", "x"))
+        assertThatThrownBy(() -> service.noteExplained("p", "nope", "x", "", ""))
                 .isInstanceOf(PreconditionFailedException.class)
                 .hasMessage("unknown objective: nope");
     }
@@ -155,7 +155,7 @@ class ObjectiveStateTest {
     @Test
     @DisplayName("summary 为 null 落为空串")
     void nullSummaryBecomesEmpty() {
-        service.noteExplained("p", "k1", null);
+        service.noteExplained("p", "k1", null, "", "");
 
         assertThat(store.load("p").getExplainedObjectives().get("k1"))
                 .containsEntry("summary", "");
@@ -165,7 +165,7 @@ class ObjectiveStateTest {
     @DisplayName("延后与已讲解互不影响")
     void deferAndExplainedAreIndependent() {
         service.deferObjective("p", "k1", "later");
-        service.noteExplained("p", "k1", "taught");
+        service.noteExplained("p", "k1", "taught", "", "");
 
         LearningProgress loaded = store.load("p");
         assertThat(loaded.getDeferredObjectives()).containsKey("k1");

@@ -271,7 +271,8 @@ public final class StudyTools {
                     }
                     questionId = open.getQuestion().getQuestionId();
                 }
-                Map<String, Object> result = service.skipQuestion(ctx.pathId(), questionId);
+                Map<String, Object> result = service.skipQuestion(
+                        ctx.pathId(), questionId, ctx.sessionId(), ctx.turnId());
                 return ToolResult.ok("Question skipped.", result);
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
@@ -311,7 +312,8 @@ public final class StudyTools {
             }
             try {
                 Map<String, Object> result = SharedTools.service(ctx).noteExplained(
-                        ctx.pathId(), ToolSupport.str(params.get("knowledge_point_id")), summary);
+                        ctx.pathId(), ToolSupport.str(params.get("knowledge_point_id")), summary,
+                        ctx.sessionId(), ctx.turnId());
                 return ToolResult.ok("Recorded explanation (no mastery credit).", result);
             } catch (PreconditionFailedException e) {
                 return ToolResult.failure(String.valueOf(e.getMessage()));
