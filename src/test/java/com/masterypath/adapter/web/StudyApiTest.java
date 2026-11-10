@@ -276,6 +276,30 @@ class StudyApiTest {
         assertThat(quiz).containsEntry("status", "registered");
     }
 
+    @Test
+    void longShortWithoutAcceptedAnswersIs422() throws Exception {
+        api.buildMixedOutline("p");
+        assertThat(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"写出导入步骤并说明\","
+                                + "\"question_type\":\"short\",\"expected_answer\":"
+                                + "\"先在服务器上创建练习用的数据库并切换到它，再在 mysql 客户端里执行脚本导入示例数据\"}"))
+                .andReturn().getResponse().getStatus()).isEqualTo(422);
+    }
+
+    @Test
+    void longShortWithShortAcceptedAnswersIsRegistered() throws Exception {
+        api.buildMixedOutline("p");
+        Map<String, Object> quiz = json(api.mvc.perform(post("/learning/paths/p/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"knowledge_point_id\":\"k1\",\"question\":\"写出导入步骤并说明\","
+                                + "\"question_type\":\"short\",\"expected_answer\":"
+                                + "\"先在服务器上创建练习用的数据库并切换到它，再在 mysql 客户端里执行脚本导入示例数据\","
+                                + "\"accepted_answers\":[\"CREATE DATABASE; USE; SOURCE\"]}"))
+                .andReturn());
+        assertThat(quiz).containsEntry("status", "registered");
+    }
+
     private String registerNumericQuestion(String sessionId) throws Exception {
         return String.valueOf(json(api.mvc.perform(post("/learning/paths/p/quiz")
                         .contentType(MediaType.APPLICATION_JSON)

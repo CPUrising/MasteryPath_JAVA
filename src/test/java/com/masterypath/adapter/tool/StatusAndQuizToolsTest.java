@@ -371,6 +371,61 @@ class StatusAndQuizToolsTest {
     }
 
     @Test
+    @DisplayName("长简答且没有短等价答案时拒绝注册")
+    void longShortWithoutAcceptedIsRefused() {
+        build("p", "x");
+        ToolContext ctx = ctx("p", SessionMode.STUDY);
+
+        ToolResult quiz = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "写出导入示例数据的完整步骤，并说明每一步的作用",
+                "question_type", "short",
+                "expected_answer",
+                "先在服务器上创建练习用的数据库并切换到它，再在 mysql 客户端里执行脚本导入示例数据"), ctx);
+
+        assertThat(quiz.ok()).isFalse();
+        assertThat(quiz.content())
+                .contains("question_type=open")
+                .contains("accepted_answers");
+        assertThat(store.getOpenInteraction("p")).isNull();
+    }
+
+    @Test
+    @DisplayName("长简答带短等价答案时允许注册")
+    void longShortWithShortAcceptedIsAllowed() {
+        build("p", "x");
+        ToolContext ctx = ctx("p", SessionMode.STUDY);
+
+        ToolResult quiz = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "写出导入示例数据的完整步骤，并说明每一步的作用",
+                "question_type", "short",
+                "expected_answer",
+                "先在服务器上创建练习用的数据库并切换到它，再在 mysql 客户端里执行脚本导入示例数据",
+                "accepted_answers", List.of("CREATE DATABASE; USE; SOURCE")), ctx);
+
+        assertThat(quiz.ok()).isTrue();
+        assertThat(quiz.metadata()).containsEntry("status", "registered");
+    }
+
+    @Test
+    @DisplayName("长答案的 open 题不受长度契约影响")
+    void longOpenIsAllowed() {
+        build("p", "x");
+        ToolContext ctx = ctx("p", SessionMode.STUDY);
+
+        ToolResult quiz = MasteryTools.all().get("mastery_quiz").execute(Map.of(
+                "knowledge_point_id", "k1",
+                "question", "说明导入示例数据时为什么必须先选库",
+                "question_type", "open",
+                "expected_answer", "先创建数据库并切换过去，再在客户端里执行脚本导入",
+                "required_keywords", List.of("选库")), ctx);
+
+        assertThat(quiz.ok()).isTrue();
+        assertThat(quiz.metadata()).containsEntry("status", "registered");
+    }
+
+    @Test
     @DisplayName("mastery_skip_question 无参数时跳过当前待答题")
     void skipWithoutArgumentsClearsOpenQuestion() {
         build("p", "x");

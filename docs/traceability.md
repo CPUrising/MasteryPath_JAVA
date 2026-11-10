@@ -452,6 +452,16 @@
 | — | Ungraded persists with zero change | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#unparseableChoiceReturns422WithoutPersisting` | 通过（`0043`） |
 | — | Repeated grade does not duplicate messages | `changes/0043-mastery-grading-parity/specs/learning-tools` | `StudyApiTest#repeatedGradeDoesNotDuplicateMessages` | 通过（`0043`） |
 
+## 22. 简答题长度契约（0044）
+
+> 场景名取自 `openspec/changes/0044-mastery-question-type-contract/specs/learning-tools`。
+
+| ID | 场景 | 规范位置 | Java 测试 | 状态 |
+| --- | --- | --- | --- | --- |
+| — | Long short without a short equivalent is refused | `changes/0044-mastery-question-type-contract/specs/learning-tools` | `StatusAndQuizToolsTest#longShortWithoutAcceptedIsRefused`、`StudyApiTest#longShortWithoutAcceptedAnswersIs422` | 通过（`0044`） |
+| — | Long short with a short equivalent is accepted | `changes/0044-mastery-question-type-contract/specs/learning-tools` | `StatusAndQuizToolsTest#longShortWithShortAcceptedIsAllowed`、`StudyApiTest#longShortWithShortAcceptedAnswersIsRegistered` | 通过（`0044`） |
+| — | Open accepts long expected answers | `changes/0044-mastery-question-type-contract/specs/learning-tools` | `StatusAndQuizToolsTest#longOpenIsAllowed` | 通过（`0044`） |
+
 ## 维护规则
 
 - 新增或改名场景时，必须同步：规范标题、本表、Java 测试方法名。

@@ -1,6 +1,7 @@
 package com.masterypath.adapter.tool;
 
 import com.masterypath.domain.grading.Decision;
+import com.masterypath.domain.grading.Grading;
 import com.masterypath.domain.model.KnowledgePoint;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.MasteryInteraction;
@@ -32,6 +33,16 @@ public final class StudyTools {
     /** 题目卡片在 metadata 里的键（参考实现 {@code QUESTION_CARD_KEY}）。 */
     public static final String QUESTION_CARD_KEY = "question_card";
 
+    /** 判分器对超过 30 字的简答只做精确匹配；注册时按同一把尺子校验。 */
+    private static final int SHORT_ANSWER_LIMIT = 30;
+
+    /** 长简答且在注册期无法判定的拒绝文案。 */
+    private static final String SHORT_ANSWER_TOO_LONG =
+            "short answers are graded by exact/fuzzy match and an expected answer longer than "
+                    + SHORT_ANSWER_LIMIT + " characters never matches; use question_type=open with "
+                    + "required_keywords/optional_keywords, or add an accepted_answers entry of "
+                    + SHORT_ANSWER_LIMIT + " characters or fewer.";
+
     private StudyTools() {
     }
 
@@ -49,7 +60,10 @@ public final class StudyTools {
         public String description() {
             return "Pose a question for a MEMORY or PROCEDURE objective. Registers the "
                     + "expected answer server-side and puts the question on the learner's card; "
-                    + "this call ENDS THE TURN. Grade the answer on the next turn.";
+                    + "this call ENDS THE TURN. Grade the answer on the next turn. Use "
+                    + "question_type=short only when the expected answer is 30 characters or "
+                    + "fewer; for explanations or multi-line answers use open with keywords, or "
+                    + "assess the objective qualitatively with mastery_assess.";
         }
 
         @Override
@@ -116,6 +130,10 @@ public final class StudyTools {
             List<String> optional = "open".equals(spec.questionType())
                     ? spec.optionalKeywords() : List.of();
             List<String> accepted = ToolSupport.stringList(params.get("accepted_answers"));
+
+            if (shortAnswerTooLong(spec, accepted)) {
+                return ToolResult.failure(SHORT_ANSWER_TOO_LONG);
+            }
 
             PendingQuestion pending = QuizSpec.toPending(
                     new QuizSpec.Normalized(spec.questionType(), spec.options(),
@@ -358,6 +376,27 @@ public final class StudyTools {
     }
 
     // -- 辅助 -----------------------------------------------------------------
+
+    /**
+     * 简答题长度契约：期望答案超过判分器的模糊匹配上限时，必须有同样短的等价答案。
+     *
+     * <p>归一化与 {@code Grading.normalize} 完全一致，保证「判分多长」与「校验多长」同一把尺子。
+     */
+    static boolean shortAnswerTooLong(QuizSpec.Normalized spec, List<String> accepted) {
+        if (!"short".equals(spec.questionType())) {
+            return false;
+        }
+        if (Grading.normalize(spec.expectedAnswer()).length() <= SHORT_ANSWER_LIMIT) {
+            return false;
+        }
+        for (String candidate : accepted) {
+            if (!candidate.isBlank()
+                    && Grading.normalize(candidate).length() <= SHORT_ANSWER_LIMIT) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /** 按题目自身的知识点构造卡片；找不到时退回调用方给的目标名。 */
     static Map<String, Object> questionCardFor(LearningProgress progress, PendingQuestion pending,

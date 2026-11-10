@@ -47,3 +47,4 @@
 | 2026-11-10 | `0041-mastery-turn-evidence` | 945 | 0 | 0 | [verify/0041](verify/0041-mastery-turn-evidence.md) |
 | 2026-11-10 | `0042-mastery-session-continuity` | 945 | 0 | 0 | [verify/0042](verify/0042-mastery-session-continuity.md) |
 | 2026-11-10 | `0043-mastery-grading-parity` | 936 | 0 | 0 | [verify/0043](verify/0043-mastery-grading-parity.md) |
+| 2026-11-10 | `0044-mastery-question-type-contract` | 941 | 0 | 0 | [verify/0044](verify/0044-mastery-question-type-contract.md) |
