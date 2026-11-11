@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.masterypath.domain.model.JsonSupport;
 import com.masterypath.service.KnowledgeService;
 import com.masterypath.service.LearningService;
+import com.masterypath.service.QuestionBankService;
 import com.masterypath.service.QuizSetService;
 import com.masterypath.storage.KnowledgeStore;
 import com.masterypath.storage.LearningStore;
@@ -90,6 +91,7 @@ final class ApiTestSupport implements AutoCloseable {
         this.mvc = MockMvcBuilders.standaloneSetup(
                         new LearningController(service, store, knowledgeService),
                         new QuestionBankController(service, store),
+                        new QuestionBankPracticeController(new QuestionBankService(store), store),
                         new SessionController(service, store),
                         new StudyController(service, store),
                         new QuizSetController(new QuizSetService(store)),

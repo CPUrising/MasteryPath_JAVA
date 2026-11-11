@@ -480,6 +480,41 @@ public class LearningStore implements AutoCloseable {
         }
     }
 
+    /** 按 entryId 读取单条题库条目；不存在返回 {@code null}。 */
+    public QuestionBankEntry getBankEntry(String entryId) {
+        synchronized (lock) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT data FROM question_bank WHERE entry_id=?")) {
+                ps.setString(1, entryId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next()
+                            ? mapper.readValue(rs.getString("data"), QuestionBankEntry.class)
+                            : null;
+                }
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException("get bank entry failed", e);
+            }
+        }
+    }
+
+    /** 跨全部路径读取题库，按创建时间倒序。 */
+    public List<QuestionBankEntry> listAllBankEntries() {
+        synchronized (lock) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT data FROM question_bank ORDER BY created_at DESC")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<QuestionBankEntry> entries = new ArrayList<>();
+                    while (rs.next()) {
+                        entries.add(mapper.readValue(rs.getString("data"), QuestionBankEntry.class));
+                    }
+                    return entries;
+                }
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException("list all bank entries failed", e);
+            }
+        }
+    }
+
     /**
      * 按 id 就地修改一条题库条目。
      *

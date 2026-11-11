@@ -359,14 +359,55 @@ export interface QuestionEntry {
   entry_id: string;
   path_id: string;
   path_name?: string;
+  knowledge_point_id?: string;
   knowledge_point_name: string;
   question: string;
   question_type: string;
+  options?: { label: string; body: string }[];
   correct_answer: string;
   user_answer: string;
   explanation: string;
+  difficulty?: string;
   is_correct: boolean | null;
   result: string;
   tags: string[];
   created_at: number;
+  updated_at?: number;
+}
+
+/** 题库标签汇总（`GET /questions/tags`）。 */
+export interface QuestionTagSummary {
+  tag: string;
+  count: number;
+}
+
+/** 刷题卡投影：提交前不含答案字段。 */
+export interface PracticeCard {
+  entry_id: string;
+  path_id: string;
+  path_name?: string;
+  knowledge_point_id?: string;
+  knowledge_point_name?: string;
+  question: string;
+  question_type: string;
+  options: { label: string; body: string }[];
+  difficulty?: string;
+  tags: string[];
+  result: string;
+}
+
+/** `POST /questions/{entryId}/attempt` 的结果。 */
+export interface QuestionAttemptOutcome {
+  status: "graded" | "ungraded";
+  entry_id: string;
+  result?: string;
+  is_correct?: boolean;
+  correct_answer?: string;
+  explanation?: string;
+  reason?: string;
+}
+
+/** 标签重命名 / 合并 / 删除的变更条数。 */
+export interface TagMutationResult {
+  updated: number;
 }

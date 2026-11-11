@@ -14,7 +14,8 @@ import {
   knowledgeBaseRoute,
   masteryTopicRoute,
 } from "@/lib/learning-routes";
-import type { ChatSessionSummary, KnowledgeBase, QuestionEntry } from "@/lib/types";
+import type { ChatSessionSummary, KnowledgeBase } from "@/lib/types";
+import { QuestionBankPanel } from "./QuestionBankPanel";
 
 type Tab = "history" | "knowledge" | "questions";
 
@@ -32,12 +33,10 @@ export function SpaceWorkspace() {
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [topics, setTopics] = useState<HistoryRow[]>([]);
   const [kbs, setKbs] = useState<KnowledgeBase[]>([]);
-  const [questions, setQuestions] = useState<QuestionEntry[]>([]);
 
   const load = useCallback(async () => {
     chatApi.list().then(setSessions).catch(() => setSessions([]));
     knowledgeApi.list().then(setKbs).catch(() => setKbs([]));
-    api.allQuestions().then(setQuestions).catch(() => setQuestions([]));
     try {
       const paths = await api.listPaths();
       const rows: HistoryRow[] = [];
@@ -166,29 +165,7 @@ export function SpaceWorkspace() {
         </section>
       )}
 
-      {tab === "questions" && (
-        <section>
-          {questions.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground">{t("space.noQuestions")}</p>
-          ) : (
-            <ul className="space-y-2">
-              {questions.map((entry) => (
-                <li key={entry.entry_id} className="rounded-xl border border-border p-3.5">
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="rounded bg-muted px-1.5 py-0.5">{entry.question_type}</span>
-                    <span>{entry.path_name || entry.path_id}</span>
-                    {entry.knowledge_point_name && <span>· {entry.knowledge_point_name}</span>}
-                  </div>
-                  <p className="mt-2 text-[13px]">{entry.question}</p>
-                  <p className="mt-1.5 text-[12px] text-muted-foreground">
-                    {t("space.answer")}: {entry.correct_answer || "—"}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {tab === "questions" && <QuestionBankPanel />}
     </LearningShell>
   );
 }

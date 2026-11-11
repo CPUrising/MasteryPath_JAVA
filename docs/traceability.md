@@ -116,6 +116,15 @@
 | —（题库） | `null` → `"None"` | `service.py:1000` | `QuestionBankTest#nullTagBecomesPythonNone` | 通过（`0011`） |
 | —（题库） | 条目不存在**抛错** | `service.py:999` | `QuestionBankTest#tagMissingEntryThrows` | 通过（`0011`，修正 `0008`） |
 | —（题库） | `tag` 真值语义（空白过滤） | `service.py:992` | `QuestionBankTest#blankTagStillFilters`、`#falsyTagReturnsAll` | 通过（`0011`，修正 `0008`） |
+| QB-1 | 多标签 AND 检索 | `specs/question-bank` → Question Bank Search | `QuestionBankPracticeServiceTest#tagsAreAnd`、`QuestionBankApiTest#searchFiltersAndKeepsManagementView` | 通过（`0046`） |
+| QB-2 | `wrong` 结果别名 | `specs/question-bank` → Question Bank Search | `QuestionBankPracticeServiceTest#wrongResultAlias` | 通过（`0046`） |
+| QB-3 | 派生标签汇总（忽略空白） | `specs/question-bank` → Derived Tag Summary | `QuestionBankPracticeServiceTest#tagSummaryCounts`、`QuestionBankApiTest#tagSummary` | 通过（`0046`） |
+| QB-4 | 标签重命名/合并/删除/批量 | `specs/question-bank` → Global Tag Management | `QuestionBankPracticeServiceTest#renameTag`、`#mergeTags`、`#deleteTag`、`#batchTag`、`QuestionBankApiTest#tagMutations` | 通过（`0046`） |
+| QB-5 | 可刷题判定 + 数量夹取 + 错题优先 | `specs/question-bank` → Practice Queue Hides Answers | `QuestionBankGradingTest#notPracticeable`、`QuestionBankPracticeServiceTest#practiceQueueFiltersAndClamps`、`#practiceQueueWrongFirst` | 通过（`0046`） |
+| QB-6 | 刷题卡隐藏答案 | `specs/question-bank` → Practice Queue Hides Answers | `QuestionBankProjectorTest#practiceCardWhitelist`、`QuestionBankApiTest#practiceHidesAnswers` | 通过（`0046`） |
+| QB-7 | 作答只回写题库 / ungraded 零写入 / 404/422 | `specs/question-bank` → Deterministic Bank Attempt | `QuestionBankPracticeServiceTest#attemptWritesBack`、`#ungradedWritesNothing`、`#attemptRejectsUnknownAndUnpracticeable`、`QuestionBankApiTest#attemptGraded`、`#attemptUngraded`、`#attemptErrors` | 通过（`0046`） |
+| QB-8 | 刷题不影响掌握闭环 | `specs/question-bank` → Deterministic Bank Attempt | `QuestionBankPracticeServiceTest#attemptLeavesMasteryUntouched` | 通过（`0046`） |
+| QB-9 | 零 DDL 变更、旧库可打开 | `specs/question-bank` → Additive Storage | `ReferenceWorkspaceCompatibilityTest`（既有全绿） | 通过（`0046`） |
 | TC-H1 | 正文唯一匹配 | `specs/learning-tools` → `TC-H1` | `GradingTest#choiceBodyUniqueMatch` | 通过（`0008`） |
 | TC-H2 | 歧义不判分 | `specs/learning-tools` → `TC-H2` | `GradingTest#choiceUnparseableIsUngraded` | 通过（`0008`） |
 | TC-H3 | 数字等价 | `specs/learning-tools` → `TC-H3` | `GradingTest#shortNumeric` | 通过（`0008`） |

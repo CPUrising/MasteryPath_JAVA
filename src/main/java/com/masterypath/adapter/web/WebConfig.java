@@ -8,6 +8,7 @@ import com.masterypath.service.ChatService;
 import com.masterypath.service.KnowledgeService;
 import com.masterypath.service.LearningService;
 import com.masterypath.service.NavigationService;
+import com.masterypath.service.QuestionBankService;
 import com.masterypath.service.QuizSetService;
 import com.masterypath.storage.ChatStore;
 import com.masterypath.storage.KnowledgeStore;
@@ -52,6 +53,12 @@ public class WebConfig {
     @Bean
     public QuizSetService quizSetService(LearningStore store) {
         return new QuizSetService(store);
+    }
+
+    /** 题库工作台：检索、标签管理、刷题（{@code 0046}）。 */
+    @Bean
+    public QuestionBankService questionBankService(LearningStore store) {
+        return new QuestionBankService(store);
     }
 
     /** 聊天数据库（独立 {@code chat.db}，与 {@code learning.db} 同目录不共库）。 */

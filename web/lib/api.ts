@@ -5,11 +5,16 @@ import type {
   Mode,
   ModelService,
   PathState,
+  PracticeCard,
   Provider,
   ProviderDetection,
   ProviderProtocol,
+  QuestionAttemptOutcome,
+  QuestionEntry,
+  QuestionTagSummary,
   QuizSet,
   QuizSetSubmitOutcome,
+  TagMutationResult,
   TopicSession,
 } from "./types";
 
@@ -135,6 +140,68 @@ export const api = {
     fetch(`${API_BASE}/questions${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`).then(
       json<import("./types").QuestionEntry[]>,
     ),
+  questionTags: (pathId?: string) =>
+    fetch(
+      `${API_BASE}/questions/tags${pathId ? `?path_id=${encodeURIComponent(pathId)}` : ""}`,
+    ).then(json<QuestionTagSummary[]>),
+  searchQuestions: (input: {
+    pathId?: string;
+    tags?: string[];
+    result?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (input.pathId) params.set("path_id", input.pathId);
+    if (input.tags && input.tags.length > 0) params.set("tags", input.tags.join(","));
+    if (input.result) params.set("result", input.result);
+    if (input.q) params.set("q", input.q);
+    if (input.limit !== undefined) params.set("limit", String(input.limit));
+    if (input.offset !== undefined) params.set("offset", String(input.offset));
+    const query = params.toString();
+    return fetch(`${API_BASE}/questions/search${query ? `?${query}` : ""}`).then(
+      json<QuestionEntry[]>,
+    );
+  },
+  practiceQuestions: (input: {
+    pathId?: string;
+    tags?: string[];
+    size?: number;
+    order?: "newest" | "wrong_first" | "random";
+  }) => {
+    const params = new URLSearchParams();
+    if (input.pathId) params.set("path_id", input.pathId);
+    if (input.tags && input.tags.length > 0) params.set("tags", input.tags.join(","));
+    if (input.size !== undefined) params.set("size", String(input.size));
+    if (input.order) params.set("order", input.order);
+    const query = params.toString();
+    return fetch(`${API_BASE}/questions/practice${query ? `?${query}` : ""}`).then(
+      json<PracticeCard[]>,
+    );
+  },
+  attemptQuestion: (entryId: string, answer: string) =>
+    post<QuestionAttemptOutcome>(
+      `${API_BASE}/questions/${encodeURIComponent(entryId)}/attempt`,
+      { answer },
+    ),
+  saveQuestionTags: (entryId: string, tags: string[]) =>
+    post<QuestionEntry>(
+      `${API_BASE}/learning/questions/${encodeURIComponent(entryId)}/tags`,
+      { tags },
+    ),
+  renameTag: (from: string, to: string) =>
+    post<TagMutationResult>(`${API_BASE}/questions/tags/rename`, { from, to }),
+  mergeTags: (from: string[], to: string) =>
+    post<TagMutationResult>(`${API_BASE}/questions/tags/merge`, { from, to }),
+  deleteTag: (tag: string) =>
+    post<TagMutationResult>(`${API_BASE}/questions/tags/delete`, { tag }),
+  batchTags: (entryIds: string[], add: string[], remove: string[]) =>
+    post<{ updated: QuestionEntry[] }>(`${API_BASE}/questions/tags/batch`, {
+      entry_ids: entryIds,
+      add,
+      remove,
+    }),
   quiz: (pathId: string, body: unknown) =>
     post<{ question_id: string; question_card: unknown }>(`${API_BASE}/learning/paths/${pathId}/quiz`, body),
   grade: (pathId: string, body: unknown) =>

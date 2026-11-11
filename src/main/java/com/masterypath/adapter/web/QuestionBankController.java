@@ -60,8 +60,8 @@ public class QuestionBankController {
         return rows;
     }
 
-    /** 题库条目的 {@code model_dump()} 等价。 */
-    private static Map<String, Object> entryMap(QuestionBankEntry entry) {
+    /** 题库条目的 {@code model_dump()} 等价（与 {@link QuestionBankPracticeController} 共用）。 */
+    static Map<String, Object> entryMap(QuestionBankEntry entry) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("entry_id", entry.getEntryId());
         row.put("path_id", entry.getPathId());
