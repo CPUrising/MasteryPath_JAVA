@@ -29,6 +29,15 @@ public class QuestionBankEntry {
     private double createdAt = TimeSupport.nowSeconds();
     private double updatedAt = TimeSupport.nowSeconds();
 
+    /**
+     * 题目归属的知识库（{@code 0047}）。
+     *
+     * <p><b>派生字段</b>：由条目所属路径绑定的知识库解析而来，{@code @JsonIgnore} 保证既不序列化
+     * 也不反序列化，因此 {@code question_bank.data} 的字节与本 change 之前完全一致。
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<KnowledgeBaseRef> knowledgeBases = new ArrayList<>();
+
     public QuestionBankEntry() {
     }
 
@@ -160,6 +169,17 @@ public class QuestionBankEntry {
 
     public void setTags(List<String> tags) {
         this.tags = tags == null ? new ArrayList<>() : tags;
+    }
+
+    /** 派生归属；默认空列表（路径未绑定知识库或路径已删除）。 */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public List<KnowledgeBaseRef> getKnowledgeBases() {
+        return knowledgeBases;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public void setKnowledgeBases(List<KnowledgeBaseRef> knowledgeBases) {
+        this.knowledgeBases = knowledgeBases == null ? new ArrayList<>() : knowledgeBases;
     }
 
     public double getCreatedAt() {

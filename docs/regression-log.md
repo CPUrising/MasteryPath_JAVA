@@ -50,3 +50,4 @@
 | 2026-11-10 | `0044-mastery-question-type-contract` | 941 | 0 | 0 | [verify/0044](verify/0044-mastery-question-type-contract.md) |
 | 2026-11-10 | `0045-quiz-type-objective-gate` | 944 | 0 | 0 | [verify/0045](verify/0045-quiz-type-objective-gate.md) |
 | 2026-11-11 | `0046-question-bank-practice` | 977 | 0 | 0 | [verify/0046](verify/0046-question-bank-practice.md) |
+| 2026-11-11 | `0047-question-bank-knowledge-bases` | 991 | 0 | 0 | [verify/0047](verify/0047-question-bank-knowledge-bases.md) |

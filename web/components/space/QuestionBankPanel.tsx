@@ -6,7 +6,12 @@ import { useTranslation } from "react-i18next";
 
 import { MarkdownMessage } from "@/components/common/MarkdownMessage";
 import { api } from "@/lib/api";
-import type { PracticeCard, QuestionEntry, QuestionTagSummary } from "@/lib/types";
+import type {
+  PracticeCard,
+  QuestionEntry,
+  QuestionKbGroup,
+  QuestionTagSummary,
+} from "@/lib/types";
 
 import { PracticeRunner } from "./PracticeRunner";
 import { TagManagerDialog } from "./TagManagerDialog";
@@ -18,7 +23,10 @@ export function QuestionBankPanel() {
   const { t } = useTranslation();
   const [entries, setEntries] = useState<QuestionEntry[]>([]);
   const [tagSummary, setTagSummary] = useState<QuestionTagSummary[]>([]);
+  const [kbGroups, setKbGroups] = useState<QuestionKbGroup[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedKbIds, setSelectedKbIds] = useState<string[]>([]);
+  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
   const [keyword, setKeyword] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -35,23 +43,26 @@ export function QuestionBankPanel() {
     setLoading(true);
     setError("");
     try {
-      const [rows, tags] = await Promise.all([
+      const [rows, tags, groups] = await Promise.all([
         api.searchQuestions({
           tags: selectedTags,
+          knowledgeBaseIds: selectedKbIds,
           result: resultFilter === "all" ? undefined : resultFilter,
           q: keyword.trim() || undefined,
           limit: 300,
         }),
         api.questionTags(),
+        api.questionKbGroups(),
       ]);
       setEntries(rows);
       setTagSummary(tags);
+      setKbGroups(groups);
     } catch (reason) {
       setError(String(reason));
     } finally {
       setLoading(false);
     }
-  }, [keyword, resultFilter, selectedTags]);
+  }, [keyword, resultFilter, selectedKbIds, selectedTags]);
 
   useEffect(() => {
     const timer = setTimeout(() => void load(), 250);
@@ -110,6 +121,7 @@ export function QuestionBankPanel() {
     try {
       const cards = await api.practiceQuestions({
         tags: selectedTags,
+        knowledgeBaseIds: selectedKbIds,
         size: 10,
         order: resultFilter === "wrong" ? "wrong_first" : "newest",
       });
@@ -118,6 +130,17 @@ export function QuestionBankPanel() {
       setError(String(reason));
     }
   };
+
+  const toggleKb = (kbId: string) => {
+    setOnlyUnassigned(false);
+    setSelectedKbIds((current) =>
+      current.includes(kbId) ? current.filter((item) => item !== kbId) : [...current, kbId],
+    );
+  };
+
+  const visibleEntries = onlyUnassigned
+    ? entries.filter((entry) => (entry.knowledge_bases ?? []).length === 0)
+    : entries;
 
   if (practice) {
     return (
@@ -165,6 +188,43 @@ export function QuestionBankPanel() {
           {t("space.bank.manageTags")}
         </button>
       </div>
+
+      {kbGroups.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            {t("space.bank.kbFilter")}
+          </span>
+          {kbGroups.map((group) => {
+            const unassigned = group.knowledge_base_id === "";
+            const active = unassigned
+              ? onlyUnassigned
+              : selectedKbIds.includes(group.knowledge_base_id);
+            const label = unassigned ? t("space.bank.unassignedKb") : group.name;
+            return (
+              <button
+                key={group.knowledge_base_id || "__unassigned__"}
+                type="button"
+                onClick={() => {
+                  if (unassigned) {
+                    setSelectedKbIds([]);
+                    setOnlyUnassigned((current) => !current);
+                  } else {
+                    toggleKb(group.knowledge_base_id);
+                  }
+                }}
+                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                  active
+                    ? "border-primary/60 bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/40"
+                }`}
+              >
+                {label}
+                <span className="ml-1 opacity-60">{group.total}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {tagSummary.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
@@ -252,13 +312,13 @@ export function QuestionBankPanel() {
 
       {error && <p className="text-[12px] text-destructive">{error}</p>}
 
-      {entries.length === 0 ? (
+      {visibleEntries.length === 0 ? (
         <p className="text-[13px] text-muted-foreground">
           {loading ? t("space.bank.loading") : t("space.bank.empty")}
         </p>
       ) : (
         <ul className="space-y-2">
-          {entries.map((entry) => (
+          {visibleEntries.map((entry) => (
             <li key={entry.entry_id} className="rounded-xl border border-border p-3.5">
               <div className="flex items-start gap-2.5">
                 <input
@@ -272,6 +332,14 @@ export function QuestionBankPanel() {
                     <span className="rounded bg-muted px-1.5 py-0.5">{entry.question_type}</span>
                     <span>{entry.path_name || entry.path_id}</span>
                     {entry.knowledge_point_name && <span>· {entry.knowledge_point_name}</span>}
+                    {(entry.knowledge_bases ?? []).map((kb) => (
+                      <span
+                        key={kb.id}
+                        className="rounded bg-primary/10 px-1.5 py-0.5 text-primary"
+                      >
+                        {kb.name}
+                      </span>
+                    ))}
                     <span
                       className={`inline-flex items-center gap-1 ${
                         entry.result === "correct" ? "text-primary" : "text-destructive"

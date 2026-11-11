@@ -1,5 +1,6 @@
 package com.masterypath.adapter.web;
 
+import com.masterypath.domain.bank.QuestionBankGrading;
 import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.domain.projection.QuestionBankProjector;
@@ -48,6 +49,13 @@ public class QuestionBankPracticeController {
         return bank.tagSummary(pathId);
     }
 
+    /** 按知识库聚合题目数（{@code 0047}）；未关联组在最后、`name` 为空由前端本地化。 */
+    @GetMapping("/kb-groups")
+    public List<Map<String, Object>> kbGroups(
+            @RequestParam(name = "path_id", required = false) String pathId) {
+        return bank.kbGroups(pathId);
+    }
+
     /** 管理视图检索：含答案，用于题库列表与复盘。 */
     @GetMapping("/search")
     public List<Map<String, Object>> search(
@@ -55,9 +63,10 @@ public class QuestionBankPracticeController {
             @RequestParam(name = "tags", required = false) List<String> tags,
             @RequestParam(name = "result", required = false) String result,
             @RequestParam(name = "q", required = false) String keyword,
+            @RequestParam(name = "knowledge_base_ids", required = false) List<String> kbIds,
             @RequestParam(name = "limit", defaultValue = "" + DEFAULT_SEARCH_LIMIT) int limit,
             @RequestParam(name = "offset", defaultValue = "0") int offset) {
-        List<QuestionBankEntry> entries = bank.list(pathId, tags, result, keyword);
+        List<QuestionBankEntry> entries = bank.list(pathId, tags, result, keyword, kbIds);
         int size = limit <= 0 ? DEFAULT_SEARCH_LIMIT : Math.min(limit, MAX_SEARCH_LIMIT);
         int from = Math.max(offset, 0);
         Map<String, String> names = pathNames();
@@ -66,6 +75,8 @@ public class QuestionBankPracticeController {
             QuestionBankEntry entry = entries.get(index);
             Map<String, Object> row = QuestionBankController.entryMap(entry);
             row.put("path_name", nameOf(names, entry.getPathId()));
+            row.put("knowledge_bases", entry.getKnowledgeBases());
+            row.put("practiceable", QuestionBankGrading.practiceable(entry));
             rows.add(row);
         }
         return rows;
@@ -76,11 +87,12 @@ public class QuestionBankPracticeController {
     public List<Map<String, Object>> practice(
             @RequestParam(name = "path_id", required = false) String pathId,
             @RequestParam(name = "tags", required = false) List<String> tags,
+            @RequestParam(name = "knowledge_base_ids", required = false) List<String> kbIds,
             @RequestParam(name = "size", defaultValue = "10") int size,
             @RequestParam(name = "order", defaultValue = "newest") String order) {
         Map<String, String> names = pathNames();
         List<Map<String, Object>> cards = new ArrayList<>();
-        for (QuestionBankEntry entry : bank.practiceQueue(pathId, tags, size, order)) {
+        for (QuestionBankEntry entry : bank.practiceQueue(pathId, tags, kbIds, size, order)) {
             cards.add(QuestionBankProjector.practiceCard(entry, nameOf(names, entry.getPathId())));
         }
         return cards;

@@ -56,9 +56,9 @@ class QuestionBankPracticeServiceTest {
         save("e1", "short", "4", "correct", 3.0, "k1", "fact one", List.of("java", "并发"));
         save("e2", "short", "4", "correct", 2.0, "k1", "fact one", List.of("java"));
 
-        assertThat(bank.list("", List.of("java"), "", ""))
+        assertThat(bank.list("", List.of("java"), "", "", List.of()))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e1", "e2");
-        assertThat(bank.list("", List.of("java", "并发"), "", ""))
+        assertThat(bank.list("", List.of("java", "并发"), "", "", List.of()))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e1");
     }
 
@@ -70,7 +70,7 @@ class QuestionBankPracticeServiceTest {
         save("e3", "short", "4", "partial", 2.0, "k1", "fact one", List.of());
         save("e4", "short", "4", "voided", 1.0, "k1", "fact one", List.of());
 
-        assertThat(bank.list("", List.of(), "wrong", ""))
+        assertThat(bank.list("", List.of(), "wrong", "", List.of()))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e2", "e3", "e4");
     }
 
@@ -80,9 +80,9 @@ class QuestionBankPracticeServiceTest {
         save("e1", "short", "4", "correct", 2.0, "k1", "facts", List.of());
         save("e2", "short", "4", "correct", 1.0, "k2", "linear algebra", List.of());
 
-        assertThat(bank.list("", List.of(), "", "FACT"))
+        assertThat(bank.list("", List.of(), "", "FACT", List.of()))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e1");
-        assertThat(bank.list("", List.of(), "", "algebra"))
+        assertThat(bank.list("", List.of(), "", "algebra", List.of()))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e2");
     }
 
@@ -172,11 +172,11 @@ class QuestionBankPracticeServiceTest {
         save("e2", "short", "4", "incorrect", 2.0, "k1", "a", List.of());
         save("e3", "written", "", "partial", 1.0, "k1", "a", List.of());
 
-        assertThat(bank.practiceQueue("", List.of(), 10, "newest"))
+        assertThat(bank.practiceQueue("", List.of(), List.of(), 10, "newest"))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e1", "e2");
-        assertThat(bank.practiceQueue("", List.of(), 1, "newest")).hasSize(1);
-        assertThat(bank.practiceQueue("", List.of(), 100, "newest")).hasSize(2);
-        assertThat(bank.practiceQueue("", List.of(), 0, "newest")).hasSize(2);
+        assertThat(bank.practiceQueue("", List.of(), List.of(), 1, "newest")).hasSize(1);
+        assertThat(bank.practiceQueue("", List.of(), List.of(), 100, "newest")).hasSize(2);
+        assertThat(bank.practiceQueue("", List.of(), List.of(), 0, "newest")).hasSize(2);
     }
 
     @Test
@@ -185,7 +185,7 @@ class QuestionBankPracticeServiceTest {
         save("e1", "short", "4", "correct", 3.0, "k1", "a", List.of());
         save("e2", "short", "4", "incorrect", 2.0, "k1", "a", List.of());
 
-        assertThat(bank.practiceQueue("", List.of(), 10, "wrong_first"))
+        assertThat(bank.practiceQueue("", List.of(), List.of(), 10, "wrong_first"))
                 .extracting(QuestionBankEntry::getEntryId).containsExactly("e2", "e1");
     }
 
@@ -268,7 +268,112 @@ class QuestionBankPracticeServiceTest {
         assertThat(store.eventsSince("p", 0)).hasSize(eventsBefore);
     }
 
+    // -- 知识库归属（0047） ----------------------------------------------------
+
+    @Test
+    @DisplayName("按知识库筛选为 OR：命中任一即返回")
+    void listFiltersByKnowledgeBaseOr() {
+        bindKnowledgeBases("p", "kb1");
+        store.create(ServiceFixtures.onePoint("p2", KnowledgeType.MEMORY));
+        bindKnowledgeBases("p2", "kb2");
+        store.create(ServiceFixtures.onePoint("p3", KnowledgeType.MEMORY));
+        saveOn("p", "e1", 3.0);
+        saveOn("p2", "e2", 2.0);
+        saveOn("p3", "e3", 1.0);
+
+        assertThat(bank.list("", List.of(), "", "", List.of()))
+                .extracting(QuestionBankEntry::getEntryId)
+                .containsExactlyInAnyOrder("e1", "e2", "e3");
+        assertThat(bank.list("", List.of(), "", "", List.of("kb1")))
+                .extracting(QuestionBankEntry::getEntryId).containsExactly("e1");
+        assertThat(bank.list("", List.of(), "", "", List.of("kb1", "kb2")))
+                .extracting(QuestionBankEntry::getEntryId)
+                .containsExactlyInAnyOrder("e1", "e2");
+    }
+
+    @Test
+    @DisplayName("分组统计多归属：一条路径绑两个库时两边都计数")
+    void kbGroupsCountsMultiMembership() {
+        bindKnowledgeBases("p", "kb1", "kb2");
+        store.create(ServiceFixtures.onePoint("p2", KnowledgeType.MEMORY));
+        bindKnowledgeBases("p2", "kb1");
+        saveOn("p", "e1", 2.0);
+        saveOn("p2", "e2", 1.0);
+
+        assertThat(bank.kbGroups(""))
+                .extracting(row -> row.get("knowledge_base_id"), row -> row.get("total"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("kb1", 2),
+                        org.assertj.core.groups.Tuple.tuple("kb2", 1));
+    }
+
+    @Test
+    @DisplayName("未关联题目单独成组且排在最后")
+    void kbGroupsHasUnassignedLast() {
+        bindKnowledgeBases("p", "kb1");
+        store.create(ServiceFixtures.onePoint("p2", KnowledgeType.MEMORY));
+        saveOn("p", "e1", 2.0);
+        saveOn("p2", "e2", 1.0);
+
+        assertThat(bank.kbGroups(""))
+                .extracting(row -> row.get("knowledge_base_id"), row -> row.get("total"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("kb1", 1),
+                        org.assertj.core.groups.Tuple.tuple("", 1));
+    }
+
+    @Test
+    @DisplayName("知识库归属不写入题库 data")
+    void knowledgeBasesAreNotPersisted() throws Exception {
+        bindKnowledgeBases("p", "kb1");
+        saveOn("p", "e1", 1.0);
+
+        QuestionBankEntry enriched = bank.list("", List.of(), "", "", List.of()).get(0);
+        assertThat(enriched.getKnowledgeBases())
+                .extracting(com.masterypath.domain.model.KnowledgeBaseRef::id)
+                .containsExactly("kb1");
+
+        String data = com.masterypath.domain.model.JsonSupport.objectMapper()
+                .writeValueAsString(store.getBankEntry("e1"));
+        assertThat(data).doesNotContain("knowledge_bases");
+    }
+
     // -- 工厂 -----------------------------------------------------------------
+
+    /** 给路径绑定知识库（写入 `sources[]` 的 `kind=knowledge_base` 条目）。 */
+    private void bindKnowledgeBases(String pathId, String... kbIds) {
+        store.mutate(pathId, tx -> {
+            List<com.masterypath.domain.model.TopicSource> sources = new ArrayList<>();
+            for (String kbId : kbIds) {
+                com.masterypath.domain.model.TopicSource source =
+                        new com.masterypath.domain.model.TopicSource();
+                source.setId("s-" + kbId);
+                source.setKind("knowledge_base");
+                source.setSourceId(kbId);
+                source.setLabel("KB " + kbId);
+                sources.add(source);
+            }
+            tx.progress().setSources(sources);
+            return null;
+        }, null, true);
+    }
+
+    /** 在指定路径写一条可刷的 short 题。 */
+    private void saveOn(String pathId, String entryId, double createdAt) {
+        QuestionBankEntry entry = new QuestionBankEntry();
+        entry.setEntryId(entryId);
+        entry.setPathId(pathId);
+        entry.setKnowledgePointId("k1");
+        entry.setKnowledgePointName("fact one");
+        entry.setQuestionId("q-" + entryId);
+        entry.setQuestion("prompt " + entryId);
+        entry.setQuestionType("short");
+        entry.setCorrectAnswer("4");
+        entry.setResult("correct");
+        entry.setCorrect(true);
+        entry.setCreatedAt(createdAt);
+        store.saveBankEntry(entry);
+    }
 
     /** 直接写一条题库条目；createdAt 显式给定以保证排序可断言。 */
     private void save(String entryId, String type, String answer, String result, double createdAt,

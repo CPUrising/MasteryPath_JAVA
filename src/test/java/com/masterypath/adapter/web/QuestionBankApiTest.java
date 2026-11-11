@@ -166,6 +166,118 @@ class QuestionBankApiTest {
 
     // -- 辅助 -----------------------------------------------------------------
 
+    @Test
+    @DisplayName("按知识库分组：多归属两边都计数，未关联单独成组")
+    void kbGroups() throws Exception {
+        api.service.createPath("kbp1", "goal one", "K1");
+        bindKnowledgeBases("kbp1", "kb1", "kb2");
+        saveOn("kbp1", "kbe1", 2.0);
+        api.service.createPath("kbp2", "goal two", "K2");
+        saveOn("kbp2", "kbe2", 1.0);
+
+        List<Map<String, Object>> multi = jsonList(api.mvc.perform(
+                get("/questions/kb-groups").param("path_id", "kbp1")).andReturn());
+        assertThat(multi).extracting(row -> row.get("knowledge_base_id"), row -> row.get("total"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("kb1", 1),
+                        org.assertj.core.groups.Tuple.tuple("kb2", 1));
+
+        List<Map<String, Object>> unassigned = jsonList(api.mvc.perform(
+                get("/questions/kb-groups").param("path_id", "kbp2")).andReturn());
+        assertThat(unassigned).extracting(row -> row.get("knowledge_base_id"), row -> row.get("total"))
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("", 1));
+    }
+
+    @Test
+    @DisplayName("检索按知识库 OR 过滤，并返回归属列表")
+    void searchFiltersByKnowledgeBase() throws Exception {
+        api.service.createPath("kbp1", "goal one", "K1");
+        bindKnowledgeBases("kbp1", "kb1");
+        saveOn("kbp1", "kbe1", 2.0);
+        api.service.createPath("kbp2", "goal two", "K2");
+        bindKnowledgeBases("kbp2", "kb2");
+        saveOn("kbp2", "kbe2", 1.0);
+
+        List<Map<String, Object>> both = jsonList(api.mvc.perform(
+                get("/questions/search").param("knowledge_base_ids", "kb1,kb2")).andReturn());
+        assertThat(both).extracting(row -> row.get("entry_id"))
+                .containsExactlyInAnyOrder("kbe1", "kbe2");
+
+        List<Map<String, Object>> onlyKb1 = jsonList(api.mvc.perform(
+                get("/questions/search").param("knowledge_base_ids", "kb1")).andReturn());
+        assertThat(onlyKb1).hasSize(1);
+        assertThat(onlyKb1.get(0)).containsEntry("entry_id", "kbe1");
+        assertThat((List<?>) onlyKb1.get(0).get("knowledge_bases")).hasSize(1);
+
+        List<Map<String, Object>> missing = jsonList(api.mvc.perform(
+                get("/questions/search").param("knowledge_base_ids", "kb9")).andReturn());
+        assertThat(missing).isEmpty();
+    }
+
+    @Test
+    @DisplayName("刷题队列支持知识库过滤，卡片含归属且隐藏答案")
+    void practiceFiltersByKnowledgeBase() throws Exception {
+        api.service.createPath("kbp1", "goal one", "K1");
+        bindKnowledgeBases("kbp1", "kb1");
+        saveOn("kbp1", "kbe1", 2.0);
+        api.service.createPath("kbp2", "goal two", "K2");
+        bindKnowledgeBases("kbp2", "kb2");
+        saveOn("kbp2", "kbe2", 1.0);
+
+        List<Map<String, Object>> cards = jsonList(api.mvc.perform(
+                get("/questions/practice").param("knowledge_base_ids", "kb2")).andReturn());
+
+        assertThat(cards).hasSize(1);
+        assertThat(cards.get(0))
+                .containsEntry("entry_id", "kbe2")
+                .doesNotContainKeys("correct_answer", "explanation", "user_answer", "is_correct");
+        assertThat((List<?>) cards.get(0).get("knowledge_bases")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("参考实现端点 GET /questions 不新增知识库字段")
+    void legacyQuestionsEndpointUnchanged() throws Exception {
+        List<Map<String, Object>> rows = jsonList(api.mvc.perform(get("/questions")).andReturn());
+
+        assertThat(rows).isNotEmpty();
+        assertThat(rows).allSatisfy(row -> assertThat(row)
+                .doesNotContainKey("knowledge_bases")
+                .doesNotContainKey("practiceable"));
+    }
+
+    // -- 辅助 -----------------------------------------------------------------
+
+    private void bindKnowledgeBases(String pathId, String... kbIds) {
+        List<com.masterypath.domain.model.TopicSource> sources = new ArrayList<>();
+        for (String kbId : kbIds) {
+            com.masterypath.domain.model.TopicSource source =
+                    new com.masterypath.domain.model.TopicSource();
+            source.setId("s-" + kbId);
+            source.setKind("knowledge_base");
+            source.setSourceId(kbId);
+            source.setLabel("KB " + kbId);
+            sources.add(source);
+        }
+        api.service.setKnowledgeBaseSources(pathId, sources);
+    }
+
+    private void saveOn(String pathId, String entryId, double createdAt) {
+        QuestionBankEntry entry = new QuestionBankEntry();
+        entry.setEntryId(entryId);
+        entry.setPathId(pathId);
+        entry.setKnowledgePointId("k1");
+        entry.setKnowledgePointName("fact one");
+        entry.setQuestionId("q-" + entryId);
+        entry.setQuestion("prompt " + entryId);
+        entry.setQuestionType("short");
+        entry.setCorrectAnswer("4");
+        entry.setExplanation("because " + entryId);
+        entry.setResult("correct");
+        entry.setCorrect(true);
+        entry.setCreatedAt(createdAt);
+        api.store.saveBankEntry(entry);
+    }
+
     private void save(String entryId, String type, String answer, String result,
                       double createdAt, List<String> tags) {
         QuestionBankEntry entry = new QuestionBankEntry();

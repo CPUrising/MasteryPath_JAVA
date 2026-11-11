@@ -355,6 +355,19 @@ export interface ToolActivityEntry {
   content?: string;
 }
 
+/** 题库条目归属的知识库（`0047`）。 */
+export interface KnowledgeBaseRef {
+  id: string;
+  name: string;
+}
+
+/** `GET /questions/kb-groups` 的分组；`knowledge_base_id` 为空表示未关联。 */
+export interface QuestionKbGroup {
+  knowledge_base_id: string;
+  name: string;
+  total: number;
+}
+
 export interface QuestionEntry {
   entry_id: string;
   path_id: string;
@@ -373,6 +386,8 @@ export interface QuestionEntry {
   tags: string[];
   created_at: number;
   updated_at?: number;
+  knowledge_bases?: KnowledgeBaseRef[];
+  practiceable?: boolean;
 }
 
 /** 题库标签汇总（`GET /questions/tags`）。 */
@@ -394,6 +409,7 @@ export interface PracticeCard {
   difficulty?: string;
   tags: string[];
   result: string;
+  knowledge_bases?: KnowledgeBaseRef[];
 }
 
 /** `POST /questions/{entryId}/attempt` 的结果。 */

@@ -40,6 +40,7 @@ public final class QuestionBankProjector {
         card.put("difficulty", entry.getDifficulty());
         card.put("tags", new ArrayList<>(entry.getTags()));
         card.put("result", entry.getResult());
+        card.put("knowledge_bases", entry.getKnowledgeBases());
         return card;
     }
 

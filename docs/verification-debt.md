@@ -73,3 +73,5 @@
 | 前端联调 | Next.js 对 Java 后端的端到端 | 浏览器实测 | 通过 | 4 条主链路（路径/设置/探测/聊天/知识库），见 [verify/0024](verify/0024-acceptance.md) |
 | 题库工作台 | 检索（AND/结果/关键字）、派生标签汇总、标签重命名/合并/删除/批量、刷题队列、作答判分与掌握闭环不变 | `QuestionBankGradingTest`、`QuestionBankProjectorTest`、`QuestionBankPracticeServiceTest`、`QuestionBankApiTest` | 通过 | 33 用例，见 [verify/0046](verify/0046-question-bank-practice.md) |
 | 题库工作台前端 | Space →「题库」tab 的筛选、标签编辑、标签管理弹窗、刷题交互 | 浏览器实测 | 未执行 | 仅完成 `npm run typecheck` 与 `npm run lint`；见 [verify/0046](verify/0046-question-bank-practice.md) §4 D1 |
+| 题库知识库分类 | 按路径绑定的 KB 派生归属、分组计数、OR 筛选、未关联组、旧端点不变 | `QuestionBankKnowledgeBasesTest`、`QuestionBankPracticeServiceTest`、`QuestionBankApiTest` | 通过 | 14 用例，见 [verify/0047](verify/0047-question-bank-knowledge-bases.md) |
+| 题库知识库分类前端 | Space 题库面板的知识库 chips、徽章与刷题入口 | 浏览器实测 | 未执行 | 仅完成 typecheck/lint；见 [verify/0047](verify/0047-question-bank-knowledge-bases.md) §4 D1 |

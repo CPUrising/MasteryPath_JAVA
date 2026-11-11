@@ -113,6 +113,9 @@ export function PracticeRunner({
           <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
             {current.path_name || current.path_id}
             {current.knowledge_point_name ? ` · ${current.knowledge_point_name}` : ""}
+            {(current.knowledge_bases ?? []).length > 0
+              ? ` · ${(current.knowledge_bases ?? []).map((kb) => kb.name).join(" / ")}`
+              : ""}
           </div>
         </div>
         <button

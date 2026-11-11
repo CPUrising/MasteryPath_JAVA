@@ -281,6 +281,8 @@
   "space.noQuestions": "No questions recorded yet.",
   "space.answer": "Answer",
   "space.bank.search": "Search questions or knowledge points",
+  "space.bank.kbFilter": "Knowledge base",
+  "space.bank.unassignedKb": "Unassigned",
   "space.bank.result.all": "All",
   "space.bank.result.wrong": "Wrong",
   "space.bank.result.correct": "Correct",

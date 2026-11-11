@@ -225,6 +225,8 @@
   "space.noQuestions": "暂无题目记录。",
   "space.answer": "答案",
   "space.bank.search": "搜索题目或知识点",
+  "space.bank.kbFilter": "知识库",
+  "space.bank.unassignedKb": "未关联知识库",
   "space.bank.result.all": "全部",
   "space.bank.result.wrong": "错题",
   "space.bank.result.correct": "正确",

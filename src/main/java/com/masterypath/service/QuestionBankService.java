@@ -1,7 +1,10 @@
 package com.masterypath.service;
 
 import com.masterypath.domain.bank.QuestionBankGrading;
+import com.masterypath.domain.bank.QuestionBankKnowledgeBases;
 import com.masterypath.domain.grading.Decision;
+import com.masterypath.domain.model.KnowledgeBaseRef;
+import com.masterypath.domain.model.LearningProgress;
 import com.masterypath.domain.model.QuestionBankEntry;
 import com.masterypath.storage.LearningStore;
 import com.masterypath.storage.PreconditionFailedException;
@@ -38,22 +41,28 @@ public class QuestionBankService {
     }
 
     /**
-     * 题库检索：路径 + 多标签（AND）+ 结果 + 关键字。
+     * 题库检索：路径 + 多标签（AND）+ 结果 + 关键字 + 知识库（OR）。
      *
      * @param pathId  空白表示跨全部路径
      * @param tags    全部命中才保留（AND）；{@code null} 或空列表表示不过滤
      * @param result  {@code wrong} 表示 incorrect/partial/voided，其余精确匹配
      * @param keyword 对题干与知识点名做忽略大小写的包含匹配
+     * @param kbIds   属于任一知识库即保留（OR）；{@code null} 或空列表表示不过滤
      */
     public List<QuestionBankEntry> list(String pathId, List<String> tags, String result,
-                                        String keyword) {
+                                        String keyword, List<String> kbIds) {
         List<QuestionBankEntry> entries = isBlank(pathId)
                 ? store.listAllBankEntries()
                 : store.listBankEntries(pathId);
+        Map<String, LearningProgress> index = pathIndex();
         List<QuestionBankEntry> filtered = new ArrayList<>();
         String needle = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
         for (QuestionBankEntry entry : entries) {
+            enrich(entry, index);
             if (!matchesTags(entry, tags) || !matchesResult(entry, result)) {
+                continue;
+            }
+            if (!QuestionBankKnowledgeBases.matches(entry.getKnowledgeBases(), kbIds)) {
                 continue;
             }
             if (!needle.isEmpty() && !matchesKeyword(entry, needle)) {
@@ -62,6 +71,41 @@ public class QuestionBankService {
             filtered.add(entry);
         }
         return filtered;
+    }
+
+    /**
+     * 按知识库聚合题目数（{@code 0047}）。
+     *
+     * <p>多归属导致各组 {@code total} 之和 ≥ 总题数，这是预期语义。
+     * 未关联组（{@code knowledge_base_id = ""}）排在最后，{@code name} 留空由前端本地化。
+     */
+    public List<Map<String, Object>> kbGroups(String pathId) {
+        List<QuestionBankEntry> entries = list(pathId, List.of(), "", "", List.of());
+        Map<String, KnowledgeBaseRef> refs = new LinkedHashMap<>();
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        int unassigned = 0;
+        for (QuestionBankEntry entry : entries) {
+            if (entry.getKnowledgeBases().isEmpty()) {
+                unassigned++;
+                continue;
+            }
+            for (KnowledgeBaseRef ref : entry.getKnowledgeBases()) {
+                refs.putIfAbsent(ref.id(), ref);
+                counts.merge(ref.id(), 1, Integer::sum);
+            }
+        }
+        List<Map<String, Object>> groups = new ArrayList<>();
+        counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                        .thenComparing(item -> refs.get(item.getKey()).name()))
+                .forEach(item -> groups.add(payload(
+                        "knowledge_base_id", item.getKey(),
+                        "name", refs.get(item.getKey()).name(),
+                        "total", item.getValue())));
+        if (unassigned > 0) {
+            groups.add(payload("knowledge_base_id", "", "name", "", "total", unassigned));
+        }
+        return groups;
     }
 
     /** 派生标签汇总：忽略 null 与空白；按题目数降序、标签名升序。 */
@@ -195,13 +239,14 @@ public class QuestionBankService {
     /**
      * 刷题队列：只保留可确定性判分的题目。
      *
-     * @param size  默认 10，夹取 1–50
-     * @param order {@code newest}（默认）/ {@code wrong_first} / {@code random}
+     * @param kbIds  属于任一知识库即保留（OR）；空表示不过滤
+     * @param size   默认 10，夹取 1–50
+     * @param order  {@code newest}（默认）/ {@code wrong_first} / {@code random}
      */
     public List<QuestionBankEntry> practiceQueue(String pathId, List<String> tags,
-                                                 Integer size, String order) {
+                                                 List<String> kbIds, Integer size, String order) {
         List<QuestionBankEntry> candidates = new ArrayList<>(
-                list(pathId, tags, "", ""));
+                list(pathId, tags, "", "", kbIds));
         candidates.removeIf(entry -> !QuestionBankGrading.practiceable(entry));
         String sorting = order == null ? "" : order.trim().toLowerCase(Locale.ROOT);
         if ("wrong_first".equals(sorting)) {
@@ -253,6 +298,21 @@ public class QuestionBankService {
     }
 
     // -- 内部 -----------------------------------------------------------------
+
+    /** 单次调用内构建 {@code pathId → 路径聚合} 索引，避免逐条查库。 */
+    private Map<String, LearningProgress> pathIndex() {
+        Map<String, LearningProgress> index = new LinkedHashMap<>();
+        for (LearningProgress progress : store.listPaths()) {
+            index.put(progress.getPathId(), progress);
+        }
+        return index;
+    }
+
+    /** 回填知识库归属；路径不存在时置空列表（未关联）。 */
+    private static void enrich(QuestionBankEntry entry, Map<String, LearningProgress> index) {
+        entry.setKnowledgeBases(
+                QuestionBankKnowledgeBases.of(index.get(entry.getPathId())));
+    }
 
     private static boolean matchesTags(QuestionBankEntry entry, List<String> tags) {
         if (tags == null || tags.isEmpty()) {

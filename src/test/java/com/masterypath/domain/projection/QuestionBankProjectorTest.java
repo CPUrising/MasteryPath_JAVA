@@ -44,7 +44,7 @@ class QuestionBankProjectorTest {
         assertThat(card).containsOnlyKeys(
                 "entry_id", "path_id", "path_name", "knowledge_point_id",
                 "knowledge_point_name", "question", "question_type", "options",
-                "difficulty", "tags", "result");
+                "difficulty", "tags", "result", "knowledge_bases");
         assertThat(card).doesNotContainKeys(
                 "correct_answer", "explanation", "user_answer", "is_correct");
         assertThat(card).containsEntry("path_name", "Path");

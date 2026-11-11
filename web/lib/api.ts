@@ -11,6 +11,7 @@ import type {
   ProviderProtocol,
   QuestionAttemptOutcome,
   QuestionEntry,
+  QuestionKbGroup,
   QuestionTagSummary,
   QuizSet,
   QuizSetSubmitOutcome,
@@ -144,9 +145,14 @@ export const api = {
     fetch(
       `${API_BASE}/questions/tags${pathId ? `?path_id=${encodeURIComponent(pathId)}` : ""}`,
     ).then(json<QuestionTagSummary[]>),
+  questionKbGroups: (pathId?: string) =>
+    fetch(
+      `${API_BASE}/questions/kb-groups${pathId ? `?path_id=${encodeURIComponent(pathId)}` : ""}`,
+    ).then(json<QuestionKbGroup[]>),
   searchQuestions: (input: {
     pathId?: string;
     tags?: string[];
+    knowledgeBaseIds?: string[];
     result?: string;
     q?: string;
     limit?: number;
@@ -155,6 +161,9 @@ export const api = {
     const params = new URLSearchParams();
     if (input.pathId) params.set("path_id", input.pathId);
     if (input.tags && input.tags.length > 0) params.set("tags", input.tags.join(","));
+    if (input.knowledgeBaseIds && input.knowledgeBaseIds.length > 0) {
+      params.set("knowledge_base_ids", input.knowledgeBaseIds.join(","));
+    }
     if (input.result) params.set("result", input.result);
     if (input.q) params.set("q", input.q);
     if (input.limit !== undefined) params.set("limit", String(input.limit));
@@ -167,12 +176,16 @@ export const api = {
   practiceQuestions: (input: {
     pathId?: string;
     tags?: string[];
+    knowledgeBaseIds?: string[];
     size?: number;
     order?: "newest" | "wrong_first" | "random";
   }) => {
     const params = new URLSearchParams();
     if (input.pathId) params.set("path_id", input.pathId);
     if (input.tags && input.tags.length > 0) params.set("tags", input.tags.join(","));
+    if (input.knowledgeBaseIds && input.knowledgeBaseIds.length > 0) {
+      params.set("knowledge_base_ids", input.knowledgeBaseIds.join(","));
+    }
     if (input.size !== undefined) params.set("size", String(input.size));
     if (input.order) params.set("order", input.order);
     const query = params.toString();

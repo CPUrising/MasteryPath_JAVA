@@ -125,6 +125,10 @@
 | QB-7 | 作答只回写题库 / ungraded 零写入 / 404/422 | `specs/question-bank` → Deterministic Bank Attempt | `QuestionBankPracticeServiceTest#attemptWritesBack`、`#ungradedWritesNothing`、`#attemptRejectsUnknownAndUnpracticeable`、`QuestionBankApiTest#attemptGraded`、`#attemptUngraded`、`#attemptErrors` | 通过（`0046`） |
 | QB-8 | 刷题不影响掌握闭环 | `specs/question-bank` → Deterministic Bank Attempt | `QuestionBankPracticeServiceTest#attemptLeavesMasteryUntouched` | 通过（`0046`） |
 | QB-9 | 零 DDL 变更、旧库可打开 | `specs/question-bank` → Additive Storage | `ReferenceWorkspaceCompatibilityTest`（既有全绿） | 通过（`0046`） |
+| QB-10 | 按路径绑定的知识库派生归属（多对多） | `specs/question-bank` → Derive Knowledge Base Membership | `QuestionBankKnowledgeBasesTest#onlyKnowledgeBaseSources`、`#deduplicatesById`、`QuestionBankPracticeServiceTest#knowledgeBasesAreNotPersisted` | 通过（`0047`） |
+| QB-11 | 未关联题目独立成组 | `specs/question-bank` → Derive Knowledge Base Membership | `QuestionBankKnowledgeBasesTest#emptyWhenMissing`、`QuestionBankPracticeServiceTest#kbGroupsHasUnassignedLast` | 通过（`0047`） |
+| QB-12 | 知识库分组计数与 OR 筛选 | `specs/question-bank` → Knowledge Base Grouping And Filtering | `QuestionBankPracticeServiceTest#kbGroupsCountsMultiMembership`、`#listFiltersByKnowledgeBaseOr`、`QuestionBankApiTest#kbGroups`、`#searchFiltersByKnowledgeBase` | 通过（`0047`） |
+| QB-13 | 刷题卡带归属且隐藏答案 / 旧端点不变 | `specs/question-bank` → Knowledge Base Grouping And Filtering | `QuestionBankApiTest#practiceFiltersByKnowledgeBase`、`#legacyQuestionsEndpointUnchanged` | 通过（`0047`） |
 | TC-H1 | 正文唯一匹配 | `specs/learning-tools` → `TC-H1` | `GradingTest#choiceBodyUniqueMatch` | 通过（`0008`） |
 | TC-H2 | 歧义不判分 | `specs/learning-tools` → `TC-H2` | `GradingTest#choiceUnparseableIsUngraded` | 通过（`0008`） |
 | TC-H3 | 数字等价 | `specs/learning-tools` → `TC-H3` | `GradingTest#shortNumeric` | 通过（`0008`） |
