@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 import { masteryTopicRoute } from "@/lib/learning-routes";
 
@@ -14,6 +15,7 @@ export interface TopicCardData {
 }
 
 export function TopicMapCard({ topic }: { topic: TopicCardData }) {
+  const { t } = useTranslation();
   return (
     <Link
       href={masteryTopicRoute(topic.path_id)}
@@ -24,15 +26,15 @@ export function TopicMapCard({ topic }: { topic: TopicCardData }) {
         {topic.goal || "—"}
       </p>
       <div className="mt-4 flex items-center gap-2 text-[12px] text-muted-foreground">
-        <span>{topic.objectives} KP</span>
+        <span>{t("atlas.kp", { count: topic.objectives })}</span>
         {typeof topic.mastered === "number" && (
           <span>
-            {topic.mastered}/{topic.objectives} mastered
+            {t("atlas.mastered", { mastered: topic.mastered, total: topic.objectives })}
           </span>
         )}
         {(topic.due_reviews ?? 0) > 0 && (
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
-            {topic.due_reviews} due
+            {t("atlas.due", { count: topic.due_reviews })}
           </span>
         )}
       </div>

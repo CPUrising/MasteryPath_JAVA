@@ -50,57 +50,65 @@ export function MessageBubble({
     }
   };
 
+  // 空回合（只有工具调用、没有正文）不应留下一个空气泡与"复制"按钮。
+  const showBubble = user || Boolean(content) || streaming;
+  const hasActivities = Boolean(activities && activities.length > 0);
+  if (!showBubble && !hasActivities) return null;
+
   return (
     <div className={`group flex flex-col ${user ? "items-end" : "items-start"}`}>
       {!user && <ToolActivityList activities={activities} />}
-      <div
-        className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${
-          user ? "bg-primary/10" : "bg-muted"
-        }`}
-      >
-        {user ? (
-          <div className="whitespace-pre-wrap leading-relaxed">{content}</div>
-        ) : content ? (
-          <MarkdownMessage content={content} />
-        ) : streaming ? (
-          <span className="thinking-dots" role="status" aria-label={t("chat.thinking")}>
-            <span />
-            <span />
-            <span />
-          </span>
-        ) : null}
-        {attachments.length > 0 && (
-          <span className="mt-1 block text-[11px] text-muted-foreground">
-            {attachments.map((item) => item.name).join(", ")}
-          </span>
-        )}
-      </div>
-
-      <div className="mt-1 flex items-center gap-0.5 text-[11px] text-muted-foreground opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-        <button
-          type="button"
-          title={copied ? t("chat.copied") : t("chat.copy")}
-          aria-label={t("chat.copy")}
-          disabled={!content}
-          onClick={() => void copy()}
-          className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 hover:bg-accent disabled:opacity-40"
+      {showBubble && (
+        <div
+          className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${
+            user ? "border border-primary/15 bg-primary/10" : "bg-muted"
+          }`}
         >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          <span>{copied ? t("chat.copied") : t("chat.copy")}</span>
-        </button>
-        {user && onWithdraw && (
+          {user ? (
+            <div className="whitespace-pre-wrap leading-relaxed">{content}</div>
+          ) : content ? (
+            <MarkdownMessage content={content} />
+          ) : (
+            <span className="thinking-dots" role="status" aria-label={t("chat.thinking")}>
+              <span />
+              <span />
+              <span />
+            </span>
+          )}
+          {attachments.length > 0 && (
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              {attachments.map((item) => item.name).join(", ")}
+            </span>
+          )}
+        </div>
+      )}
+
+      {content && (
+        <div className="mt-1 flex items-center gap-0.5 text-[11px] text-muted-foreground opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
           <button
             type="button"
-            title={t("chat.withdraw")}
-            aria-label={t("chat.withdraw")}
-            onClick={onWithdraw}
-            className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 hover:bg-accent"
+            title={copied ? t("chat.copied") : t("chat.copy")}
+            aria-label={t("chat.copy")}
+            onClick={() => void copy()}
+            className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 hover:bg-accent disabled:opacity-40"
           >
-            <Undo2 size={12} />
-            <span>{t("chat.withdraw")}</span>
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            <span>{copied ? t("chat.copied") : t("chat.copy")}</span>
           </button>
-        )}
-      </div>
+          {user && onWithdraw && (
+            <button
+              type="button"
+              title={t("chat.withdraw")}
+              aria-label={t("chat.withdraw")}
+              onClick={onWithdraw}
+              className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 hover:bg-accent"
+            >
+              <Undo2 size={12} />
+              <span>{t("chat.withdraw")}</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

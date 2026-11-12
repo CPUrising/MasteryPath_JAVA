@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<link rel="icon" href="data:," />
+<title>MasteryPath · 第二部分 系统设计</title>
+<style>
+  :root{
+    --navy:#1B3F73;
+    --blue:#2563EB;
+    --blue-soft:#EEF4FD;
+    --blue-line:#C9D6E8;
+    --amber:#C8761E;
+    --amber-soft:#FDF3E7;
+    --amber-line:#EBD3B4;
+    --ink:#1F2937;
+    --gray:#8A94A6;
+    --page:#F7F8FA;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--page);}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .deck{display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 0 64px;}
+  .slide{
+    position:relative;
+    width:1280px;height:720px;
+    background:var(--white);
+    border-radius:6px;
+    box-shadow:0 10px 30px rgba(27,63,115,.10);
+    padding:40px 56px 38px;
+    overflow:hidden;
+    display:none;
+    zoom:var(--zoom,1);
+  }
+  .slide.active{display:block;}
+  body.overview .slide{display:block;}
+  .footer{
+    position:absolute;left:56px;right:56px;bottom:16px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:#A7B0C0;letter-spacing:.04em;
+  }
+  .footer .doc{color:#B7C0CF;}
+
+  /* 标题区 */
+  .head{display:flex;align-items:baseline;gap:18px;margin-bottom:6px;}
+  .sec{font-size:22px;font-weight:800;color:var(--blue);letter-spacing:.02em;white-space:nowrap;}
+  .title{font-size:36px;font-weight:800;color:var(--navy);line-height:1.15;letter-spacing:.005em;}
+  .subtitle{margin:9px 0 20px;font-size:15px;color:var(--gray);line-height:1.5;}
+
+  /* 封面 */
+  .cover{display:flex;flex-direction:column;justify-content:center;height:100%;padding-left:24px;}
+  .cover .kicker{font-size:18px;color:var(--blue);font-weight:700;letter-spacing:.12em;margin-bottom:17px;}
+  .cover h1{font-size:74px;line-height:1.06;margin:0 0 10px;color:var(--navy);font-weight:900;letter-spacing:-.01em;}
+  .cover .en{font-size:19px;color:var(--gray);letter-spacing:.16em;text-transform:uppercase;margin-bottom:28px;}
+  .cover .line{width:96px;height:4px;background:var(--blue);margin:0 0 24px;}
+  .cover .meta{font-size:17px;color:#4B5563;line-height:1.9;}
+  .cover .meta b{color:var(--navy);}
+
+  /* 两栏 */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:36px;}
+  .cols.wide-left{grid-template-columns:1.06fr .94fr;}
+  .block-h{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 12px;}
+
+  .quote{font-size:17.5px;font-weight:800;color:var(--blue);margin:0 0 5px;line-height:1.5;}
+  .quote .mark{color:#9DB9E8;margin-right:4px;}
+  .note{font-size:13.5px;color:var(--gray);line-height:1.6;margin:0 0 16px;}
+
+  .card{background:var(--blue-soft);border-radius:9px;padding:12px 15px;margin-bottom:10px;}
+  .card h4{margin:0 0 4px;font-size:16px;color:var(--navy);font-weight:800;}
+  .card p{margin:0;font-size:13px;color:#6B7A90;line-height:1.55;}
+  .card.amber{background:var(--amber-soft);border:1px solid var(--amber-line);}
+  .card.amber h4{color:var(--amber);}
+  .card.amber p{color:#8A6A3F;}
+  .hl{color:var(--blue);font-weight:800;}
+
+  /* 表格 */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    background:#16233A;color:#fff;font-weight:700;font-size:12.5px;
+    text-align:left;padding:10px 12px;letter-spacing:.02em;
+  }
+  thead th:last-child{background:#4A3520;}
+  tbody td{padding:11px 12px;vertical-align:top;line-height:1.5;border-bottom:1px solid #EDF1F7;color:#4B5563;}
+  tbody tr:nth-child(odd) td{background:#FCFDFF;}
+  tbody tr:nth-child(even) td{background:var(--blue-soft);}
+  tbody td:last-child{background:var(--amber-soft) !important;color:#8A6A3F;}
+  td.dim{font-weight:800;color:var(--blue);font-size:12.5px;letter-spacing:.02em;}
+  td.dim span{display:block;color:var(--navy);font-size:14.5px;margin-top:2px;letter-spacing:0;}
+  td b{color:var(--navy);}
+  .tbl-note{font-size:12px;color:var(--gray);margin-top:10px;line-height:1.6;}
+  code{font-family:Consolas,"SFMono-Regular",Menlo,monospace;font-size:12px;background:#F2F5FA;padding:1px 5px;border-radius:4px;color:#3D5A80;}
+
+  /* 分层调用链 */
+  .layers{display:flex;flex-direction:column;gap:4px;}
+  .layer{display:grid;grid-template-columns:118px 1fr;align-items:center;gap:10px;}
+  .layer .name{font-size:12.5px;font-weight:800;color:var(--navy);line-height:1.25;}
+  .layer .desc{background:#F6F9FE;border:1px solid #E1E9F6;border-radius:7px;padding:6px 10px;font-size:11.5px;color:#5B6A80;line-height:1.4;}
+  .layer .desc b{color:var(--navy);}
+  .layer .desc i{font-style:normal;color:#A8621A;}
+  .down{text-align:center;color:#C6D4E8;font-size:11px;line-height:1;margin-left:60px;}
+
+  /* 四步卡 */
+  .steps{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .step-card{background:#F6F9FE;border-radius:8px;padding:9px 11px;border:1px solid #E7EEF9;}
+  .step-card .k{font-size:10.5px;font-weight:900;color:var(--blue);letter-spacing:.1em;}
+  .step-card h5{margin:2px 0 2px;font-size:13.5px;color:var(--navy);}
+  .step-card p{margin:0;font-size:11px;color:#6B7A90;line-height:1.42;}
+  .strip{margin-top:10px;background:#F3F6FB;border-radius:7px;padding:9px 12px;font-size:11.5px;color:#5B6A80;line-height:1.55;}
+  .strip b{color:var(--navy);}
+
+  /* 流程图块（交互页） */
+  .flowline{display:flex;align-items:stretch;gap:8px;}
+  .fbox{flex:1;background:var(--blue-soft);border-radius:8px;padding:9px 10px;border:1px solid #E1E9F6;}
+  .fbox .k{font-size:10.5px;font-weight:900;color:var(--blue);letter-spacing:.08em;}
+  .fbox h6{margin:2px 0 2px;font-size:13px;color:var(--navy);}
+  .fbox p{margin:0;font-size:10.5px;color:#6B7A90;line-height:1.35;}
+  .farrow{display:flex;align-items:center;color:#B9CBE4;font-size:16px;font-weight:900;}
+  .inv{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+  .inv .c{background:#fff;border:1px solid #E7EEF9;border-radius:8px;padding:11px 12px;}
+  .inv .c .n{font-size:11px;font-weight:900;color:var(--blue);letter-spacing:.08em;}
+  .inv .c h6{margin:3px 0 4px;font-size:14px;color:var(--navy);}
+  .inv .c p{margin:0;font-size:11px;color:#6B7A90;line-height:1.45;}
+
+  /* 截图网格 */
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .shot{margin:0;border:1px solid #E7EEF9;border-radius:8px;overflow:hidden;background:#F7F8FA;}
+  .shot .img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top center;background:#F7F8FA;}
+  .shot.contain .img{object-fit:contain;}
+  .shot figcaption{font-size:10px;color:#6B7A90;line-height:1.35;padding:5px 7px;background:#fff;border-top:1px solid #EEF2F8;}
+  .shots-lg{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:4px;}
+  .shot-lg{margin:0;border:1px solid #E7EEF9;border-radius:8px;overflow:hidden;background:#F7F8FA;}
+  .shot-lg img{display:block;width:100%;height:196px;object-fit:contain;background:#F7F8FA;}
+  .shot-lg figcaption{font-size:11px;color:#6B7A90;padding:6px 9px;background:#fff;border-top:1px solid #EEF2F8;}
+
+  /* 两条动线 */
+  .lane{margin-bottom:12px;}
+  .lane-h{font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:6px;}
+  .chips{display:flex;align-items:stretch;gap:6px;}
+  .chip{flex:1;background:var(--blue-soft);border-radius:7px;padding:8px 7px;font-size:10.5px;color:#4A6B9A;line-height:1.35;text-align:center;}
+  .chip b{display:block;color:var(--navy);font-size:12px;margin-bottom:2px;}
+  .chip.amber{background:var(--amber-soft);color:#8A6A3F;}
+  .chip.amber b{color:#A8621A;}
+  .carrow{display:flex;align-items:center;color:#B9CBE4;font-weight:900;font-size:13px;}
+  .p8grid{display:grid;grid-template-columns:1fr 1.05fr;gap:16px;margin-top:10px;}
+  .p8shot{margin:0;border:1px solid #E7EEF9;border-radius:8px;overflow:hidden;background:#F7F8FA;}
+  .p8shot img{display:block;width:100%;height:350px;object-fit:contain;}
+  .p8shot figcaption{font-size:10.5px;color:#6B7A90;padding:6px 9px;background:#fff;border-top:1px solid #EEF2F8;}
+
+  /* 双栏现状 */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  .panel{border-radius:9px;overflow:hidden;background:#FCFDFF;border:1px solid #EDF1F7;}
+  .panel .ph{padding:10px 15px;font-size:15.5px;font-weight:800;color:#fff;background:var(--navy);}
+  .panel.plan .ph{background:var(--amber);}
+  .panel .pb{padding:12px 15px 4px;}
+  .item{margin-bottom:10px;}
+  .item h5{margin:0 0 2px;font-size:14.5px;color:var(--navy);font-weight:800;}
+  .panel.plan .item h5{color:#A8621A;}
+  .item p{margin:0;font-size:12px;color:#6B7A90;line-height:1.5;}
+  .evidence{margin:2px 0 0;background:var(--blue-soft);border-radius:7px;padding:9px 11px;font-size:11.5px;color:#4A6B9A;}
+
+  /* 2x2 */
+  .quad{display:grid;grid-template-columns:1fr 1fr;gap:28px 42px;}
+  .q .tag{font-size:11.5px;font-weight:800;color:var(--blue);letter-spacing:.06em;}
+  .q h4{margin:6px 0 6px;font-size:21px;color:var(--navy);line-height:1.3;}
+  .q p{margin:0 0 6px;font-size:13px;color:#5B6A80;line-height:1.6;}
+  .q .m{font-size:12px;color:#8A94A6;}
+  .q .m b{color:var(--blue);}
+
+  /* 收尾 */
+  .thanks{display:flex;flex-direction:column;justify-content:center;height:100%;padding-left:18px;}
+  .thanks h2{font-size:70px;margin:0 0 16px;color:#2B3444;font-weight:900;letter-spacing:.02em;}
+  .thanks .line{width:96px;height:4px;background:var(--blue);margin-bottom:30px;}
+  .thanks .members{font-size:17px;color:var(--gray);letter-spacing:.03em;}
+  .thanks .path{font-size:13.5px;color:#A7B0C0;margin-top:12px;}
+
+  .hud{
+    position:fixed;right:22px;bottom:18px;z-index:50;
+    font-size:12px;color:#8A94A6;background:rgba(255,255,255,.9);
+    border:1px solid #E4EAF4;border-radius:20px;padding:6px 12px;
+    box-shadow:0 2px 8px rgba(27,63,115,.08);
+  }
+  @media print{
+    @page{size:1280px 720px;margin:0;}
+    html,body{background:#fff;}
+    .deck{display:block;padding:0;gap:0;}
+    .slide{display:block !important;box-shadow:none;border-radius:0;margin:0;page-break-after:always;break-after:page;zoom:1 !important;}
+    .slide:last-child{page-break-after:auto;}
+    .hud{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 封面 -->
+  <section class="slide active">
+    <div class="cover">
+      <div class="kicker">系统分析与设计 · 第二部分</div>
+      <h1>MasteryPath<br/>精通之路</h1>
+      <div class="en">System Design of an Agentic Mastery Learning System</div>
+      <div class="line"></div>
+      <div class="meta">
+        以知识地图为中心的掌握式学习智能体<br/>
+        <b>教学交给模型，推进交给引擎</b><br/>
+        王君逸 · 程攀 · 卫梓豪 · 王沛璁
+      </div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span class="doc">2026-11 · Week 10</span></div>
+  </section>
+
+  <!-- 2 需求与痛点 -->
+  <section class="slide">
+    <div class="head"><div class="sec">01 需求与痛点</div><div class="title">资料并不缺，缺的是"学到哪、算不算会"</div></div>
+    <div class="subtitle">自学卡住的地方，不在信息获取，而在路径、判据与遗忘。</div>
+    <div class="cols">
+      <div>
+        <div class="block-h">学习者在什么时候卡住</div>
+        <p class="quote"><span class="mark">「</span>资料收藏了一堆，不知道从哪开始。<span class="mark">」</span></p>
+        <p class="note">目标模糊，路径靠感觉；收藏不等于路线。</p>
+        <p class="quote"><span class="mark">「</span>看完了感觉懂了，一合上书就忘。<span class="mark">」</span></p>
+        <p class="note">流利错觉：重复阅读制造"会了"的体感，却不带来保持。</p>
+        <p class="quote"><span class="mark">「</span>做了题，错了也不知道该不该往下学。<span class="mark">」</span></p>
+        <p class="note">没有判据，推进只能靠自我感觉。</p>
+      </div>
+      <div>
+        <div class="block-h">现有工具能帮到哪一步</div>
+        <div class="card"><h4>笔记 / 资料库</h4><p>能存资料、能双链——但不排路径，也不判断是否掌握。</p></div>
+        <div class="card"><h4>刷题 App</h4><p>能出题、能对答案——题海驱动，不排复习、不看类型。</p></div>
+        <div class="card"><h4>Anki / SuperMemo</h4><p>能排间隔复习——卡片要自己造，没有地图与讲解。</p></div>
+        <div class="card amber"><h4>没有一个工具把"地图—学习—检验—复习"连成闭环</h4><p>而"是否掌握"这件事，目前几乎全靠用户自己说。</p></div>
+      </div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>02 / 12</span></div>
+  </section>
+
+  <!-- 3 定位 -->
+  <section class="slide">
+    <div class="head"><div class="sec">01 定位</div><div class="title">一条目标变成可编辑地图，围绕它跑闭环</div></div>
+    <div class="subtitle">地图是唯一真相源；题目、证据、复习都围绕它发生。</div>
+    <div class="cols wide-left">
+      <div>
+        <div class="block-h">MasteryPath 帮学习者完成什么</div>
+        <div class="item" style="margin-bottom:12px;">
+          <h5 style="margin:0 0 3px;font-size:16px;color:var(--navy);">一张地图 <span class="hl">模块 + 知识点</span></h5>
+          <p style="margin:0;font-size:13px;color:#6B7A90;line-height:1.55;">记忆 / 程序 / 概念 / 设计——<b>类型决定"什么叫会"</b>，创建后只读。</p>
+        </div>
+        <div class="item" style="margin-bottom:12px;">
+          <h5 style="margin:0 0 3px;font-size:16px;color:var(--navy);">三种模式 <span class="hl">大纲 / 学习 / 复习</span></h5>
+          <p style="margin:0;font-size:13px;color:#6B7A90;line-height:1.55;">能力由后端<span class="hl">调用期门控</span>，不只禁用按钮；工具不归类，服务直接起不来。</p>
+        </div>
+        <div class="item">
+          <h5 style="margin:0 0 3px;font-size:16px;color:var(--navy);">一个判据 <span class="hl">0.9 或定性通过</span></h5>
+          <p style="margin:0;font-size:13px;color:#6B7A90;line-height:1.55;">判分、门槛、调度全部零模型调用——模型可以教，<b>不能放行</b>。</p>
+        </div>
+        <div class="card amber" style="margin-top:14px;">
+          <h4>相比第一部分，需求变了三处</h4>
+          <p>新增练习卷（<b>不计入掌握</b>）· 题卡事件权威化（刷新不丢卡）· 知识库与主题多对多。<br/>原因：单题回合无法支撑考前自测，而刷卷不能变成刷分。</p>
+        </div>
+      </div>
+      <div>
+        <div class="block-h">两条动线，共用题库与知识库</div>
+        <div class="lane">
+          <div class="lane-h">掌握之路（写掌握分）</div>
+          <div class="chips">
+            <div class="chip"><b>地图</b>4 类知识点</div>
+            <div class="carrow">›</div>
+            <div class="chip"><b>讲 / 考</b>单槽位出题</div>
+            <div class="carrow">›</div>
+            <div class="chip"><b>判分</b>0.9 或定性</div>
+            <div class="carrow">›</div>
+            <div class="chip"><b>复习</b>SM-2 排期</div>
+          </div>
+        </div>
+        <div class="lane">
+          <div class="lane-h">刷题（不写掌握分）</div>
+          <div class="chips">
+            <div class="chip amber"><b>题库</b>判分后入库</div>
+            <div class="carrow">›</div>
+            <div class="chip amber"><b>筛选</b>标签 / 知识库</div>
+            <div class="carrow">›</div>
+            <div class="chip amber"><b>刷题</b>10 题 · 即时判</div>
+            <div class="carrow">›</div>
+            <div class="chip amber"><b>练习卷</b>1–10 题</div>
+          </div>
+        </div>
+        <div class="strip"><b>分界：</b>只有掌握之路写掌握分与证据；刷题与练习卷只回写该题作答，不进复习队列。</div>
+      </div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>03 / 12</span></div>
+  </section>
+
+  <!-- 4 界面截图 -->
+  <section class="slide">
+    <div class="head"><div class="sec">01 界面</div><div class="title">四个界面，两条动线</div></div>
+    <div class="subtitle">图集与仪表盘只读投影；工作区才产生写事务；刷题只回写该题作答。</div>
+    <div class="shots-lg">
+      <figure class="shot-lg">
+        <img src="assets/s1-atlas.png" alt="主题图集" />
+        <figcaption>图集：我有哪些主题、几个到期</figcaption>
+      </figure>
+      <figure class="shot-lg">
+        <img src="assets/s2-dashboard.png" alt="目标仪表盘" />
+        <figcaption>仪表盘：这个主题到哪了</figcaption>
+      </figure>
+      <figure class="shot-lg">
+        <img src="assets/s3-card.png" alt="待答题卡" />
+        <figcaption>题卡：一次一道，作答是下一条消息</figcaption>
+      </figure>
+      <figure class="shot-lg">
+        <img src="assets/s5-practice.png" alt="刷题器" />
+        <figcaption>刷题：从题库抽题，即时判分</figcaption>
+      </figure>
+    </div>
+    <div class="strip" style="margin-top:6px;"><b>读侧无模型：</b>图集与仪表盘只读聚合投影；<b>写侧有门控：</b>只有工作区会产生写事务。</div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>04 / 12</span></div>
+  </section>
+
+  <!-- 5 三个关键权衡 -->
+  <section class="slide">
+    <div class="head"><div class="sec">02 三个关键设计权衡</div><div class="title">三条决策决定系统"不会坏在哪"</div></div>
+    <div class="subtitle">每条都对应一种具体的失败模式；写清代价，而不是只写选择。</div>
+    <table style="margin-top:10px;">
+      <thead>
+        <tr><th style="width:21%">权衡维度</th><th style="width:34%">约束（为什么会坏）</th><th style="width:45%">我们的选择与代价</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="dim">权衡 1<span>判定权归属</span></td>
+          <td>模型输出的两次自评不一致，无法回归；若门槛由模型判，"掌握"就不可复核。</td>
+          <td><b>判定下沉到 domain 纯函数</b>：判分 / 门槛 / 门控 / 调度零模型调用。<br/>代价：规则改动必须走代码 + ADR；定性评估仍是唯一的"半确定性"边界。</td>
+        </tr>
+        <tr>
+          <td class="dim">权衡 2<span>状态一致性</span></td>
+          <td>一次出题要同时写待答题、题目事务、事件；一次判分要同时写作答、证据、掌握度、复习队列——分表多写必留脏状态。</td>
+          <td><b>单聚合 + version CAS + 事件同 revision</b>；一次工具调用 = 一次写事务。<br/>代价：聚合随路径变大有写放大；读-改-写期间无法跨聚合事务。</td>
+        </tr>
+        <tr>
+          <td class="dim">权衡 3<span>能力边界</span></td>
+          <td>23 个工具 × 3 种模式 = 69 种组合，UI 只能表达 3 个模式按钮；越权一旦发生，事后无法追溯意图。</td>
+          <td><b>静态分类表 + 调用期门控 + fail-closed</b>：未归类工具启动即失败；条件挂载让模型看不到无效工具。<br/>代价：分类表与 schema 需双写；越权拒绝会消耗一次预算。</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tbl-note">共同点：三条都把"不可靠的判断"换成"可断言的结构"——这正是评审时最容易被追问的地方。</div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>05 / 12</span></div>
+  </section>
+
+  <!-- 5 智能体架构（分层 + 读写分离） -->
+  <section class="slide">
+    <div class="head"><div class="sec">02 智能体架构</div><div class="title">提示只读快照，事实只由一次写事务产生</div></div>
+    <div class="subtitle">智能体不是一个"会说话的模型"，而是一条从事件流到聚合的受控调用链：读侧装配上下文，写侧只有一条路。</div>
+    <div class="cols wide-left">
+      <div>
+        <div class="block-h">一次回合穿过五层</div>
+        <div class="layers">
+          <div class="layer"><div class="name">传输<br/>WS / REST</div><div class="desc"><b>WsTurnHandler</b> 只做解析与转发：一次连接一条请求，事件逐帧推送</div></div>
+          <div class="down">▼</div>
+          <div class="layer"><div class="name">回合装配<br/>TurnRunner</div><div class="desc"><b>读侧全部在这里</b>：状态快照 + 最近 6 张卡复盘 + ≤20 条历史 + 8 块提示 + 挂载后的工具表</div></div>
+          <div class="down">▼</div>
+          <div class="layer"><div class="name">循环<br/>AgentLoop</div><div class="desc">≤6 轮 · ≤6 次工具 · 出题即收尾；<i>只产事件，不写库</i></div></div>
+          <div class="down">▼</div>
+          <div class="layer"><div class="name">工具层<br/>23 个</div><div class="desc">schema 校验 → 模式门控 → 预算 → 调 service；<i>不直接改状态</i></div></div>
+          <div class="down">▼</div>
+          <div class="layer"><div class="name">服务<br/>LearningService</div><div class="desc"><b>唯一写入口</b>：一次工具调用 = 一次 mutate；校验、派生、发事件都在这层</div></div>
+          <div class="down">▼</div>
+          <div class="layer"><div class="name">存储<br/>LearningStore</div><div class="desc">读版本 → 改聚合 → <code>WHERE version=v</code> 写回；冲突重试 ≤3，事件同 revision 入账</div></div>
+        </div>
+        <div class="strip" style="margin-top:8px;"><b>读侧（提示）：</b>快照是派生数据，每轮重新装配，永不回写。<b>写侧（工具）：</b>只有 service 能改聚合，工具与 Loop 都没有写权限。</div>
+      </div>
+      <div>
+        <div class="block-h">一次写事务的四个动作</div>
+        <div class="steps">
+          <div class="step-card"><div class="k">STEP 1</div><h5>校验</h5><p>模式归属、预算、单槽位、前置条件——拒绝发生在写之前。</p></div>
+          <div class="step-card"><div class="k">STEP 2</div><h5>读</h5><p>取聚合与当前 version；读不到就不创建（除显式建档）。</p></div>
+          <div class="step-card"><div class="k">STEP 3</div><h5>改</h5><p>就地修改 + 事件入内存队列；不落盘，不影响其他读者。</p></div>
+          <div class="step-card"><div class="k">STEP 4</div><h5>写</h5><p>版本比对成功才提交；事件随新 revision 批量落库，失败整体回滚。</p></div>
+        </div>
+        <div class="block-h" style="margin-top:14px;">一条聚合，七张旁路表</div>
+        <div class="strip" style="margin-top:0;">
+          <b>真相：</b><code>paths</code>（聚合 JSON + version）。<br/>
+          <b>旁路：</b>事件（审计）· 题目事务（幂等锚点）· 题库（读模型）· 会话与消息（对话记忆）· 题卷与题目（练习域）。<br/>
+          旁路表都可以从聚合重建，但<b>从不反向写回</b>。
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>06 / 12</span></div>
+  </section>
+
+  <!-- 6 技术选型 -->
+  <section class="slide">
+    <div class="head"><div class="sec">03 技术选型</div><div class="title">每个选型都换来一个结构性质，也带来一个代价</div></div>
+    <div class="subtitle">"设想 → 现状 → 换来了什么 → 代价/待验证"，最后一列是第三部分要回答的问题。</div>
+    <table style="margin-top:8px;">
+      <thead>
+        <tr>
+          <th style="width:14%">层</th><th style="width:21%">Part I 设想</th><th style="width:24%">当前实现</th>
+          <th style="width:24%">换来了什么</th><th style="width:17%">代价 / 待验证</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="dim">界面与交互</td><td>Next.js 三模式工作区</td><td>Next.js 14 + Tailwind 语义令牌</td><td>三层动线；状态用"填充/环/描边"表达，不只靠颜色</td><td>暗色主题、移动端编辑</td></tr>
+        <tr><td class="dim">回合与智能体</td><td>通用 Agent Loop</td><td>自写 Loop + 23 工具 + 四类结束原因</td><td>事件顺序可断言；成本有上界；失败可解释</td><td>提示与工具契约漂移</td></tr>
+        <tr><td class="dim">判定与调度</td><td>规则引擎 + SM-2</td><td>domain 纯函数，零模型调用</td><td>离线可逐值断言；时间不再隐式（<code>now</code> 显式传入）</td><td>0.9 / 0.90 阈值标定</td></tr>
+        <tr><td class="dim">存储与一致性</td><td>SQLite + CAS</td><td>单聚合 JSON + version CAS + 8 张表</td><td>读一次拿全量；事件与状态同 revision 可对账</td><td>60 个知识点时的写放大</td></tr>
+        <tr><td class="dim">模型接入</td><td>供应商无关</td><td>OpenAI 兼容 SSE + 脚本化假客户端</td><td><code>tool_calls</code> 按 index 拼装；错误分类可控；测试离线</td><td>非兼容协议、工具选择准确率</td></tr>
+      </tbody>
+    </table>
+    <div class="tbl-note">JDK 21 · Spring Boot 3.5 · Maven Wrapper｜SQLite（WAL，单写者）｜Jackson｜JUnit 5 + AssertJ｜数据目录 <code>data/</code>（两库 + 一 JSON + 一目录）</div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>07 / 12</span></div>
+  </section>
+
+  <!-- 7 容器架构 -->
+  <section class="slide">
+    <div class="head"><div class="sec">03 容器架构</div><div class="title">两个进程、一个目录，模型是可拔掉的插件</div></div>
+    <div class="subtitle">单机本地优先：不配模型也能跑"出题 → 判分 → 掌握 → 复习"。</div>
+
+    <svg viewBox="0 0 1160 404" width="1160" height="404" style="margin-top:2px;">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#2563EB"/>
+        </marker>
+        <marker id="arA" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#C8761E"/>
+        </marker>
+      </defs>
+
+      <!-- 学习者 -->
+      <rect x="8" y="150" width="166" height="92" rx="8" fill="#fff" stroke="#C9D6E8"></rect>
+      <text x="91" y="180" text-anchor="middle" font-size="16" font-weight="800" fill="#1B3F73">学习者</text>
+      <text x="91" y="203" text-anchor="middle" font-size="12" fill="#8A94A6">浏览器 · 本地管理员</text>
+      <text x="91" y="222" text-anchor="middle" font-size="12" fill="#8A94A6">编辑 / 作答 / 配置</text>
+
+      <!-- 系统边界 -->
+      <rect x="208" y="14" width="600" height="380" rx="10" fill="#FBFDFF" stroke="#C9D6E8"></rect>
+      <text x="232" y="40" font-size="12.5" font-weight="800" fill="#1B3F73">MasteryPath 系统边界</text>
+
+      <!-- 前端 -->
+      <rect x="280" y="54" width="452" height="76" rx="8" fill="#EEF4FD" stroke="#BFD1EC"></rect>
+      <text x="300" y="82" font-size="15" font-weight="800" fill="#1B3F73">浏览器前端（Next.js 14）</text>
+      <text x="300" y="104" font-size="12" fill="#6B7A90">只读投影：图集 / 仪表盘 / 题库 · 写回合：学习工作区</text>
+
+      <!-- 后端 -->
+      <rect x="280" y="170" width="452" height="96" rx="8" fill="#EEF4FD" stroke="#2563EB"></rect>
+      <text x="300" y="198" font-size="15" font-weight="800" fill="#1B3F73">后端应用（Spring Boot 3.5 / JDK 21）</text>
+      <text x="300" y="220" font-size="12" fill="#6B7A90">REST · WS /ws · SSE ｜ TurnRunner · AgentLoop · 23 工具</text>
+      <text x="300" y="240" font-size="12" fill="#8A94A6">service 唯一写入口 · domain 零 I/O 判定</text>
+
+      <!-- 数据 -->
+      <rect x="280" y="306" width="452" height="66" rx="8" fill="#fff" stroke="#C9D6E8"></rect>
+      <text x="300" y="330" font-size="14" font-weight="800" fill="#1B3F73">数据目录 data/（单写者）</text>
+      <text x="300" y="352" font-size="11.5" fill="#6B7A90">learning.db（真相 + 旁路） · chat.db · settings.json · knowledge_bases/</text>
+
+      <!-- 外部：模型 -->
+      <rect x="884" y="112" width="268" height="92" rx="8" fill="#FDF3E7" stroke="#C8761E" stroke-dasharray="6 5"></rect>
+      <text x="902" y="138" font-size="14" font-weight="800" fill="#A8621A">模型提供方（OpenAI 兼容）</text>
+      <text x="902" y="159" font-size="11.5" fill="#8A6A3F">对话 / 出题 / 定性评估</text>
+      <text x="902" y="180" font-size="11.5" font-weight="700" fill="#C8761E">待验证：可替换 / 可缺省</text>
+
+      <!-- 外部：嵌入 -->
+      <rect x="884" y="232" width="268" height="78" rx="8" fill="#FDF3E7" stroke="#C8761E" stroke-dasharray="6 5"></rect>
+      <text x="902" y="258" font-size="14" font-weight="800" fill="#A8621A">嵌入服务（可选）</text>
+      <text x="902" y="279" font-size="11.5" fill="#8A6A3F">知识库向量化与检索</text>
+      <text x="902" y="299" font-size="11.5" font-weight="700" fill="#C8761E">未配置时检索返回空</text>
+
+      <!-- 连线 -->
+      <path d="M174 195 L280 96" stroke="#2563EB" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+      <text x="180" y="140" font-size="11" fill="#4A6B9A">浏览器操作</text>
+
+      <path d="M506 130 L506 170" stroke="#2563EB" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+      <text x="514" y="155" font-size="11" fill="#4A6B9A">HTTP · WS · SSE</text>
+
+      <path d="M506 266 L506 306" stroke="#2563EB" stroke-width="1.5" fill="none" marker-end="url(#ar)"></path>
+      <text x="514" y="292" font-size="11" fill="#4A6B9A">读写</text>
+
+      <path d="M732 200 L884 160" stroke="#C8761E" stroke-width="1.5" stroke-dasharray="6 5" fill="none" marker-end="url(#arA)"></path>
+      <text x="748" y="186" font-size="11" fill="#A8621A">HTTPS / JSON</text>
+
+      <path d="M732 240 L884 268" stroke="#C8761E" stroke-width="1.5" stroke-dasharray="6 5" fill="none" marker-end="url(#arA)"></path>
+      <text x="764" y="274" font-size="11" fill="#A8621A">检索</text>
+    </svg>
+
+    <div class="strip" style="margin-top:2px;">
+      <b>一次 WS 请求 = 1 次写入会话 + N 次模型调用（N ≤ 6）+ M 次写事务</b>：每次写工具最多 1 次 <code>mutate</code>，读工具 0 次；因此"回合成本"与"数据库写入次数"都是可计数的。
+      <span style="color:#A8621A;margin-left:10px;">实线 已实现 · 虚线 待 PoC 验证</span>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>08 / 12</span></div>
+  </section>
+
+  <!-- 8 交互设计 -->
+  <section class="slide">
+    <div class="head"><div class="sec">03 交互设计</div><div class="title">把"不确定的生成"收束成一条有序事件流</div></div>
+    <div class="subtitle">回合的价值不在文本，而在六步之内状态如何变化；下面三条顺序是硬约束。</div>
+
+    <div class="flowline">
+      <div class="fbox"><div class="k">01 装配</div><h6>读侧就绪</h6><p>快照 + 复盘 + 历史 + 工具表，一次装配</p></div>
+      <div class="farrow">›</div>
+      <div class="fbox"><div class="k">02 模型轮</div><h6>流式产出</h6><p>文本增量即时透传，工具调用累积</p></div>
+      <div class="farrow">›</div>
+      <div class="fbox"><div class="k">03 工具</div><h6>校验后执行</h6><p>先发 tool_call 再执行；失败不毒化回合</p></div>
+      <div class="farrow">›</div>
+      <div class="fbox"><div class="k">04 收口</div><h6>出题即结束</h6><p>以 turn_end(card) 收尾，等学习者作答</p></div>
+      <div class="farrow">›</div>
+      <div class="fbox"><div class="k">05 通知</div><h6>session_meta</h6><p>模式/路径若变，在 turn_end 之后推送</p></div>
+      <div class="farrow">›</div>
+      <div class="fbox"><div class="k">06 落库</div><h6>best-effort</h6><p>消息入历史；失败不回滚已完成的状态</p></div>
+    </div>
+
+    <div class="p8grid">
+      <figure class="p8shot">
+        <img src="assets/s4-graded.png" alt="作答后的题卡与判分反馈" />
+        <figcaption>① 题卡不含答案　② 判分先于讲解　③ 作答是下一条消息</figcaption>
+      </figure>
+      <div class="inv" style="grid-template-columns:1fr;gap:8px;margin-top:0;">
+        <div class="c">
+          <div class="n">顺序约束 1</div>
+          <h6>作答先判分，再让导师开口</h6>
+          <p>携带 <code>mastery_answer</code> 的回合，先判分并以 <code>tool_result</code> 回传；模型看不到未判分的答案。</p>
+        </div>
+        <div class="c">
+          <div class="n">顺序约束 2</div>
+          <h6>题卡是 tool_result 的投影</h6>
+          <p><code>question_card</code> 从工具结果的 metadata 派生；投影剔除答案，事件与历史共用同一份卡片。</p>
+        </div>
+        <div class="c">
+          <div class="n">顺序约束 3</div>
+          <h6>session_meta 在 turn_end 之后</h6>
+          <p>模式或路径可能被工具中途改掉；前端必须先收到"回合结束"，再收到"现在是什么模式"。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="strip" style="margin-top:12px;">
+      <b>失败路径：</b>模型错误或流中断 → 保留已产出的文本与题卡 → 发 <code>error(code, retryable)</code>，<b>不发 turn_end</b>；题卷路径例外（<code>error</code> + <code>turn_end(error)</code>），因为整卷是一次性产物。四类正常结束原因：<code>done</code> / <code>card</code> / <code>budget</code> / <code>max_rounds</code>。
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>09 / 12</span></div>
+  </section>
+
+  <!-- 9 现状与计划 -->
+  <section class="slide">
+    <div class="head"><div class="sec">04 原型现状与计划</div><div class="title">闭环已经跑通，假设还没有验</div></div>
+    <div class="subtitle">设计已落地为可运行系统；真正不确定的是"阈值、契约同步、生成质量、单机上限"。</div>
+    <div class="two-col" style="margin-top:6px;">
+      <div class="panel">
+        <div class="ph">已完成并验证</div>
+        <div class="pb">
+          <div class="item"><h5>三模式闭环与回合协议</h5><p>大纲共创 → 讲与考 → 到期复习；事件顺序、失败保留、模式回写均有契约测试。</p></div>
+          <div class="item"><h5>23 个工具与两层门控</h5><p>调用期门控 + 会话准入（学习需已有大纲）；分类表 fail-closed，未归类启动失败。</p></div>
+          <div class="item"><h5>确定性判定与单聚合一致性</h5><p>判分 / 门槛 / SM-2 纯函数；CAS 重试、事件同 revision、判分幂等。</p></div>
+          <div class="item"><h5>题库、知识库、设置与评测</h5><p>题库标签与刷题、文件夹来源与检索、提供方探测、大纲离线评测。</p></div>
+          <div class="evidence">证据：93 个测试文件 / 864 条用例 · G0–G7 八个 Gate · 投影契约与并发用例</div>
+        </div>
+      </div>
+      <div class="panel plan">
+        <div class="ph">待完成与待验证</div>
+        <div class="pb">
+          <div class="item"><h5>提示与工具契约的漂移</h5><p>提示包引用了 <code>ask_user</code> 与 <code>visual</code> 参数，但工具注册表与 schema 里没有——模型照做会得到 unknown tool。</p></div>
+          <div class="item"><h5>阈值标定</h5><p>0.9 / 0.90 / 0.60 / EF 2.5 都还是先验值，没有用真实作答校准。</p></div>
+          <div class="item"><h5>生成质量与练习卷可用率</h5><p>大纲 F1、有界性、无环；题卷结构合法率与"修复一次"的救回率。</p></div>
+          <div class="item"><h5>单机上限与密钥保护</h5><p>并发写、聚合写放大；无鉴权 + 明文 Key 的产品边界。</p></div>
+          <div class="evidence" style="background:var(--amber-soft);color:#8A6A3F;">下一步：第三部分用 PoC 把右侧四条变成数字</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>10 / 12</span></div>
+  </section>
+
+  <!-- 10 待验证问题 -->
+  <section class="slide">
+    <div class="head"><div class="sec">04 待验证的问题</div><div class="title">四个问题决定它是不是真的"好用"</div></div>
+    <div class="subtitle">每个问题都给出方法与判据——不达标就改设计，而不是改说法。</div>
+    <div class="quad" style="margin-top:10px;">
+      <div class="q">
+        <div class="tag">01 产品价值</div>
+        <h4>0.9 的门槛，会不会让正常人卡住？</h4>
+        <p>收集 200 条真实作答，两人独立双盲标注（对 / 错 / 无法判定），与引擎结论逐条比对。</p>
+        <div class="m">判据：<b>一致率 ≥90%</b> · 误判为正确 ≤2%</div>
+      </div>
+      <div class="q">
+        <div class="tag">02 契约同步</div>
+        <h4>提示与工具不同步时，模型会怎么退化？</h4>
+        <p>用脚本化假设模型故意调用不存在的能力，观察拒绝路径、回合是否继续、用户是否被误导；再补一份"提示—schema"一致性检查。</p>
+        <div class="m">判据：<b>0 次静默失败</b> · 拒绝文案可操作</div>
+      </div>
+      <div class="q">
+        <div class="tag">03 生成质量</div>
+        <h4>大纲与题卷守得住吗？</h4>
+        <p>30 个领域目标跑离线评测 CLI；20 次题卷生成统计结构合法率与"修复一次"的救回率。</p>
+        <div class="m">判据：<b>F1 ≥0.8</b> · 无环 · 题卷合法率 ≥90%</div>
+      </div>
+      <div class="q">
+        <div class="tag">04 架构上限</div>
+        <h4>单机单进程，能撑到什么程度？</h4>
+        <p>5 个并发写 + 持续读，观察 CAS 冲突率、写放大与读接口 P95；再测 60 个知识点路径的写延迟。</p>
+        <div class="m">判据：<b>P95 ≤300ms</b> · 冲突重试率 &lt;5%</div>
+      </div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>11 / 12</span></div>
+  </section>
+
+  <!-- 11 收尾 -->
+  <section class="slide">
+    <div class="thanks">
+      <h2>感谢聆听！</h2>
+      <div class="line"></div>
+      <div class="members">王君逸 · 程攀 · 卫梓豪 · 王沛璁</div>
+      <div class="path">完整设计工件：docs/design/（9 份工件 · 15 条 ADR · 15 条风险 · 12 个未决问题）</div>
+    </div>
+    <div class="footer"><span>MasteryPath · 系统设计</span><span>12 / 12</span></div>
+  </section>
+
+</div>
+
+<div class="hud" id="hud">← → 翻页 · A 总览 · P 打印</div>
+
+<script>
+  (function(){
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var i = 0, hud = document.getElementById('hud');
+    function show(n){
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach(function(s, k){ s.classList.toggle('active', k === i); });
+      hud.textContent = (i + 1) + ' / ' + slides.length + '　← → 翻页 · A 总览';
+      if (!document.body.classList.contains('overview')) {
+        slides[i].scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    }
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+      else if (e.key === 'a' || e.key === 'A') { document.body.classList.toggle('overview'); show(i); }
+      else if (e.key === 'p' || e.key === 'P') { window.print(); }
+    });
+    function fitDeck(){
+      var s = Math.min(1, (window.innerWidth - 56) / 1280);
+      document.documentElement.style.setProperty('--zoom', s.toFixed(3));
+    }
+    window.addEventListener('resize', fitDeck);
+    fitDeck();
+    show(0);
+  })();
+</script>
+</body>
+</html>

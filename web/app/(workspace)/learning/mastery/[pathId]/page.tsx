@@ -130,7 +130,9 @@ export default function MasteryTopicPage() {
             {noOutline ? t("dash.designOutline") : next.knowledge_point_name || t("dash.celebrate")}
           </div>
           <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
-            {noOutline ? t("dash.noOutline.body") : next.reason}
+            {noOutline
+              ? t("dash.noOutline.body")
+              : t(`dash.nextReason.${next.action}`, { defaultValue: "" })}
           </p>
         </div>
         <Link
